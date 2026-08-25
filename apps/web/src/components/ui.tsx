@@ -167,8 +167,13 @@ export function GameCard({
             className="size-full object-cover transition-transform duration-300 group-hover:scale-105"
           />
         ) : (
-          <div className="grid size-full place-items-center px-3 text-center text-sm text-ink-600">
-            {game.name}
+          // A neutral mark, not the title: the label below already carries the
+          // name, and printing it twice reads as a duplicate entry.
+          <div className="grid size-full place-items-center text-ink-700" aria-hidden>
+            <svg viewBox="0 0 24 24" className="size-8" fill="none" stroke="currentColor" strokeWidth="1.25">
+              <rect x="2" y="6" width="20" height="12" rx="4" />
+              <path d="M7 12h3M8.5 10.5v3M15.5 11.5h.01M17.5 13.5h.01" strokeLinecap="round" />
+            </svg>
           </div>
         )}
 

@@ -50,6 +50,21 @@ export interface ExternalGame {
    */
   minutesPlayedTotal?: number | null;
   lastPlayedAt?: Date | null;
+  /**
+   * Per-game achievement progress, when the provider includes it with the
+   * library for free.
+   *
+   * Xbox does; Steam does not. Carrying it here means a library can show
+   * progress for every title straight away, instead of waiting on the
+   * one-request-per-game sweep that fetches individual achievements.
+   */
+  achievementSummary?: {
+    unlocked: number;
+    /** Null when the provider's total is missing or known to be unreliable. */
+    total?: number | null;
+    points?: number | null;
+    totalPoints?: number | null;
+  };
   confidence: Confidence;
   raw?: Record<string, unknown>;
 }
@@ -101,6 +116,17 @@ export interface ProviderCapabilities {
   profile: CapabilityLevel;
   /** Provider can be re-synced incrementally rather than in full. */
   incrementalSync: boolean;
+  /**
+   * How many games' achievements one sync may fetch, when each costs a
+   * request. Omit for providers where the sweep is cheap.
+   *
+   * OpenXBL's free tier allows 150 requests an hour — about one every 24
+   * seconds — so sweeping a 37-game library in a single run takes a quarter of
+   * an hour and consumes the entire budget. Capping it lets each sync top up
+   * the next few games and finish over several runs, while a re-sync of an
+   * already-complete library costs almost nothing.
+   */
+  achievementSweepBudget?: number;
   /** Data arrives by user-supplied file rather than an API. */
   importOnly: boolean;
 }
@@ -180,6 +206,17 @@ export interface GamingProvider {
   }): Promise<AuthCompleteResult>;
 
   /**
+   * Connects without a browser round-trip.
+   *
+   * Present when the provider is reached through a key the *instance* holds
+   * rather than a per-user authorisation — OpenXBL works this way, where the
+   * API key already identifies exactly one account. The connect flow calls
+   * this instead of beginAuth when it exists, so the UI needs no special case
+   * beyond skipping the redirect.
+   */
+  connectDirect?(): Promise<AuthCompleteResult>;
+
+  /**
    * Refresh an expiring credential. Resolve to null when the provider has no
    * refresh concept (Steam) so callers need not special-case it.
    */
@@ -201,6 +238,15 @@ export interface GamingProvider {
 }
 
 export interface SyncOptions {
+  /**
+   * Provider ids to fetch *detailed* per-game data for.
+   *
+   * Some providers report a cheap summary for the whole library and charge a
+   * request per game for the rest — Xbox gives playtime only through a
+   * per-title stats call. The runner decides which games are worth spending
+   * on, since only it knows the budget and what has already been fetched.
+   */
+  detailFor?: string[];
   /** Opaque provider cursor from the last successful sync. */
   cursor?: string | null;
   /** Only return records changed after this instant, when supported. */

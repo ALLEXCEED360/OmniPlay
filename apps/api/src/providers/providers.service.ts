@@ -60,6 +60,15 @@ export class ProvidersService {
       throw new NotFoundException(`${providerId} is not available on this instance.`);
     }
 
+    // A provider reached through a key the instance holds has no browser
+    // round-trip to make — connecting is just discovering whose account the
+    // key speaks for. The flow branches on the capability, not the name.
+    if (provider.connectDirect) {
+      const result = await provider.connectDirect();
+      await this.persistConnection(userId, providerId, result);
+      return { connected: true as const };
+    }
+
     const redirectUri = this.callbackUrl(providerId);
     const start = await provider.beginAuth({ redirectUri });
 
@@ -122,8 +131,18 @@ export class ProvidersService {
       throw error;
     }
 
-    // Refuse to let two OMNIPLAY users claim the same provider account: the
-    // unique index would reject it anyway, but the message matters.
+    const account = await this.persistConnection(stateRow.userId, providerId, result);
+
+    return { account, returnTo: stateRow.returnTo, userId: stateRow.userId };
+  }
+
+  /** Writes the connection and its encrypted credentials. */
+  private async persistConnection(
+    userId: string,
+    providerId: ProviderId,
+    result: { account: { providerUserId: string; displayName: string | null; avatarUrl: string | null; profileUrl: string | null }; credentials: Parameters<typeof toCredentialRow>[0]; status: 'ACTIVE' | 'REAUTH_REQUIRED' | 'DISABLED' | 'REVOKED' },
+  ) {
+    // Refuse to let two OMNIPLAY users claim the same provider account.
     const claimedElsewhere = await this.prisma.client.connectedAccount.findUnique({
       where: {
         provider_providerUserId: {
@@ -133,16 +152,16 @@ export class ProvidersService {
       },
       select: { userId: true },
     });
-    if (claimedElsewhere && claimedElsewhere.userId !== stateRow.userId) {
+    if (claimedElsewhere && claimedElsewhere.userId !== userId) {
       throw new BadRequestException(
-        `That ${provider.displayName} account is already linked to another OMNIPLAY user.`,
+        `That ${providerId} account is already linked to another OMNIPLAY user.`,
       );
     }
 
     const account = await this.prisma.client.connectedAccount.upsert({
-      where: { userId_provider: { userId: stateRow.userId, provider: providerId } },
+      where: { userId_provider: { userId, provider: providerId } },
       create: {
-        userId: stateRow.userId,
+        userId,
         provider: providerId,
         providerUserId: result.account.providerUserId,
         displayName: result.account.displayName,
@@ -169,14 +188,10 @@ export class ProvidersService {
     });
 
     await this.prisma.client.auditLog.create({
-      data: {
-        userId: stateRow.userId,
-        action: 'provider.connect',
-        target: providerId,
-      },
+      data: { userId, action: 'provider.connect', target: providerId },
     });
 
-    return { account, returnTo: stateRow.returnTo, userId: stateRow.userId };
+    return account;
   }
 
   /**

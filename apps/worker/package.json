@@ -16,7 +16,8 @@
     "link:steam": "tsx --env-file-if-exists=../../.env src/dev/link-steam.ts",
     "sync": "tsx --env-file-if-exists=../../.env src/dev/sync-now.ts",
     "enrich": "tsx --env-file-if-exists=../../.env src/dev/enrich-now.ts",
-    "sweep": "tsx --env-file-if-exists=../../.env src/dev/sweep-queue.ts"
+    "sweep": "tsx --env-file-if-exists=../../.env src/dev/sweep-queue.ts",
+    "probe:xbox": "tsx --env-file-if-exists=../../.env src/dev/probe-openxbl.ts"
   },
   "dependencies": {
     "@omniplay/database": "workspace:*",

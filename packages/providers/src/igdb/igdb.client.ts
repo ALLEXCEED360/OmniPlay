@@ -126,8 +126,17 @@ export const IGDB_CATEGORY_TO_PROVIDER: Record<number, string> = {
   [IGDB_EXTERNAL_CATEGORY.STEAM]: 'steam',
   [IGDB_EXTERNAL_CATEGORY.GOG]: 'gog',
   [IGDB_EXTERNAL_CATEGORY.EPIC]: 'epic',
-  [IGDB_EXTERNAL_CATEGORY.XBOX_MARKETPLACE]: 'xbox',
   [IGDB_EXTERNAL_CATEGORY.PLAYSTATION_STORE]: 'psn',
+
+  // Xbox Marketplace is deliberately absent.
+  //
+  // It supplies *Microsoft Store product ids* ("9PC1D0103GFF", or a UUID),
+  // while the Xbox APIs identify games by numeric **titleId**. Filing both
+  // under provider "xbox" produced 16 mappings that no Xbox sync could ever
+  // match — dead rows that looked like working level-2 resolution.
+  //
+  // Adding them back needs a distinct provider id and a way to translate
+  // between the two id spaces, which no endpoint we have offers.
 };
 
 /** IGDB serves images at fixed size presets. */

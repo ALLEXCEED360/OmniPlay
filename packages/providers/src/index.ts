@@ -6,6 +6,7 @@ export * from './steam/steam.provider.js';
 export * from './steam/steam.auth.js';
 export * from './steam/steam.mapper.js';
 export * from './xbox/xbox.provider.js';
+export * from './xbox/openxbl.provider.js';
 export * from './xbox/xbox.tokens.js';
 export * from './igdb/igdb.client.js';
 export * from './import/csv.js';

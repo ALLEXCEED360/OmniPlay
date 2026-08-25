@@ -209,21 +209,64 @@ async function checkIgdb(): Promise<void> {
   }
 }
 
-function checkXbox(): void {
-  if (!process.env.XBOX_CLIENT_ID) {
+async function checkXbox(): Promise<void> {
+  const openXbl = process.env.OPENXBL_API_KEY;
+
+  // The OpenXBL route can actually be validated, unlike an Azure client id,
+  // because the key alone is enough to make a real call.
+  if (openXbl) {
+    try {
+      const response = await fetch('https://xbl.io/api/v2/account', {
+        headers: {
+          'X-Authorization': openXbl,
+          accept: 'application/json',
+          // Xbox rejects the wildcard locale fetch would otherwise imply.
+          'accept-language': 'en-US',
+        },
+        signal: AbortSignal.timeout(15_000),
+      });
+
+      if (response.status === 401 || response.status === 403) {
+        record({
+          name: 'Xbox',
+          status: 'fail',
+          detail: 'OpenXBL rejected the API key.',
+          fix: 'Check OPENXBL_API_KEY, or generate a new one at https://xbl.io',
+        });
+        return;
+      }
+      if (!response.ok) {
+        record({
+          name: 'Xbox',
+          status: 'warn',
+          detail: `OpenXBL returned ${response.status}.`,
+        });
+        return;
+      }
+
+      record({ name: 'Xbox', status: 'ok', detail: 'OpenXBL key works.' });
+      return;
+    } catch {
+      record({ name: 'Xbox', status: 'warn', detail: 'Could not reach OpenXBL to check.' });
+      return;
+    }
+  }
+
+  if (process.env.XBOX_CLIENT_ID) {
+    // Nothing to validate without a user completing the sign-in flow.
     record({
       name: 'Xbox',
-      status: 'warn',
-      detail: 'Not configured, so Xbox achievement history cannot be imported.',
-      fix: 'Register an Azure app and set XBOX_CLIENT_ID in .env',
+      status: 'ok',
+      detail: 'Azure client id set. Connect from Settings to verify the full flow.',
     });
     return;
   }
-  // Nothing to validate without a user completing the sign-in flow.
+
   record({
     name: 'Xbox',
-    status: 'ok',
-    detail: 'Client id set. Connect from Settings to verify the full flow.',
+    status: 'warn',
+    detail: 'Not configured, so Xbox achievements cannot be imported.',
+    fix: 'Easiest: get a free key at https://xbl.io and set OPENXBL_API_KEY in .env',
   });
 }
 
@@ -240,7 +283,7 @@ async function main(): Promise<void> {
   await checkRedis();
   checkSecrets();
   await checkSteam();
-  checkXbox();
+  await checkXbox();
   await checkIgdb();
 
   console.log();

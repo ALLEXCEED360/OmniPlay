@@ -206,7 +206,13 @@ describe('IgdbClient', () => {
       // Steam resolves at level 1 with no extra requests.
       expect(IGDB_CATEGORY_TO_PROVIDER[IGDB_EXTERNAL_CATEGORY.STEAM]).toBe('steam');
       expect(IGDB_CATEGORY_TO_PROVIDER[IGDB_EXTERNAL_CATEGORY.PLAYSTATION_STORE]).toBe('psn');
-      expect(IGDB_CATEGORY_TO_PROVIDER[IGDB_EXTERNAL_CATEGORY.XBOX_MARKETPLACE]).toBe('xbox');
+    });
+
+    it('does not map Xbox Marketplace, which is a different id space', () => {
+      // It supplies Microsoft Store product ids while the Xbox APIs use
+      // numeric titleIds. Mapping it created 16 identities that no Xbox sync
+      // could match — dead rows that looked like working resolution.
+      expect(IGDB_CATEGORY_TO_PROVIDER[IGDB_EXTERNAL_CATEGORY.XBOX_MARKETPLACE]).toBeUndefined();
     });
 
     it('uses the verified source ids, not the ones that look plausible', () => {

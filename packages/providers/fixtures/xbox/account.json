@@ -1,0 +1,26 @@
+{
+  "content": {
+    "profileUsers": [
+      {
+        "id": "2533274800000000",
+        "hostId": "2533274800000000",
+        "settings": [
+          {
+            "id": "Gamertag",
+            "value": "TestGamer"
+          },
+          {
+            "id": "GameDisplayPicRaw",
+            "value": "https://images-eds-ssl.xboxlive.com/image?url=PLACEHOLDER"
+          },
+          {
+            "id": "Gamerscore",
+            "value": "3410"
+          }
+        ],
+        "isSponsoredUser": false
+      }
+    ]
+  },
+  "code": 200
+}

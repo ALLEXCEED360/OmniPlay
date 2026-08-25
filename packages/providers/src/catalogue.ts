@@ -25,6 +25,8 @@ export interface ProviderCatalogueEntry {
   access: ProviderAccess;
   /** Environment variables that must be set for `access: 'api'` providers. */
   requires: string[];
+  /** When true, any one of `requires` is enough rather than all of them. */
+  requiresAnyOf?: boolean;
   /** Where to obtain those credentials. */
   setupUrl?: string;
   /** One or two sentences shown in the UI when the provider is unconfigured. */
@@ -49,10 +51,13 @@ export const PROVIDER_CATALOGUE: ProviderCatalogueEntry[] = [
     id: 'xbox',
     displayName: 'Xbox',
     access: 'api',
-    requires: ['XBOX_CLIENT_ID'],
-    setupUrl: 'https://portal.azure.com/#blade/Microsoft_AAD_RegisteredApps',
+    // Either route satisfies Xbox; `missingRequirements` treats this as
+    // "any one of", not "all of".
+    requires: ['OPENXBL_API_KEY', 'XBOX_CLIENT_ID'],
+    requiresAnyOf: true,
+    setupUrl: 'https://xbl.io',
     setupHint:
-      'Register an app in Azure with the delegated permissions XboxLive.signin and XboxLive.offline_access, then set XBOX_CLIENT_ID. A public-client registration needs no secret.',
+      'Easiest route: get a free API key at xbl.io and set OPENXBL_API_KEY. A personal Microsoft account cannot create an Azure app registration, so the direct route needs an Azure tenant first.',
   },
   {
     id: 'psn',
@@ -105,5 +110,10 @@ export function missingRequirements(
   entry: ProviderCatalogueEntry,
   env: Record<string, string | undefined>,
 ): string[] {
-  return entry.requires.filter((name) => !env[name]);
+  const missing = entry.requires.filter((name) => !env[name]);
+
+  // "Any one of" is satisfied as soon as a single variable is present, so an
+  // instance using OpenXBL is not told it is missing the Azure client id.
+  if (entry.requiresAnyOf && missing.length < entry.requires.length) return [];
+  return missing;
 }

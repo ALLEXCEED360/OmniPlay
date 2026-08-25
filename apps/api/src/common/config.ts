@@ -30,6 +30,14 @@ const schema = z.object({
 
   XBOX_CLIENT_ID: z.string().optional(),
   XBOX_CLIENT_SECRET: z.string().optional(),
+  /**
+   * OpenXBL API key — the Xbox route that needs no Azure tenant.
+   *
+   * This schema is the allow-list the registry is built from: a variable
+   * absent here is silently dropped, so the provider never registers however
+   * correct the .env is.
+   */
+  OPENXBL_API_KEY: z.string().optional(),
 
   IGDB_CLIENT_ID: z.string().optional(),
   IGDB_CLIENT_SECRET: z.string().optional(),

@@ -63,9 +63,20 @@ export function ProviderCard({ provider }: Props) {
         setError(body?.message ?? 'Could not start the connection.');
         return;
       }
-      const { redirectUrl } = (await response.json()) as { redirectUrl: string };
+      const result = (await response.json()) as
+        | { redirectUrl: string }
+        | { connected: true };
+
+      // A key-based provider (OpenXBL) connects server-side with no redirect,
+      // so there is nothing to navigate to — just show the result.
+      if ('connected' in result) {
+        router.refresh();
+        setBusy(false);
+        return;
+      }
+
       // Full navigation, not a fetch: the provider needs to see the browser.
-      window.location.href = redirectUrl;
+      window.location.href = result.redirectUrl;
     } catch {
       setError('Could not reach OMNIPLAY. Check your connection and try again.');
       setBusy(false);

@@ -139,6 +139,7 @@ model Game {
   activities       PlayActivity[]
   statuses         UserGameStatus[]
   achievements     Achievement[]
+  achievementSummaries GameAchievementSummary[]
   collectionGames  CollectionGame[]
   notes            UserGameNote[]
   relationsFrom    GameRelation[]         @relation("RelationFrom")
@@ -264,6 +265,7 @@ model User {
   notes       UserGameNote[]
   auditLogs   AuditLog[]
   imports     ImportBatch[]
+  achievementSummaries GameAchievementSummary[]
 }
 
 model Session {
@@ -451,6 +453,40 @@ model Achievement {
 
   @@unique([provider, externalId, gameId])
   @@index([gameId])
+}
+
+/// Per-game achievement progress as a provider reports it in bulk.
+///
+/// Distinct from `Achievement`/`UserAchievement`, which hold individual
+/// achievements we fetched one game at a time. Xbox returns a summary for the
+/// *whole* library in the same response as the title list — counts and
+/// gamerscore, at no extra request — while the names and unlock dates cost a
+/// request per game and therefore arrive slowly under a rate limit.
+///
+/// Keeping them apart means a library can show honest progress for every game
+/// immediately, and the detailed rows fill in behind it, without either
+/// pretending to be the other.
+model GameAchievementSummary {
+  id       String @id @default(cuid())
+  userId   String
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  gameId   String
+  game     Game   @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  provider String
+
+  /// How many the user has unlocked.
+  unlocked    Int
+  /// How many exist. Null when the provider reports it unreliably — Xbox
+  /// returns totalAchievements: 0 for titles that plainly have some.
+  total       Int?
+  /// Provider-native score earned, e.g. Gamerscore. Null where there is none.
+  points      Int?
+  totalPoints Int?
+
+  observedAt DateTime @default(now())
+
+  @@unique([userId, gameId, provider])
+  @@index([userId])
 }
 
 model UserAchievement {

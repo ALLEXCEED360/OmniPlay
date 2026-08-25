@@ -36,7 +36,10 @@ interface YearStats {
   totalMinutes: number;
   completed: number;
   newGames: number;
-  topGenres: Array<{ genre: string; minutes: number }>;
+  achievementsUnlocked: number;
+  /** Which measure topGenres is ranked by — see the Gaming DNA panel. */
+  genreBasis: 'playtime' | 'achievements' | 'none';
+  topGenres: Array<{ genre: string; minutes: number; unlocks?: number }>;
   topGames: Array<{ name?: string; slug?: string; minutes: number }>;
 }
 
@@ -49,7 +52,7 @@ export default async function StatsPage() {
 
   const providerMinutes = Object.entries(overview.playtime.byProvider).sort((a, b) => b[1] - a[1]);
   const maxProviderMinutes = Math.max(1, ...providerMinutes.map(([, m]) => m));
-  const maxGenreMinutes = Math.max(1, ...thisYear.topGenres.map((g) => g.minutes));
+  const maxGenreWeight = Math.max(1, ...thisYear.topGenres.map((g) => g.unlocks ?? g.minutes));
 
   return (
     <>
@@ -73,10 +76,19 @@ export default async function StatsPage() {
         <SectionHeading>Your {currentYear}</SectionHeading>
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           <StatCard label="Games played" value={thisYear.gamesPlayed} />
-          <StatCard label="Hours" value={formatHours(thisYear.totalMinutes)} />
+          <StatCard label="Achievements" value={thisYear.achievementsUnlocked} accent />
           <StatCard label="Completed" value={thisYear.completed} />
           <StatCard label="New games" value={thisYear.newGames} />
         </div>
+
+        {thisYear.totalMinutes === 0 && thisYear.gamesPlayed > 0 ? (
+          <p className="mt-4">
+            <ConfidenceNote>
+              No hours are shown for {currentYear} because your platforms report playtime as an
+              undated lifetime total. What you played, and when, comes from achievement unlocks.
+            </ConfidenceNote>
+          </p>
+        ) : null}
       </section>
 
       <div className="mt-10 grid gap-6 lg:grid-cols-2">
@@ -107,18 +119,35 @@ export default async function StatsPage() {
               Not enough genre data yet. Metadata arrives as games are matched against IGDB.
             </p>
           ) : (
-            <div className="space-y-4">
-              {thisYear.topGenres.map((genre) => (
-                <ProportionBar
-                  key={genre.genre}
-                  label={genre.genre}
-                  value={genre.minutes}
-                  max={maxGenreMinutes}
-                  caption={formatHours(genre.minutes)}
-                  tone="violet"
-                />
-              ))}
-            </div>
+            <>
+              <div className="space-y-4">
+                {thisYear.topGenres.map((genre) => (
+                  <ProportionBar
+                    key={genre.genre}
+                    label={genre.genre}
+                    value={genre.unlocks ?? genre.minutes}
+                    max={maxGenreWeight}
+                    caption={
+                      thisYear.genreBasis === 'achievements'
+                        ? `${genre.unlocks ?? 0} unlocks`
+                        : formatHours(genre.minutes)
+                    }
+                    tone="violet"
+                  />
+                ))}
+              </div>
+
+              {/* Which measure this is ranked by, stated rather than implied —
+                  "Adventure 363" means nothing without knowing the unit. */}
+              {thisYear.genreBasis === 'achievements' ? (
+                <p className="mt-4">
+                  <ConfidenceNote>
+                    Ranked by achievements unlocked, not hours: your platforms do not date their
+                    playtime, so hours cannot be attributed to a genre or a year.
+                  </ConfidenceNote>
+                </p>
+              ) : null}
+            </>
           )}
         </section>
       </div>

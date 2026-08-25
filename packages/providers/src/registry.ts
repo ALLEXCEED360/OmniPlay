@@ -1,6 +1,7 @@
 import type { GamingProvider, ProviderId } from '@omniplay/types';
 import { SteamProvider } from './steam/steam.provider.js';
 import { XboxProvider } from './xbox/xbox.provider.js';
+import { OpenXblProvider } from './xbox/openxbl.provider.js';
 import { ImportProvider, type ImportRecordLoader } from './import/import.provider.js';
 import {
   IMPORT_PROVIDER_IDS,
@@ -100,6 +101,7 @@ export interface ProviderRegistryEnv {
   STEAM_REALM?: string | undefined;
   XBOX_CLIENT_ID?: string | undefined;
   XBOX_CLIENT_SECRET?: string | undefined;
+  OPENXBL_API_KEY?: string | undefined;
 }
 
 export interface ProviderRegistryDeps {
@@ -123,7 +125,13 @@ export function createProviderRegistry(
     );
   }
 
-  if (env.XBOX_CLIENT_ID) {
+  // Two routes to the same Xbox data. OpenXBL wins when configured: it needs
+  // only an API key, whereas the direct route needs an Azure tenant that a
+  // personal Microsoft account does not have. Both satisfy the same interface,
+  // so nothing downstream can tell which one answered.
+  if (env.OPENXBL_API_KEY) {
+    registry.register(new OpenXblProvider({ apiKey: env.OPENXBL_API_KEY }));
+  } else if (env.XBOX_CLIENT_ID) {
     registry.register(
       new XboxProvider({
         clientId: env.XBOX_CLIENT_ID,

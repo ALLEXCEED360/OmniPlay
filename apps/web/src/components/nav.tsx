@@ -15,6 +15,7 @@ const NAV_ITEMS = [
   { href: '/library', label: 'Library', icon: 'library' },
   { href: '/collections', label: 'Collections', icon: 'stack' },
   { href: '/timeline', label: 'Timeline', icon: 'clock' },
+  { href: '/achievements', label: 'Achievements', icon: 'trophy' },
   { href: '/stats', label: 'Statistics', icon: 'chart' },
   { href: '/settings', label: 'Settings', icon: 'gear' },
 ] as const;
@@ -124,6 +125,7 @@ function NavIcon({ name }: { name: string }) {
     chart: 'M5 20V10M12 20V4M19 20v-7',
     stack: 'M12 3l9 5-9 5-9-5 9-5zM3 13l9 5 9-5M3 17l9 5 9-5',
     shield: 'M12 3l8 3v6c0 4.4-3.2 7.9-8 9-4.8-1.1-8-4.6-8-9V6l8-3z',
+    trophy: 'M7 4h10v5a5 5 0 01-10 0V4zM7 6H4v1a3 3 0 003 3M17 6h3v1a3 3 0 01-3 3M9 19h6M12 14v5',
     gear: 'M12 15a3 3 0 100-6 3 3 0 000 6zM19.4 15a1.7 1.7 0 00.3 1.9l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-2.9 1.2V21a2 2 0 11-4 0v-.1A1.7 1.7 0 004.6 19l-.1.1a2 2 0 11-2.8-2.8l.1-.1A1.7 1.7 0 003 13.4H3a2 2 0 110-4h.1A1.7 1.7 0 004.9 6.6l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.9.3H10a1.7 1.7 0 001-1.5V2a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.9-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.9V9a1.7 1.7 0 001.5 1H22a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z',
   };
 

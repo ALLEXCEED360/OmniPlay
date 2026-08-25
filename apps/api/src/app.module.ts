@@ -9,6 +9,7 @@ import { HealthModule } from './health/health.module.js';
 import { CollectionsModule } from './collections/collections.module.js';
 import { ProfileModule } from './profile/profile.module.js';
 import { AdminModule } from './admin/admin.module.js';
+import { AchievementsModule } from './achievements/achievements.module.js';
 
 /**
  * Modular monolith (spec 1: "modular monolith + background workers + provider
@@ -27,6 +28,7 @@ import { AdminModule } from './admin/admin.module.js';
     CollectionsModule,
     ProfileModule,
     AdminModule,
+    AchievementsModule,
   ],
 })
 export class AppModule {}

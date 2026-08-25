@@ -89,21 +89,20 @@ export class SyncRunner {
         this.logGameFailure(request, game, error);
       }
 
-      // Progress is reported per batch, not per game: a 3,000-game library
-      // would otherwise generate 3,000 Redis publishes and DB writes.
-      if (stats.fetched % 50 === 0) {
+      // Progress is batched, not per game: a 3,000-game library would
+      // otherwise generate 3,000 Redis publishes and database writes.
+      //
+      // Every 20 rather than every 50, because a 37-game Xbox library never
+      // reached the old threshold and so reported "0 processed" for the whole
+      // run — which reads as a hung sync rather than a working one.
+      if (stats.fetched % 20 === 0) {
         await this.report(request, 'library', null, stats, 'RUNNING');
-        await prisma.syncJob.update({
-          where: { id: request.syncJobId },
-          data: {
-            recordsFetched: stats.fetched,
-            recordsCreated: stats.created,
-            recordsUpdated: stats.updated,
-            recordsFailed: stats.failed,
-          },
-        });
+        await this.flushProgress(request, stats, 'library');
       }
     }
+
+    // Always flush once the library is in, regardless of how it divided.
+    await this.flushProgress(request, stats, 'library');
 
     // ---- Previously-owned detection ------------------------------------
     // Only meaningful after a complete read: an incremental sync legitimately
@@ -113,10 +112,20 @@ export class SyncRunner {
     }
 
     // ---- Play history --------------------------------------------------
+    //
+    // Chosen once and reused: for a provider that charges a request per game,
+    // the same budgeted set gets both its playtime and its achievements, so a
+    // "checked" title comes back fully rather than half-populated.
+    const detailFor = await this.planDetailSweep(provider, gameIdByExternalId);
+
     if (provider.getPlayHistory) {
       await this.report(request, 'playtime', null, stats, 'RUNNING');
+      await this.flushProgress(request, stats, 'playtime');
       try {
-        for await (const event of provider.getPlayHistory(session, { full: request.full })) {
+        for await (const event of provider.getPlayHistory(session, {
+          full: request.full,
+          detailFor,
+        })) {
           const gameId = gameIdByExternalId.get(event.externalGameId);
           // An activity for a title the library pass never yielded has nothing
           // to attach to; skipping beats inventing a canonical game for it.
@@ -133,7 +142,8 @@ export class SyncRunner {
     // ---- Achievements --------------------------------------------------
     if (request.includeAchievements && provider.getAchievements) {
       await this.report(request, 'achievements', null, stats, 'RUNNING');
-      await this.ingestAchievements(provider, session, request, gameIdByExternalId, stats);
+      await this.flushProgress(request, stats, 'achievements');
+      await this.ingestAchievements(provider, session, request, gameIdByExternalId, stats, detailFor);
     }
 
     // ---- Finalise ------------------------------------------------------
@@ -187,6 +197,35 @@ export class SyncRunner {
   /* ---------------------------------------------------------------- *
    * Steps
    * ---------------------------------------------------------------- */
+
+  /**
+   * Writes counters and the current phase to the SyncJob row.
+   *
+   * The phase matters as much as the counts: it was previously set once at
+   * startup and never again, so both the progress UI and the CLI reported
+   * "authenticating" for the entire run — including the several minutes an
+   * Xbox achievement sweep spends fetching.
+   */
+  private async flushProgress(
+    request: SyncRequest,
+    stats: SyncStats,
+    phase?: string,
+  ): Promise<void> {
+    await this.deps.prisma.syncJob
+      .update({
+        where: { id: request.syncJobId },
+        data: {
+          ...(phase ? { phase } : {}),
+          recordsFetched: stats.fetched,
+          recordsCreated: stats.created,
+          recordsUpdated: stats.updated,
+          recordsFailed: stats.failed,
+        },
+      })
+      .catch(() => {
+        // Progress reporting must never fail the sync it is describing.
+      });
+  }
 
   /** Loads credentials, refreshing them first when they are near expiry. */
   private async loadSession(
@@ -293,6 +332,28 @@ export class SyncRunner {
       else stats.created++;
     }
 
+    // Progress the provider handed over for free with the library. Written
+    // separately from individual achievements so a game can show honest
+    // progress long before the per-game sweep reaches it.
+    if (game.achievementSummary) {
+      const summary = game.achievementSummary;
+      const fields = {
+        unlocked: summary.unlocked,
+        total: summary.total ?? null,
+        points: summary.points ?? null,
+        totalPoints: summary.totalPoints ?? null,
+        observedAt: now,
+      };
+
+      await prisma.gameAchievementSummary.upsert({
+        where: {
+          userId_gameId_provider: { userId: request.userId, gameId: outcome.gameId, provider },
+        },
+        create: { userId: request.userId, gameId: outcome.gameId, provider, ...fields },
+        update: fields,
+      });
+    }
+
     // Steam reports a lifetime total on the library record itself rather than
     // as a play event, so it is captured here.
     if (game.minutesPlayedTotal && game.minutesPlayedTotal > 0) {
@@ -360,11 +421,16 @@ export class SyncRunner {
     request: SyncRequest,
     gameIdByExternalId: Map<string, string>,
     stats: SyncStats,
+    detailFor: string[],
   ): Promise<void> {
     if (!provider.getAchievements) return;
     const { prisma } = this.deps;
 
-    for (const [externalId, gameId] of gameIdByExternalId) {
+    const targets = detailFor
+      .map((externalId) => [externalId, gameIdByExternalId.get(externalId)] as const)
+      .filter((entry): entry is [string, string] => entry[1] !== undefined);
+
+    for (const [externalId, gameId] of targets) {
       try {
         for await (const achievement of provider.getAchievements(session, externalId)) {
           const row = await prisma.achievement.upsert({
@@ -412,6 +478,9 @@ export class SyncRunner {
             },
           });
         }
+        // Stamped whether or not anything came back, so a title with no
+        // achievements is not asked again on every future sync.
+        await this.markAchievementsChecked(provider.id, externalId);
       } catch (error) {
         // Achievements are a bonus pass; a failure here must not undo the
         // library import that already succeeded.
@@ -419,6 +488,94 @@ export class SyncRunner {
         this.logPhaseFailure(request, `achievements:${externalId}`, error);
       }
     }
+  }
+
+  /** Records that a title's achievements were requested, whatever came back. */
+  private async markAchievementsChecked(
+    provider: ProviderId,
+    externalId: string,
+  ): Promise<void> {
+    const identity = await this.deps.prisma.externalGameIdentity.findUnique({
+      where: { provider_externalId: { provider, externalId } },
+      select: { externalMetadata: true },
+    });
+    if (!identity) return;
+
+    const meta = (identity.externalMetadata as Record<string, unknown> | null) ?? {};
+
+    await this.deps.prisma.externalGameIdentity
+      .update({
+        where: { provider_externalId: { provider, externalId } },
+        data: {
+          externalMetadata: { ...meta, achievementsCheckedAt: new Date().toISOString() },
+        },
+      })
+      .catch(() => {
+        // Bookkeeping only: losing a stamp costs one repeated request later.
+      });
+  }
+
+  /**
+   * Chooses which games get per-game detail this run.
+   *
+   * Unbounded, this is one request per game — fine for Steam, ruinous for a
+   * provider capped at 150 requests an hour, where a 37-game library would
+   * occupy a single sync for a quarter of an hour and exhaust the budget.
+   *
+   * When a provider declares a budget, games with no achievement data yet are
+   * taken first, so each run tops up the gaps and a library completes over
+   * several syncs. A re-sync of an already-covered library then costs almost
+   * nothing, which is the common case.
+   */
+  private async planDetailSweep(
+    provider: GamingProvider,
+    gameIdByExternalId: Map<string, string>,
+  ): Promise<string[]> {
+    const budget = provider.capabilities.achievementSweepBudget;
+    const all = [...gameIdByExternalId.keys()];
+
+    if (budget === undefined || all.length <= budget) return all;
+
+    // Ordered by when each title was last *asked*, not by whether it produced
+    // anything.
+    //
+    // Selecting on "has no achievement rows" looked right and stalled: plenty
+    // of titles genuinely have no achievements — apps, and games that never
+    // defined any — so they stayed uncovered forever, were re-picked every
+    // run, and permanently consumed most of the budget. One sync spent 8
+    // requests to cover 2 games for exactly this reason.
+    const identities = await this.deps.prisma.externalGameIdentity.findMany({
+      where: { provider: provider.id, externalId: { in: all } },
+      select: { externalId: true, externalMetadata: true },
+    });
+
+    const checkedAt = new Map<string, number>();
+    for (const identity of identities) {
+      const meta = identity.externalMetadata as Record<string, unknown> | null;
+      const stamp = typeof meta?.['achievementsCheckedAt'] === 'string'
+        ? Date.parse(meta['achievementsCheckedAt'] as string)
+        : Number.NaN;
+      if (Number.isFinite(stamp)) checkedAt.set(identity.externalId, stamp);
+    }
+
+    // Never asked first, then longest ago — so a full library is covered in
+    // ceil(n / budget) syncs and then refreshes on a rotation.
+    const ordered = [...all].sort((a, b) => {
+      const left = checkedAt.get(a) ?? -Infinity;
+      const right = checkedAt.get(b) ?? -Infinity;
+      return left - right;
+    });
+
+    const neverChecked = all.length - checkedAt.size;
+
+    // eslint-disable-next-line no-console
+    console.log(
+      `[sync] ${provider.id}: fetching per-game detail (playtime + achievements) for ` +
+        `${Math.min(budget, ordered.length)} of ${all.length} games this run ` +
+        `(${neverChecked} never checked).`,
+    );
+
+    return ordered.slice(0, budget);
   }
 
   /**

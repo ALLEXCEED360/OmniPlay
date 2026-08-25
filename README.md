@@ -98,7 +98,7 @@ changes that — see [docs/feasibility.md](docs/feasibility.md).
 | Platform | How it connects | What you need |
 |---|---|---|
 | **Steam** | Real API | [Web API key](https://steamcommunity.com/dev/apikey) → `STEAM_API_KEY`. Your profile *and* "Game details" must be Public |
-| **Xbox** | Real API | Azure app registration → `XBOX_CLIENT_ID`. Delegated `XboxLive.signin` + `XboxLive.offline_access` |
+| **Xbox** | Real API | [OpenXBL key](https://xbl.io) → `OPENXBL_API_KEY` (no Azure needed), *or* an Azure app → `XBOX_CLIENT_ID` |
 | **PlayStation** | File import | No public consumer API exists |
 | **Ubisoft Connect** | File import | No public API; community endpoints need your password, which we will not ask for |
 | **EA** | File import | No public API for the EA app |
@@ -277,7 +277,34 @@ sync pipeline with rate limiting and circuit breaking, dashboard, library, game
 pages, timeline, statistics, collections, public profiles, settings.
 
 Also implemented: IGDB metadata enrichment, the admin mapping queue, canonical
-game merging, and duplicate detection.
+game merging, duplicate detection, an achievements screen, and Xbox through
+either OpenXBL or a direct Azure registration.
+
+### A note on Xbox
+
+Two adapters satisfy the same `GamingProvider` interface. **OpenXBL** needs only
+an API key; the **direct** route needs an Azure app registration, which a
+personal Microsoft account cannot create — the portal places such accounts in a
+restricted tenant where registration is refused. The registry prefers OpenXBL
+when its key is present, and nothing downstream can tell which one answered.
+
+Xbox gives **achievements and evidence of play, not a library**: title history
+is achievement-derived. The one genuine entitlement signal is `isGamePass`,
+recorded as `SUBSCRIPTION`.
+
+Playtime *is* available, but not with the library — Xbox keeps `MinutesPlayed`
+in a per-title stats collection, one request per game. So hours arrive a few
+titles at a time rather than all at once.
+
+OpenXBL's free tier allows **150 requests an hour** — about one every 24
+seconds. Per-game detail (playtime *and* achievements) is therefore fetched for
+a bounded number of titles per sync (`achievementSweepBudget`), ordered by when
+each was last asked rather than by whether it returned anything. Selecting on
+"has no achievements" stalled: titles that genuinely have none stayed eligible
+forever and consumed the budget on every run.
+
+Run a sync a few times to fill a library in; each pass covers the next several
+games and a re-sync of covered ones costs almost nothing.
 
 Not yet: Gaming Wrapped, additional platforms (Epic, GOG), achievement detail
 pages.
