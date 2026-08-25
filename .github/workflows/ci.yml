@@ -41,9 +41,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # No `version:` here on purpose. The action reads package.json's
+      # `packageManager` field, and specifying both makes it fail outright with
+      # ERR_PNPM_BAD_PM_VERSION. `packageManager` is the better single source of
+      # truth: it pins an exact version and is what local machines honour too.
       - uses: pnpm/action-setup@v4
-        with:
-          version: 11
 
       - uses: actions/setup-node@v4
         with:
