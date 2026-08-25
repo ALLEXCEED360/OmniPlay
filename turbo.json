@@ -1,0 +1,17 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "globalEnv": [
+    "NODE_ENV", "DATABASE_URL", "REDIS_URL", "SESSION_SECRET", "CREDENTIAL_ENCRYPTION_KEY",
+    "STEAM_API_KEY", "STEAM_REALM", "STEAM_RETURN_URL",
+    "XBOX_CLIENT_ID", "XBOX_CLIENT_SECRET", "XBOX_REDIRECT_URI",
+    "IGDB_CLIENT_ID", "IGDB_CLIENT_SECRET",
+    "API_URL", "WEB_URL", "NEXT_PUBLIC_API_URL"
+  ],
+  "tasks": {
+    "build": { "dependsOn": ["^build"], "outputs": ["dist/**", ".next/**", "!.next/cache/**"] },
+    "typecheck": { "dependsOn": ["^build"] },
+    "test": { "dependsOn": ["^build"] },
+    "lint": {},
+    "dev": { "cache": false, "persistent": true }
+  }
+}

@@ -1,0 +1,5 @@
+[
+  { "id": 6, "name": "PC (Microsoft Windows)", "slug": "win", "abbreviation": "PC" },
+  { "id": 48, "name": "PlayStation 4", "slug": "ps4--1", "abbreviation": "PS4", "generation": 8 },
+  { "id": 167, "name": "PlayStation 5", "slug": "ps5", "abbreviation": "PS5", "generation": 9 }
+]

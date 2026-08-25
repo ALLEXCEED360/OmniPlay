@@ -1,0 +1,805 @@
+[
+  {
+    "id": 1877,
+    "aggregated_rating": 75.23809523809524,
+    "alternative_names": [
+      {
+        "id": 71590,
+        "name": "\u8d5b\u535a\u670b\u514b2077"
+      },
+      {
+        "id": 71591,
+        "name": "\u96fb\u99ad\u53db\u5ba22077"
+      },
+      {
+        "id": 71593,
+        "name": "\u041a\u0438\u0431\u0435\u0440\u043f\u0430\u043d\u043a 2077"
+      },
+      {
+        "id": 53534,
+        "name": "\uc0ac\ud391"
+      },
+      {
+        "id": 282431,
+        "name": "\u30b5\u30a4\u30d0\u30fc\u30d1\u30f3\u30af2077"
+      }
+    ],
+    "artworks": [
+      {
+        "id": 5034,
+        "image_id": "ig0frvvkkz4jx7cyqt3f"
+      },
+      {
+        "id": 4942,
+        "image_id": "j3edunidfkbuivcingaw"
+      },
+      {
+        "id": 5035,
+        "image_id": "pgrmxtckblxm3pfdu5hu"
+      },
+      {
+        "id": 5036,
+        "image_id": "c6gonpyuhueh0eq38n8l"
+      },
+      {
+        "id": 5038,
+        "image_id": "whzi8cruaewea9k2tbgn"
+      },
+      {
+        "id": 8066,
+        "image_id": "ar682"
+      },
+      {
+        "id": 8743,
+        "image_id": "ar6qv"
+      },
+      {
+        "id": 168498,
+        "image_id": "ar3m0i"
+      },
+      {
+        "id": 168500,
+        "image_id": "ar3m0k"
+      },
+      {
+        "id": 168499,
+        "image_id": "ar3m0j"
+      },
+      {
+        "id": 168502,
+        "image_id": "ar3m0m"
+      },
+      {
+        "id": 168501,
+        "image_id": "ar3m0l"
+      },
+      {
+        "id": 170540,
+        "image_id": "ar3nl8"
+      },
+      {
+        "id": 168503,
+        "image_id": "ar3m0n"
+      }
+    ],
+    "cover": {
+      "id": 490508,
+      "image_id": "coaih8"
+    },
+    "external_games": [
+      {
+        "id": 2070653,
+        "uid": "2093619782",
+        "external_game_source": 5
+      },
+      {
+        "id": 2068956,
+        "uid": "1423049311",
+        "external_game_source": 5
+      },
+      {
+        "id": 189454,
+        "uid": "UCK7iyXVOKvIOsGPKDo1YO2g",
+        "external_game_source": 10
+      },
+      {
+        "id": 247945,
+        "uid": "65876",
+        "external_game_source": 14
+      },
+      {
+        "id": 122112,
+        "uid": "38456",
+        "external_game_source": 3
+      },
+      {
+        "id": 2118409,
+        "uid": "5ff650f5-31c4-4557-96b9-cd6e7f64e979",
+        "external_game_source": 26
+      },
+      {
+        "id": 2626722,
+        "uid": "5e0277378de542ce9bf891d2f919d6c8",
+        "external_game_source": 26
+      },
+      {
+        "id": 3154355,
+        "uid": "BX3M8L83BBRW",
+        "external_game_source": 54
+      },
+      {
+        "id": 2175515,
+        "uid": "234567",
+        "external_game_source": 36
+      },
+      {
+        "id": 2082423,
+        "uid": "BX3M8L83BBRW",
+        "external_game_source": 11
+      },
+      {
+        "id": 1726346,
+        "uid": "1091500",
+        "external_game_source": 1
+      },
+      {
+        "id": 1941503,
+        "uid": "B08KSY7W6T",
+        "external_game_source": 20
+      },
+      {
+        "id": 1936888,
+        "uid": "B07S7RQST5",
+        "external_game_source": 20
+      },
+      {
+        "id": 1942981,
+        "uid": "B08LB251M1",
+        "external_game_source": 20
+      },
+      {
+        "id": 1934523,
+        "uid": "B07SX2ZRLK",
+        "external_game_source": 20
+      },
+      {
+        "id": 1936837,
+        "uid": "B07SD24SRT",
+        "external_game_source": 20
+      },
+      {
+        "id": 1943939,
+        "uid": "B08LWNRHBG",
+        "external_game_source": 20
+      },
+      {
+        "id": 1937644,
+        "uid": "B07DNQ52Q6",
+        "external_game_source": 20
+      },
+      {
+        "id": 1934165,
+        "uid": "B07SF1LZ9Q",
+        "external_game_source": 20
+      },
+      {
+        "id": 1936238,
+        "uid": "B07SSZMB6Z",
+        "external_game_source": 20
+      },
+      {
+        "id": 1936138,
+        "uid": "B07SRT8VK5",
+        "external_game_source": 20
+      },
+      {
+        "id": 1937073,
+        "uid": "B07T7J2CND",
+        "external_game_source": 20
+      },
+      {
+        "id": 1933912,
+        "uid": "B07DNXK7CW",
+        "external_game_source": 20
+      },
+      {
+        "id": 1937050,
+        "uid": "B07SBWXC2Y",
+        "external_game_source": 20
+      },
+      {
+        "id": 1928783,
+        "uid": "B07TCJ8S2V",
+        "external_game_source": 20
+      },
+      {
+        "id": 1934082,
+        "uid": "B07S9RCDH6",
+        "external_game_source": 20
+      },
+      {
+        "id": 1937356,
+        "uid": "B07SV2MN1J",
+        "external_game_source": 20
+      },
+      {
+        "id": 2167641,
+        "uid": "B07TMH1N6J",
+        "external_game_source": 20
+      },
+      {
+        "id": 2515136,
+        "uid": "B0B5LTKMMV",
+        "external_game_source": 20
+      },
+      {
+        "id": 1936549,
+        "uid": "B07R4NJVCJ",
+        "external_game_source": 20
+      },
+      {
+        "id": 1936425,
+        "uid": "B07R5NSN73",
+        "external_game_source": 20
+      },
+      {
+        "id": 1933429,
+        "uid": "B07TPNV73G",
+        "external_game_source": 20
+      },
+      {
+        "id": 1932820,
+        "uid": "B07TNL34SX",
+        "external_game_source": 20
+      },
+      {
+        "id": 1928405,
+        "uid": "B07DJW4WZC",
+        "external_game_source": 20
+      },
+      {
+        "id": 1928338,
+        "uid": "B07DJWBYKP",
+        "external_game_source": 20
+      },
+      {
+        "id": 1936438,
+        "uid": "B07R6MLQHZ",
+        "external_game_source": 20
+      },
+      {
+        "id": 1934063,
+        "uid": "B07S6MW77X",
+        "external_game_source": 20
+      },
+      {
+        "id": 1934268,
+        "uid": "B07SRWS7N7",
+        "external_game_source": 20
+      },
+      {
+        "id": 1928399,
+        "uid": "B07T8BP118",
+        "external_game_source": 20
+      },
+      {
+        "id": 1937283,
+        "uid": "B07S8QSLVY",
+        "external_game_source": 20
+      },
+      {
+        "id": 1936985,
+        "uid": "B07SBX11XT",
+        "external_game_source": 20
+      },
+      {
+        "id": 1935828,
+        "uid": "B07TMH1N6J",
+        "external_game_source": 20
+      }
+    ],
+    "first_release_date": 1607558400,
+    "franchises": [
+      {
+        "id": 451,
+        "name": "Cyberpunk"
+      }
+    ],
+    "genres": [
+      {
+        "id": 5,
+        "name": "Shooter"
+      },
+      {
+        "id": 12,
+        "name": "Role-playing (RPG)"
+      },
+      {
+        "id": 31,
+        "name": "Adventure"
+      }
+    ],
+    "involved_companies": [
+      {
+        "id": 93176,
+        "company": {
+          "id": 774,
+          "name": "QLOC"
+        },
+        "developer": false,
+        "publisher": false
+      },
+      {
+        "id": 113775,
+        "company": {
+          "id": 6580,
+          "name": "Digital Scapes Studios"
+        },
+        "developer": false,
+        "publisher": false
+      },
+      {
+        "id": 113776,
+        "company": {
+          "id": 19166,
+          "name": "CD Projekt Red Wroc\u0142aw"
+        },
+        "developer": false,
+        "publisher": false
+      },
+      {
+        "id": 228842,
+        "company": {
+          "id": 4291,
+          "name": "CD Projekt"
+        },
+        "developer": false,
+        "publisher": true
+      },
+      {
+        "id": 228841,
+        "company": {
+          "id": 908,
+          "name": "CD Projekt RED"
+        },
+        "developer": true,
+        "publisher": false
+      },
+      {
+        "id": 381287,
+        "company": {
+          "id": 3276,
+          "name": "Frame Machine"
+        },
+        "developer": false,
+        "publisher": false
+      }
+    ],
+    "name": "Cyberpunk 2077",
+    "platforms": [
+      {
+        "id": 170,
+        "name": "Google Stadia",
+        "slug": "stadia"
+      },
+      {
+        "id": 169,
+        "name": "Xbox Series X|S",
+        "slug": "series-x-s"
+      },
+      {
+        "id": 48,
+        "name": "PlayStation 4",
+        "slug": "ps4--1"
+      },
+      {
+        "id": 508,
+        "name": "Nintendo Switch 2",
+        "slug": "switch-2"
+      },
+      {
+        "id": 6,
+        "name": "PC (Microsoft Windows)",
+        "slug": "win"
+      },
+      {
+        "id": 167,
+        "name": "PlayStation 5",
+        "slug": "ps5"
+      },
+      {
+        "id": 14,
+        "name": "Mac",
+        "slug": "mac"
+      },
+      {
+        "id": 49,
+        "name": "Xbox One",
+        "slug": "xboxone"
+      }
+    ],
+    "rating": 82.85692417107376,
+    "slug": "cyberpunk-2077",
+    "storyline": "In 2077, following an economic collapse sometime during the early 21st century, the United States is forced to rely on large corporations to survive. These corporations deal in a wide range of areas, such as weapons, robotics, cybernetics, pharmaceuticals, communications and biotechnology, and many of these companies operate above the law. The world in between is where decadence, sex and pop culture mix with violent crime, extreme poverty and the unattainable promise of the American Dream. You play as V, a mercenary outlaw deeply embedded in the crime-ridden city of Night City, going after a one-of-a-kind implant that is the key to immortality.",
+    "summary": "Cyberpunk 2077 is an open-world action-adventure game set in Night City, a sprawling metropolis driven by power, glamour, and body modification. Players assume the role of V, a mercenary outlaw in pursuit of a unique implant that holds the key to immortality. The game allows extensive customization of cyberware, skills, and playstyle. Choices made throughout the journey influence both the narrative and the world."
+  },
+  {
+    "id": 119133,
+    "aggregated_rating": 96.9,
+    "alternative_names": [
+      {
+        "id": 24917,
+        "name": "Great Rune"
+      },
+      {
+        "id": 79656,
+        "name": "ELDEN RING"
+      },
+      {
+        "id": 83944,
+        "name": "\u30a8\u30eb\u30c7\u30f3\u30ea\u30f3\u30b0"
+      },
+      {
+        "id": 123543,
+        "name": "\u827e\u723e\u767b\u6cd5\u74b0"
+      },
+      {
+        "id": 130570,
+        "name": "\u827e\u5c14\u767b\u6cd5\u73af"
+      }
+    ],
+    "artworks": [
+      {
+        "id": 168540,
+        "image_id": "ar3m1o"
+      },
+      {
+        "id": 168541,
+        "image_id": "ar3m1p"
+      },
+      {
+        "id": 52129,
+        "image_id": "ar1481"
+      },
+      {
+        "id": 168539,
+        "image_id": "ar3m1n"
+      }
+    ],
+    "cover": {
+      "id": 212094,
+      "image_id": "co4jni"
+    },
+    "external_games": [
+      {
+        "id": 1914490,
+        "uid": "512953",
+        "external_game_source": 14
+      },
+      {
+        "id": 1775842,
+        "uid": "73745",
+        "external_game_source": 3
+      },
+      {
+        "id": 2172221,
+        "uid": "10000333",
+        "external_game_source": 36
+      },
+      {
+        "id": 2270864,
+        "uid": "9P3J32CTXLRZ",
+        "external_game_source": 11
+      },
+      {
+        "id": 2084186,
+        "uid": "1245620",
+        "external_game_source": 1
+      },
+      {
+        "id": 3190344,
+        "uid": "B09MG3FTNC",
+        "external_game_source": 20
+      },
+      {
+        "id": 2167628,
+        "uid": "B09L19LT8Q",
+        "external_game_source": 20
+      },
+      {
+        "id": 2062924,
+        "uid": "B097B15N2T",
+        "external_game_source": 20
+      },
+      {
+        "id": 2241810,
+        "uid": "B09QPZHJH9",
+        "external_game_source": 20
+      },
+      {
+        "id": 2636628,
+        "uid": "B09SMC6J15",
+        "external_game_source": 20
+      },
+      {
+        "id": 2064411,
+        "uid": "B097M66Y91",
+        "external_game_source": 20
+      },
+      {
+        "id": 2063058,
+        "uid": "B0979YW1Z9",
+        "external_game_source": 20
+      },
+      {
+        "id": 2241788,
+        "uid": "B09QPYZ6R2",
+        "external_game_source": 20
+      },
+      {
+        "id": 2062922,
+        "uid": "B0977LKSQ6",
+        "external_game_source": 20
+      },
+      {
+        "id": 2184002,
+        "uid": "B09P1MVC4J",
+        "external_game_source": 20
+      },
+      {
+        "id": 2233921,
+        "uid": "B09R3C1QHH",
+        "external_game_source": 20
+      },
+      {
+        "id": 2636627,
+        "uid": "B09SMC6J15",
+        "external_game_source": 20
+      },
+      {
+        "id": 2857523,
+        "uid": "B09R3HR7NY",
+        "external_game_source": 20
+      },
+      {
+        "id": 2233945,
+        "uid": "B09R3DSJMS",
+        "external_game_source": 20
+      },
+      {
+        "id": 2271134,
+        "uid": "B09QPYY5HJ",
+        "external_game_source": 20
+      },
+      {
+        "id": 2682308,
+        "uid": "B0B7RSBXFT",
+        "external_game_source": 20
+      },
+      {
+        "id": 2167564,
+        "uid": "B09L1C64SN",
+        "external_game_source": 20
+      },
+      {
+        "id": 2636625,
+        "uid": "B09SMC6J15",
+        "external_game_source": 20
+      },
+      {
+        "id": 2233934,
+        "uid": "B09R3HR7NY",
+        "external_game_source": 20
+      },
+      {
+        "id": 2254918,
+        "uid": "B09QPZHJH9",
+        "external_game_source": 20
+      },
+      {
+        "id": 2183928,
+        "uid": "B09P1LBC7K",
+        "external_game_source": 20
+      },
+      {
+        "id": 2225478,
+        "uid": "B09QQT2NWG",
+        "external_game_source": 20
+      },
+      {
+        "id": 2062880,
+        "uid": "B0977PVNYX",
+        "external_game_source": 20
+      },
+      {
+        "id": 2635202,
+        "uid": "B097M66Y91",
+        "external_game_source": 20
+      },
+      {
+        "id": 2882831,
+        "uid": "B09R3C1QHH",
+        "external_game_source": 20
+      },
+      {
+        "id": 2682054,
+        "uid": "B0B7RSBXFT",
+        "external_game_source": 20
+      },
+      {
+        "id": 2254996,
+        "uid": "B09QPYY5HJ",
+        "external_game_source": 20
+      },
+      {
+        "id": 2682210,
+        "uid": "B0B7RSBXFT",
+        "external_game_source": 20
+      },
+      {
+        "id": 2241900,
+        "uid": "B09QPYY5HJ",
+        "external_game_source": 20
+      },
+      {
+        "id": 2233957,
+        "uid": "B09R3BZHXX",
+        "external_game_source": 20
+      },
+      {
+        "id": 2184011,
+        "uid": "B09P1LTGH5",
+        "external_game_source": 20
+      },
+      {
+        "id": 2254935,
+        "uid": "B09SQ6VGTB",
+        "external_game_source": 20
+      },
+      {
+        "id": 2254895,
+        "uid": "B09SMC6J15",
+        "external_game_source": 20
+      },
+      {
+        "id": 2254892,
+        "uid": "B09QPYZ6R2",
+        "external_game_source": 20
+      },
+      {
+        "id": 2088476,
+        "uid": "B09D4KSL1B",
+        "external_game_source": 20
+      },
+      {
+        "id": 2635204,
+        "uid": "B097M66Y91",
+        "external_game_source": 20
+      },
+      {
+        "id": 2225572,
+        "uid": "B09QQYB8D9",
+        "external_game_source": 20
+      },
+      {
+        "id": 2271058,
+        "uid": "B09QPZHJH9",
+        "external_game_source": 20
+      },
+      {
+        "id": 2271018,
+        "uid": "B09QPYZ6R2",
+        "external_game_source": 20
+      },
+      {
+        "id": 1933890,
+        "uid": "B07T8J15JQ",
+        "external_game_source": 20
+      },
+      {
+        "id": 1932061,
+        "uid": "B07SMBNTSJ",
+        "external_game_source": 20
+      },
+      {
+        "id": 1930111,
+        "uid": "B07SPYK271",
+        "external_game_source": 20
+      },
+      {
+        "id": 2062942,
+        "uid": "B0977QP5L6",
+        "external_game_source": 20
+      },
+      {
+        "id": 2063046,
+        "uid": "B0977MY2WM",
+        "external_game_source": 20
+      },
+      {
+        "id": 2062011,
+        "uid": "B09743F8P6",
+        "external_game_source": 20
+      },
+      {
+        "id": 3190333,
+        "uid": "B09MG5LQ18",
+        "external_game_source": 20
+      }
+    ],
+    "first_release_date": 1645747200,
+    "franchises": [
+      {
+        "id": 8190,
+        "name": "Elden Ring"
+      }
+    ],
+    "genres": [
+      {
+        "id": 12,
+        "name": "Role-playing (RPG)"
+      },
+      {
+        "id": 31,
+        "name": "Adventure"
+      }
+    ],
+    "involved_companies": [
+      {
+        "id": 334813,
+        "company": {
+          "id": 248,
+          "name": "Bandai Namco Entertainment"
+        },
+        "developer": false,
+        "publisher": true
+      },
+      {
+        "id": 334814,
+        "company": {
+          "id": 1012,
+          "name": "FromSoftware"
+        },
+        "developer": true,
+        "publisher": true
+      }
+    ],
+    "name": "Elden Ring",
+    "platforms": [
+      {
+        "id": 169,
+        "name": "Xbox Series X|S",
+        "slug": "series-x-s"
+      },
+      {
+        "id": 48,
+        "name": "PlayStation 4",
+        "slug": "ps4--1"
+      },
+      {
+        "id": 508,
+        "name": "Nintendo Switch 2",
+        "slug": "switch-2"
+      },
+      {
+        "id": 6,
+        "name": "PC (Microsoft Windows)",
+        "slug": "win"
+      },
+      {
+        "id": 167,
+        "name": "PlayStation 5",
+        "slug": "ps5"
+      },
+      {
+        "id": 49,
+        "name": "Xbox One",
+        "slug": "xboxone"
+      }
+    ],
+    "rating": 93.46328489463644,
+    "slug": "elden-ring",
+    "storyline": "Elden Ring takes place in the Lands Between, a fictional realm over which several demigods rule. It was previously ruled over by the immortal Queen Marika, who acted as keeper of the Elden Ring, a powerful force that manifested itself as the physical concept of order. When Marika shattered the Elden Ring and disappeared, her demigod children began fighting over pieces of the Ring in an event called The Shattering. Each demigod has a shard of the Ring called a Great Rune, which corrupts them with power. In the game, the player character is a Tarnished, one of a group of exiles from the Lands Between who are summoned back after the Shattering. The player must traverse the realm to repair the Elden Ring and become the Elden Lord.",
+    "summary": "Elden Ring is an action RPG developed by FromSoftware and published by Bandai Namco Entertainment, released in February 2022. Directed by Hidetaka Miyazaki, with world-building contributions from novelist George R. R. Martin, the game features an expansive open world called the Lands Between. Players assume the role of a customisable character known as the Tarnished, who must explore this world, battle formidable enemies, and seek to restore the Elden Ring to become the Elden Lord.\n\nThe game builds on the challenging gameplay mechanics familiar from the Dark Souls series but introduces a more open-ended structure with vast exploration, dynamic weather, and a day-night cycle. It offers deep lore, complex characters, and an interconnected world filled with secrets, dungeons, and powerful bosses."
+  }
+]

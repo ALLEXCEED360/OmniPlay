@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: omniplay
+          POSTGRES_PASSWORD: omniplay
+          POSTGRES_DB: omniplay_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U omniplay"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://omniplay:omniplay@localhost:5432/omniplay_test?schema=public
+      REDIS_URL: redis://localhost:6379
+      # Test-only values. Real secrets never enter CI.
+      SESSION_SECRET: ci-session-secret-value-at-least-32-chars
+      CREDENTIAL_ENCRYPTION_KEY: Y2ktb25seS1lbmNyeXB0aW9uLWtleS1mb3ItdGVzdHM=
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # Prisma client must exist before anything typechecks against it.
+      - name: Generate Prisma client
+        run: pnpm db:generate
+
+      - name: Apply schema
+        run: pnpm db:push && pnpm db:seed
+
+      - name: Build packages
+        run: pnpm build
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      # Includes the provider contract fixtures, so an upstream response-shape
+      # change fails here rather than in a user's playtime total.
+      - name: Test
+        run: pnpm test

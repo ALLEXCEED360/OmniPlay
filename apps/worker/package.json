@@ -1,0 +1,38 @@
+{
+  "name": "@omniplay/worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx watch --env-file-if-exists=../../.env src/main.ts",
+    "start": "node --env-file-if-exists=../../.env dist/main.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "demo": "tsx --env-file-if-exists=../../.env src/dev/demo-sync.ts",
+    "demo:enrich": "tsx --env-file-if-exists=../../.env src/dev/demo-enrich.ts",
+    "reset": "tsx --env-file-if-exists=../../.env src/dev/reset-data.ts",
+    "doctor": "tsx --env-file-if-exists=../../.env src/dev/doctor.ts",
+    "link:steam": "tsx --env-file-if-exists=../../.env src/dev/link-steam.ts",
+    "sync": "tsx --env-file-if-exists=../../.env src/dev/sync-now.ts",
+    "enrich": "tsx --env-file-if-exists=../../.env src/dev/enrich-now.ts",
+    "sweep": "tsx --env-file-if-exists=../../.env src/dev/sweep-queue.ts"
+  },
+  "dependencies": {
+    "@omniplay/database": "workspace:*",
+    "@omniplay/game-matching": "workspace:*",
+    "@omniplay/providers": "workspace:*",
+    "@omniplay/statistics": "workspace:*",
+    "@omniplay/types": "workspace:*",
+    "bullmq": "^5.56.5",
+    "ioredis": "^5.7.0",
+    "zod": "^4.0.5"
+  },
+  "devDependencies": {
+    "@omniplay/config": "workspace:*",
+    "@types/node": "^22.15.30",
+    "tsx": "^4.20.3",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
+  }
+}

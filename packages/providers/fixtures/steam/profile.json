@@ -1,0 +1,16 @@
+{
+  "response": {
+    "players": [
+      {
+        "steamid": "76561198000000000",
+        "personaname": "aryan",
+        "profileurl": "https://steamcommunity.com/id/aryan/",
+        "avatarfull": "https://avatars.steamstatic.com/abc_full.jpg",
+        "avatarmedium": "https://avatars.steamstatic.com/abc_medium.jpg",
+        "communityvisibilitystate": 3,
+        "timecreated": 1300000000,
+        "loccountrycode": "IN"
+      }
+    ]
+  }
+}

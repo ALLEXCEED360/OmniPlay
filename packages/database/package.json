@@ -1,0 +1,37 @@
+{
+  "name": "@omniplay/database",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "generate": "prisma generate",
+    "push": "prisma db push",
+    "migrate": "prisma migrate dev",
+    "deploy": "prisma migrate deploy",
+    "seed": "tsx src/seed.ts",
+    "studio": "prisma studio",
+    "build": "prisma generate && tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.12.0",
+    "@omniplay/types": "workspace:*",
+    "@omniplay/game-matching": "workspace:*"
+  },
+  "devDependencies": {
+    "@omniplay/config": "workspace:*",
+    "prisma": "^6.12.0",
+    "typescript": "^5.9.2",
+    "tsx": "^4.20.3",
+    "vitest": "^3.2.4"
+  }
+}

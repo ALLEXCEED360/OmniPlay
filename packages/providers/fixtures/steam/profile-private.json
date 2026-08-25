@@ -1,0 +1,11 @@
+{
+  "response": {
+    "players": [
+      {
+        "steamid": "76561198000000001",
+        "personaname": "private-user",
+        "communityvisibilitystate": 1
+      }
+    ]
+  }
+}

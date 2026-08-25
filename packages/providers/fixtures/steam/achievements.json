@@ -1,0 +1,11 @@
+{
+  "playerstats": {
+    "steamID": "76561198000000000",
+    "gameName": "Cyberpunk 2077",
+    "success": true,
+    "achievements": [
+      { "apiname": "ACH_STREET_KID", "achieved": 1, "unlocktime": 1700000000, "name": "The Fool", "description": "Complete the prologue." },
+      { "apiname": "ACH_NOMAD", "achieved": 0, "unlocktime": 0, "name": "Wanted", "description": "Reach max street cred." }
+    ]
+  }
+}

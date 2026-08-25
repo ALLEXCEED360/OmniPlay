@@ -1,0 +1,34 @@
+{
+  "response": {
+    "game_count": 4,
+    "games": [
+      {
+        "appid": 1091500,
+        "name": "Cyberpunk 2077",
+        "playtime_forever": 10920,
+        "playtime_2weeks": 340,
+        "img_icon_url": "6b1b2f5e3a2c9d1e",
+        "rtime_last_played": 1755820800
+      },
+      {
+        "appid": 1245620,
+        "name": "ELDEN RING",
+        "playtime_forever": 14820,
+        "img_icon_url": "b6e2f9c1a0d7",
+        "rtime_last_played": 1750000000
+      },
+      {
+        "appid": 292030,
+        "name": "The Witcher 3: Wild Hunt",
+        "playtime_forever": 0,
+        "img_icon_url": "1c2d3e4f5a6b",
+        "rtime_last_played": 0
+      },
+      {
+        "appid": 9999999,
+        "playtime_forever": 45,
+        "rtime_last_played": 1600000000
+      }
+    ]
+  }
+}

@@ -1,0 +1,622 @@
+// OMNIPLAY canonical schema.
+//
+// Two rules govern everything below:
+//
+//  1. `provider` is a String, never an enum. Adding Epic or GOG must be a row,
+//     not a migration (spec 33).
+//  2. Ownership, activity, achievements and user-declared history are separate
+//     tables. A game you own but never launched and a game you played on a
+//     friend's console are different facts and must stay that way (spec 2.2).
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [pg_trgm, citext]
+}
+
+/* ------------------------------------------------------------------ *
+ * Enumerations
+ *
+ * These describe OMNIPLAY's own vocabulary, which is why they may be enums.
+ * Anything describing an outside system stays a String.
+ * ------------------------------------------------------------------ */
+
+enum OwnershipType {
+  DIGITAL
+  PHYSICAL
+  SUBSCRIPTION
+  GIFT
+  FAMILY_SHARE
+  MANUAL
+  UNKNOWN
+}
+
+enum GameStatus {
+  NOT_STARTED
+  PLAYING
+  PAUSED
+  COMPLETED
+  ABANDONED
+  REPLAYING
+}
+
+enum ActivityType {
+  LIFETIME_TOTAL
+  SESSION
+  RECENT_PLAY
+  ACHIEVEMENT_HISTORY
+  USER_DECLARED
+}
+
+enum Confidence {
+  VERIFIED
+  DERIVED
+  DETECTED
+  DECLARED
+  UNCERTAIN
+}
+
+enum CollectionVisibility {
+  PRIVATE
+  UNLISTED
+  PUBLIC
+}
+
+enum SyncStatus {
+  QUEUED
+  RUNNING
+  SUCCEEDED
+  FAILED
+  PARTIAL
+  CANCELLED
+}
+
+enum AccountStatus {
+  ACTIVE
+  REAUTH_REQUIRED
+  DISABLED
+  REVOKED
+}
+
+enum GameRelationType {
+  EDITION_OF
+  REMASTER_OF
+  REMAKE_OF
+  DLC_OF
+  PORT_OF
+  BUNDLE_INCLUDES
+  SEQUEL_TO
+}
+
+enum ResolutionState {
+  PENDING
+  RESOLVED
+  IGNORED
+}
+
+/* ------------------------------------------------------------------ *
+ * Canonical catalogue
+ * ------------------------------------------------------------------ */
+
+model Game {
+  id               String    @id @default(cuid())
+  igdbId           Int?      @unique
+  name             String
+  /// Lowercased, punctuation- and edition-stripped form used by matching
+  /// level 3. Indexed with pg_trgm for fuzzy candidate lookup.
+  normalizedName   String
+  slug             String    @unique
+  summary          String?
+  storyline        String?
+  firstReleaseDate DateTime?
+  coverImage       String?
+  heroImage        String?
+  /// IGDB user rating, 0-100.
+  rating           Float?
+  aggregatedRating Float?
+  genres           String[]  @default([])
+  franchises       String[]  @default([])
+  developers       String[]  @default([])
+  publishers       String[]  @default([])
+  /// Set when a duplicate canonical row is merged away; reads follow the pointer.
+  mergedIntoId     String?
+  mergedInto       Game?     @relation("GameMerge", fields: [mergedIntoId], references: [id], onDelete: SetNull)
+  mergedFrom       Game[]    @relation("GameMerge")
+  /// Last time IGDB metadata was refreshed into this row.
+  metadataSyncedAt DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  platforms        GamePlatform[]
+  externalIds      ExternalGameIdentity[]
+  aliases          GameAlias[]
+  ownerships       Ownership[]
+  activities       PlayActivity[]
+  statuses         UserGameStatus[]
+  achievements     Achievement[]
+  collectionGames  CollectionGame[]
+  notes            UserGameNote[]
+  relationsFrom    GameRelation[]         @relation("RelationFrom")
+  relationsTo      GameRelation[]         @relation("RelationTo")
+  unresolvedMatches UnresolvedExternalGame[]
+
+  @@index([normalizedName])
+  @@index([firstReleaseDate])
+  @@index([mergedIntoId])
+}
+
+/// Alternate names for a canonical game: localisations, subtitles, edition
+/// variants, provider spellings. Matching level 3 searches here as well as
+/// Game.normalizedName, which is how "FF7" finds "Final Fantasy VII".
+model GameAlias {
+  id             String  @id @default(cuid())
+  gameId         String
+  game           Game    @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  name           String
+  normalizedName String
+  /// Where this alias came from: igdb, provider id, or a human.
+  source         String
+
+  @@unique([gameId, normalizedName])
+  @@index([normalizedName])
+}
+
+/// Relationships that must NOT be collapsed into one canonical game.
+/// Resident Evil 4 and Resident Evil 4 (2023) are related, not identical.
+model GameRelation {
+  id       String           @id @default(cuid())
+  fromId   String
+  from     Game             @relation("RelationFrom", fields: [fromId], references: [id], onDelete: Cascade)
+  toId     String
+  to       Game             @relation("RelationTo", fields: [toId], references: [id], onDelete: Cascade)
+  type     GameRelationType
+  /// Edition label when type is EDITION_OF, e.g. "Deluxe", "Game of the Year".
+  label    String?
+
+  @@unique([fromId, toId, type])
+  @@index([toId])
+}
+
+model Platform {
+  id           String  @id @default(cuid())
+  igdbId       Int?    @unique
+  name         String  @unique
+  slug         String  @unique
+  /// Groups generations: "PlayStation", "Xbox", "PC".
+  family       String?
+  manufacturer String?
+  generation   Int?
+
+  games      GamePlatform[]
+  ownerships Ownership[]
+  activities PlayActivity[]
+}
+
+model GamePlatform {
+  id              String    @id @default(cuid())
+  gameId          String
+  game            Game      @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  platformId      String
+  platform        Platform  @relation(fields: [platformId], references: [id], onDelete: Cascade)
+  releaseDate     DateTime?
+  platformVersion String?
+
+  @@unique([gameId, platformId])
+  @@index([platformId])
+}
+
+/// The level-1 match index: a provider's id for a title, mapped to canonical.
+/// Once a row exists here, resolution is a single indexed lookup.
+model ExternalGameIdentity {
+  id               String     @id @default(cuid())
+  gameId           String
+  game             Game       @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  provider         String
+  externalId       String
+  externalName     String?
+  externalMetadata Json?
+  confidence       Confidence @default(VERIFIED)
+  /// True when a human confirmed the mapping in the admin tool.
+  verifiedByHuman  Boolean    @default(false)
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  @@unique([provider, externalId])
+  @@index([gameId])
+}
+
+/* ------------------------------------------------------------------ *
+ * Identity and provider connections
+ * ------------------------------------------------------------------ */
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  /// Public handle; also the profile URL segment.
+  username      String    @unique
+  displayName   String?
+  passwordHash  String?
+  avatar        String?
+  bio           String?
+  /// Whether /u/<username> is reachable without a session.
+  profilePublic Boolean   @default(false)
+  /// Grants access to the data-quality tools (spec 26). Deliberately a plain
+  /// flag rather than a role system: there are exactly two kinds of user here,
+  /// and inventing RBAC for that would be ceremony.
+  isAdmin       Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts    ConnectedAccount[]
+  sessions    Session[]
+  ownerships  Ownership[]
+  activities  PlayActivity[]
+  statuses    UserGameStatus[]
+  achievements UserAchievement[]
+  collections Collection[]
+  syncJobs    SyncJob[]
+  cursors     SyncCursor[]
+  notes       UserGameNote[]
+  auditLogs   AuditLog[]
+  imports     ImportBatch[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// SHA-256 of the cookie value. The raw token is never stored (spec 23).
+  tokenHash String   @unique
+  expiresAt DateTime
+  userAgent String?
+  ip        String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model ConnectedAccount {
+  id             String        @id @default(cuid())
+  userId         String
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider       String
+  providerUserId String
+  displayName    String?
+  avatar         String?
+  profileUrl     String?
+  status         AccountStatus @default(ACTIVE)
+  connectedAt    DateTime      @default(now())
+  lastSyncAt     DateTime?
+  /// Human-readable reason the account is not ACTIVE.
+  statusMessage  String?
+
+  credential ProviderCredential?
+  syncJobs   SyncJob[]
+
+  /// One connection per provider per user, and one OMNIPLAY user per provider
+  /// account - both directions matter, or two people could claim one SteamID.
+  @@unique([userId, provider])
+  @@unique([provider, providerUserId])
+  @@index([userId])
+}
+
+/// Encrypted provider tokens. Never selected into an API response.
+model ProviderCredential {
+  id                   String           @id @default(cuid())
+  connectedAccountId   String           @unique
+  connectedAccount     ConnectedAccount @relation(fields: [connectedAccountId], references: [id], onDelete: Cascade)
+  /// AES-256-GCM ciphertext, base64. Format: v<n>.<iv>.<tag>.<ciphertext>
+  accessTokenEncrypted String?
+  refreshTokenEncrypted String?
+  /// Provider-specific secrets (Xbox userhash, XSTS token), encrypted as one blob.
+  extraEncrypted       String?
+  expiresAt            DateTime?
+  scopes               String[]         @default([])
+  /// Bumped when the encryption key rotates, so old rows can be re-wrapped.
+  tokenVersion         Int              @default(1)
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+}
+
+/// Short-lived CSRF/PKCE state for an in-flight provider connect.
+model OAuthState {
+  id          String   @id @default(cuid())
+  state       String   @unique
+  userId      String
+  provider    String
+  verifier    String?
+  redirectUri String
+  /// Where to send the browser once the connection succeeds.
+  returnTo    String?
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+
+  @@index([expiresAt])
+}
+
+/* ------------------------------------------------------------------ *
+ * The user's gaming record
+ * ------------------------------------------------------------------ */
+
+/// "I have (or had) access to this game." Says nothing about playing it.
+model Ownership {
+  id              String        @id @default(cuid())
+  userId          String
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  gameId          String
+  game            Game          @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  platformId      String?
+  platform        Platform?     @relation(fields: [platformId], references: [id], onDelete: SetNull)
+  provider        String
+  /// The provider's id for the title, kept so a re-sync can match without
+  /// re-running canonical resolution.
+  externalGameId  String?
+  ownershipType   OwnershipType @default(UNKNOWN)
+  acquiredAt      DateTime?
+  firstSeenAt     DateTime      @default(now())
+  lastVerifiedAt  DateTime      @default(now())
+  /// Cleared when a later sync no longer lists the title - which is how
+  /// "previously owned" is represented rather than deleting the row (spec 2.4).
+  removedAt       DateTime?
+  source          String
+  confidence      Confidence    @default(VERIFIED)
+
+  @@unique([userId, provider, externalGameId])
+  @@index([userId, gameId])
+  @@index([gameId])
+}
+
+/// Evidence that the user played a game. See ActivityType - a Steam lifetime
+/// total and an Xbox achievement-derived hint are both stored here but are
+/// never summed together blindly.
+model PlayActivity {
+  id             String       @id @default(cuid())
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  gameId         String
+  game           Game         @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  platformId     String?
+  platform       Platform?    @relation(fields: [platformId], references: [id], onDelete: SetNull)
+  provider       String
+  activityType   ActivityType
+  minutesPlayed  Int?
+  startedAt      DateTime?
+  endedAt        DateTime?
+  source         String
+  confidence     Confidence   @default(VERIFIED)
+  observedAt     DateTime     @default(now())
+  /// Writer-computed idempotency key, e.g. "steam:LIFETIME_TOTAL:730".
+  /// Lets a re-sync upsert the same logical fact instead of duplicating it.
+  dedupeKey      String
+
+  @@unique([userId, dedupeKey])
+  @@index([userId, gameId])
+  @@index([userId, startedAt])
+}
+
+/// The user's own verdict on a game. Never written by a sync job.
+model UserGameStatus {
+  id        String     @id @default(cuid())
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  gameId    String
+  game      Game       @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  status    GameStatus @default(NOT_STARTED)
+  /// 0-10, half-steps allowed.
+  rating    Float?
+  startedAt DateTime?
+  finishedAt DateTime?
+  updatedAt DateTime   @updatedAt
+
+  @@unique([userId, gameId])
+  @@index([userId, status])
+}
+
+model UserGameNote {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  gameId    String
+  game      Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  body      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, gameId])
+}
+
+model Achievement {
+  id               String  @id @default(cuid())
+  gameId           String
+  game             Game    @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  provider         String
+  externalId       String
+  name             String
+  description      String?
+  /// Gamerscore or trophy weight. Null where the provider has no concept.
+  points           Int?
+  /// Trophy grade for PSN: bronze/silver/gold/platinum.
+  tier             String?
+  hidden           Boolean @default(false)
+  iconUrl          String?
+  globalUnlockRate Float?
+
+  unlocks UserAchievement[]
+
+  @@unique([provider, externalId, gameId])
+  @@index([gameId])
+}
+
+model UserAchievement {
+  id            String      @id @default(cuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievementId String
+  achievement   Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+  unlocked      Boolean     @default(false)
+  unlockedAt    DateTime?
+  source        String
+  confidence    Confidence  @default(VERIFIED)
+
+  @@unique([userId, achievementId])
+  @@index([userId, unlockedAt])
+}
+
+/* ------------------------------------------------------------------ *
+ * Curation and sharing
+ * ------------------------------------------------------------------ */
+
+model Collection {
+  id          String               @id @default(cuid())
+  userId      String
+  user        User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  slug        String
+  description String?
+  coverImage  String?
+  visibility  CollectionVisibility @default(PRIVATE)
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  games CollectionGame[]
+
+  @@unique([userId, slug])
+  @@index([userId])
+}
+
+model CollectionGame {
+  collectionId String
+  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  gameId       String
+  game         Game       @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  position     Int        @default(0)
+  addedAt      DateTime   @default(now())
+
+  @@id([collectionId, gameId])
+  @@index([gameId])
+}
+
+/* ------------------------------------------------------------------ *
+ * Sync machinery
+ * ------------------------------------------------------------------ */
+
+model SyncJob {
+  id                 String            @id @default(cuid())
+  userId             String
+  user               User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  connectedAccountId String?
+  connectedAccount   ConnectedAccount? @relation(fields: [connectedAccountId], references: [id], onDelete: SetNull)
+  provider           String
+  status             SyncStatus        @default(QUEUED)
+  /// Which stage is running, for the progress UI (spec 14).
+  phase              String?
+  /// 0-100. Providers that cannot report a total leave this null.
+  progress           Int?
+  startedAt          DateTime?
+  finishedAt         DateTime?
+  recordsFetched     Int               @default(0)
+  recordsCreated     Int               @default(0)
+  recordsUpdated     Int               @default(0)
+  recordsFailed      Int               @default(0)
+  /// User-facing message. Raw provider errors stay in the logs.
+  error              String?
+  errorKind          String?
+  createdAt          DateTime          @default(now())
+
+  @@index([userId, createdAt])
+  @@index([status])
+}
+
+model SyncCursor {
+  id                   String    @id @default(cuid())
+  userId               String
+  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider             String
+  /// Which stream this cursor tracks: "library", "achievements", "history".
+  cursorType           String
+  cursorValue          String?
+  lastSuccessfulSyncAt DateTime?
+
+  @@unique([userId, provider, cursorType])
+}
+
+/* ------------------------------------------------------------------ *
+ * Data quality
+ * ------------------------------------------------------------------ */
+
+/// A provider record that automatic matching would not resolve confidently.
+/// Feeds the admin mapping screen (spec 26). Nothing here is silently guessed
+/// into the user's library.
+model UnresolvedExternalGame {
+  id             String          @id @default(cuid())
+  provider       String
+  externalId     String
+  externalName   String
+  normalizedName String
+  payload        Json?
+  /// Ranked candidates from the matcher: [{ gameId, score, reason }].
+  candidates     Json?
+  state          ResolutionState @default(PENDING)
+  resolvedGameId String?
+  resolvedGame   Game?           @relation(fields: [resolvedGameId], references: [id], onDelete: SetNull)
+  resolvedBy     String?
+  resolvedAt     DateTime?
+  /// How many users' syncs have hit this, for triage ordering.
+  hitCount       Int             @default(1)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@unique([provider, externalId])
+  @@index([state, hitCount])
+}
+
+/// Append-only record of security-relevant actions (spec 23).
+/// A batch of records the user supplied by file rather than by API.
+///
+/// This is how PlayStation and physical collections enter the system (spec
+/// 5.3). Storing the parsed records here - rather than writing straight to
+/// Ownership - means the import flows through the *same* SyncRunner as every
+/// API-backed provider: same resolution, same provenance, same dedupe. The
+/// provider abstraction is what makes that possible, and this table is the
+/// proof it holds for a non-API source.
+model ImportBatch {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider    String
+  filename    String?
+  /// Which parser produced `records`: "csv", "json".
+  format      String
+  /// Parsed ExternalGame[] awaiting ingestion.
+  records     Json
+  recordCount Int       @default(0)
+  /// PENDING until a sync consumes it, then PROCESSED.
+  status      String    @default("PENDING")
+  /// Rows the parser had to skip, with the reason, for the import report.
+  warnings    Json?
+  createdAt   DateTime  @default(now())
+  processedAt DateTime?
+
+  @@index([userId, provider, status])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action    String
+  target    String?
+  metadata  Json?
+  ip        String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([action, createdAt])
+}

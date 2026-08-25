@@ -1,0 +1,1 @@
+{ "extends": "@omniplay/config/tsconfig.lib.json", "compilerOptions": { "rootDir": "src", "outDir": "dist", "resolveJsonModule": true }, "include": ["src/**/*"] }

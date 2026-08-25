@@ -1,0 +1,6 @@
+{
+  "extends": "@omniplay/config/tsconfig.base.json",
+  "compilerOptions": { "rootDir": "src", "outDir": "dist", "isolatedModules": false },
+  "include": ["src/**/*"],
+  "exclude": ["src/**/*.test.ts"]
+}
