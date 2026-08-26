@@ -1,0 +1,62 @@
+{
+  "trophySetVersion": "01.00",
+  "hasTrophyGroups": false,
+  "trophies": [
+    {
+      "trophyId": 0,
+      "trophyHidden": false,
+      "trophyType": "platinum",
+      "trophyName": "All Trophies",
+      "trophyDetail": "Get all trophies",
+      "trophyIconUrl": "https://psnobj.prod.dl.playstation.net/psnobj/NPWR42737_00/c1623f85-4901-4ab6-bc48-610ad2ace695.png",
+      "trophyGroupId": "default"
+    },
+    {
+      "trophyId": 1,
+      "trophyHidden": false,
+      "trophyType": "bronze",
+      "trophyName": "Game on!",
+      "trophyDetail": "Complete the first Ranked Match.",
+      "trophyIconUrl": "https://psnobj.prod.dl.playstation.net/psnobj/NPWR42737_00/c1623f85-4901-4ab6-bc48-610ad2ace695.png",
+      "trophyGroupId": "default"
+    },
+    {
+      "trophyId": 2,
+      "trophyHidden": false,
+      "trophyType": "silver",
+      "trophyName": "All That Hard Work",
+      "trophyDetail": "Claim a reward for any completed Challenge.",
+      "trophyIconUrl": "https://psnobj.prod.dl.playstation.net/psnobj/NPWR42737_00/db748e0e-a294-4438-9667-fb1e58b5371b.png",
+      "trophyGroupId": "default"
+    },
+    {
+      "trophyId": 3,
+      "trophyHidden": false,
+      "trophyType": "bronze",
+      "trophyName": "Football Agent",
+      "trophyDetail": "Sell any of your players on the Transfer Market.",
+      "trophyIconUrl": "https://psnobj.prod.dl.playstation.net/psnobj/NPWR42737_00/a10f6115-22ee-4a99-8397-fdc02b72dfec.png",
+      "trophyGroupId": "default"
+    },
+    {
+      "trophyId": 4,
+      "trophyHidden": false,
+      "trophyType": "silver",
+      "trophyName": "Tactician",
+      "trophyDetail": "Change the tactical formation of your squad.",
+      "trophyIconUrl": "https://psnobj.prod.dl.playstation.net/psnobj/NPWR42737_00/4f70692c-e4ae-4f09-853e-14c070630fb9.png",
+      "trophyGroupId": "default"
+    },
+    {
+      "trophyId": 5,
+      "trophyHidden": false,
+      "trophyType": "gold",
+      "trophyName": "Total Look",
+      "trophyDetail": "Add your squad's third kit in Customisation.",
+      "trophyIconUrl": "https://psnobj.prod.dl.playstation.net/psnobj/NPWR42737_00/9aea902c-8103-486d-9da8-9a773de1330b.png",
+      "trophyGroupId": "default"
+    }
+  ],
+  "nextOffset": 6,
+  "totalItemCount": 26
+}

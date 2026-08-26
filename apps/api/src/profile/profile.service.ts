@@ -54,6 +54,7 @@ export class ProfileService {
         where: { userId: user.id },
         select: {
           gameId: true,
+          dedupeKey: true,
           provider: true,
           activityType: true,
           minutesPlayed: true,
@@ -167,6 +168,7 @@ export class ProfileService {
 
 function toActivityRecord(activity: {
   gameId: string;
+  dedupeKey?: string | null;
   provider: string;
   activityType: string;
   minutesPlayed: number | null;
@@ -176,6 +178,8 @@ function toActivityRecord(activity: {
 }): ActivityRecord {
   return {
     gameId: activity.gameId,
+    // Carried so two editions of one game are not collapsed to the larger.
+    dedupeKey: activity.dedupeKey ?? null,
     provider: activity.provider,
     activityType: activity.activityType as ActivityRecord['activityType'],
     minutesPlayed: activity.minutesPlayed,

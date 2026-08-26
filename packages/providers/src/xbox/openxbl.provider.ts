@@ -167,10 +167,12 @@ export class OpenXblProvider implements GamingProvider {
     profile: 'full',
     incrementalSync: false,
     importOnly: false,
-    // Each chosen game now costs *two* requests — one for its achievements,
-    // one for its MinutesPlayed — so 6 games is ~12 requests plus the library
-    // pass, comfortably inside the 150/hour tier with room for a re-run.
-    achievementSweepBudget: 6,
+    // A game costs one request per kind of detail still missing — its
+    // achievements, its MinutesPlayed, or both. Catching up on a single kind
+    // therefore costs half what a first pass does, so 12 games is 12 requests
+    // while topping up and 24 on a full refresh: both inside the 150/hour tier,
+    // and at one request per 30s a refresh run still finishes in ~12 minutes.
+    achievementSweepBudget: 12,
   };
 
   private readonly http: ProviderHttpClient;

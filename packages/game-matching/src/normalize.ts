@@ -186,6 +186,14 @@ export function normalizeTitle(raw: string): NormalizedTitle {
 
   work = work.replace(/\s+/g, ' ').trim();
 
+  // Drop a conjunction left dangling by the strippers above.
+  //
+  // PlayStation names its multi-generation releases "It Takes Two  PS4(tm) &
+  // PS5(tm)". The ampersand becomes "and" before the platform tokens are
+  // removed, so what survives is "it takes two and" - a phrase that matches
+  // nothing and quietly cost that title its metadata.
+  work = work.replace(/^(?:and|or|plus)\s+/, '').replace(/\s+(?:and|or|plus)$/, '');
+
   const base = work;
 
   // Roman numerals only after edition stripping, and only for standalone

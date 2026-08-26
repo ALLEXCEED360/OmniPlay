@@ -62,10 +62,11 @@ export const PROVIDER_CATALOGUE: ProviderCatalogueEntry[] = [
   {
     id: 'psn',
     displayName: 'PlayStation',
-    access: 'import',
-    requires: [],
-    importReason:
-      'Sony publishes no public consumer API. The community endpoints that exist are reverse-engineered, unsupported, and break without notice, so OMNIPLAY does not build on them.',
+    access: 'api',
+    requires: ['PSN_NPSSO'],
+    setupUrl: 'https://ca.account.sony.com/api/v1/ssocookie',
+    setupHint:
+      'Sign in at playstation.com, then open ca.account.sony.com/api/v1/ssocookie and copy the npsso value into PSN_NPSSO. It is a session token, not an API key: treat it like your password, and expect to replace it every couple of months. Sony publishes no consumer API, so this route is unofficial and can stop working without notice - the personal-data export below stays available either way.',
     exportUrl: 'https://www.playstation.com/support/account/request-personal-information/',
   },
   {

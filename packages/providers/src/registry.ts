@@ -2,6 +2,7 @@ import type { GamingProvider, ProviderId } from '@omniplay/types';
 import { SteamProvider } from './steam/steam.provider.js';
 import { XboxProvider } from './xbox/xbox.provider.js';
 import { OpenXblProvider } from './xbox/openxbl.provider.js';
+import { PsnProvider } from './psn/psn.provider.js';
 import { ImportProvider, type ImportRecordLoader } from './import/import.provider.js';
 import {
   IMPORT_PROVIDER_IDS,
@@ -102,6 +103,7 @@ export interface ProviderRegistryEnv {
   XBOX_CLIENT_ID?: string | undefined;
   XBOX_CLIENT_SECRET?: string | undefined;
   OPENXBL_API_KEY?: string | undefined;
+  PSN_NPSSO?: string | undefined;
 }
 
 export interface ProviderRegistryDeps {
@@ -140,10 +142,20 @@ export function createProviderRegistry(
     );
   }
 
+  // PlayStation, when a session token is present.
+  //
+  // Unofficial by necessity: Sony publishes no consumer API, so this speaks to
+  // the endpoints behind the PlayStation mobile app. It registers only when
+  // PSN_NPSSO is set, which keeps that a deliberate choice rather than a
+  // default - and without it PlayStation stays the file import below.
+  if (env.PSN_NPSSO) {
+    registry.register(new PsnProvider({ npsso: env.PSN_NPSSO }));
+  }
+
   // File-backed sources need no credentials, so they register as soon as a
-  // loader exists. PlayStation, Ubisoft and EA are here rather than as API
-  // clients because none of the three publishes a public consumer API to build
-  // one against (spec 5.3, and the same reasoning extended).
+  // loader exists. Ubisoft and EA are here rather than as API clients because
+  // neither publishes a public consumer API to build one against (spec 5.3,
+  // and the same reasoning extended).
   //
   // Adding each of them is one catalogue entry and no new adapter, which is
   // the provider abstraction earning its keep.

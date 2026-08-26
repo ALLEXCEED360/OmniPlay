@@ -70,8 +70,23 @@ export default async function DashboardPage() {
     );
   }
 
-  const providerEntries = Object.entries(data.library.gamesByProvider).sort((a, b) => b[1] - a[1]);
-  const maxProviderGames = Math.max(1, ...providerEntries.map(([, count]) => count));
+  // Every platform that contributed either games or hours, ordered by hours.
+  // Hours lead because that is what the headline figure aggregates away: one
+  // combined number cannot say that a library is mostly PlayStation.
+  const providerEntries = [
+    ...new Set([
+      ...Object.keys(data.library.gamesByProvider),
+      ...Object.keys(data.playtime.byProvider),
+    ]),
+  ]
+    .map((provider) => ({
+      provider,
+      games: data.library.gamesByProvider[provider] ?? 0,
+      minutes: data.playtime.byProvider[provider] ?? 0,
+    }))
+    .sort((a, b) => b.minutes - a.minutes || b.games - a.games);
+
+  const maxProviderMinutes = Math.max(1, ...providerEntries.map((entry) => entry.minutes));
   const years = Object.entries(data.playtime.byYear)
     .map(([year, minutes]) => ({ year: Number(year), minutes }))
     .sort((a, b) => a.year - b.year);
@@ -91,7 +106,12 @@ export default async function DashboardPage() {
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard label="Games" value={data.library.totalGames} hint={`${data.library.currentlyOwned} owned now`} />
         <StatCard label="Completed" value={data.library.completed} hint={`${Math.round(data.library.completionRate * 100)}% of started`} />
-        <StatCard label="Hours played" value={formatHours(data.playtime.totalMinutes)} accent />
+        <StatCard
+          label="Hours played"
+          value={formatHours(data.playtime.totalMinutes)}
+          hint={`across ${providerEntries.filter((entry) => entry.minutes > 0).length} platforms`}
+          accent
+        />
         <StatCard label="Backlog" value={data.library.backlog} hint="Never started" />
       </div>
 
@@ -124,22 +144,41 @@ export default async function DashboardPage() {
 
       <div className="mt-10 grid gap-6 lg:grid-cols-2">
         <section className="card p-6">
-          <SectionHeading>Your platforms</SectionHeading>
+          <SectionHeading>Hours by platform</SectionHeading>
           <div className="space-y-4">
-            {providerEntries.map(([provider, count]) => (
+            {providerEntries.map((entry) => (
               <ProportionBar
-                key={provider}
-                label={providerLabel(provider)}
-                value={count}
-                max={maxProviderGames}
-                caption={`${count.toLocaleString()} games`}
+                key={entry.provider}
+                label={providerLabel(entry.provider)}
+                value={entry.minutes}
+                max={maxProviderMinutes}
+                caption={`${formatHours(entry.minutes)} · ${entry.games.toLocaleString()} games`}
               />
             ))}
           </div>
+          <p className="mt-4 text-xs text-ink-600">
+            {formatHours(data.playtime.totalMinutes)} in total. Hours are only added across
+            platforms, never within one — a game owned twice on the same platform counts each
+            copy once.
+          </p>
         </section>
 
         <section className="card p-6">
-          <SectionHeading>Most played</SectionHeading>
+          {/* Five games is a teaser, and the question it prompts — "what
+              about everything else?" — deserves an answer rather than a dead
+              end. */}
+          <SectionHeading
+            action={
+              <Link
+                href="/most-played"
+                className="shrink-0 text-xs font-normal normal-case tracking-normal text-ink-500 transition-colors hover:text-accent"
+              >
+                See all {data.library.totalGames} &rarr;
+              </Link>
+            }
+          >
+            Most played
+          </SectionHeading>
           {data.mostPlayed.length === 0 ? (
             <p className="text-sm text-ink-500">No playtime recorded yet.</p>
           ) : (

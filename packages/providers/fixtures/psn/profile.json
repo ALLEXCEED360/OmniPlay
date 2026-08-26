@@ -1,0 +1,15 @@
+{
+  "onlineId": "TestPlayer",
+  "personalDetail": {
+    "firstName": "",
+    "lastName": ""
+  },
+  "aboutMe": "",
+  "avatars": [],
+  "languages": [
+    "en-US"
+  ],
+  "isPlus": false,
+  "isOfficiallyVerified": false,
+  "isMe": true
+}

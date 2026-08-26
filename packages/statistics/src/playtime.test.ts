@@ -293,3 +293,69 @@ describe('formatPlaytime', () => {
     expect(formatPlaytime(minutes)).toBe(expected);
   });
 });
+
+/**
+ * Two editions of one game.
+ *
+ * A PS4 and a PS5 release resolve to a single canonical game while remaining
+ * two entitlements the provider reports separately. Keying the maximum on the
+ * canonical game discarded the smaller of the two: across one real library
+ * that lost 345 hours, with Yakuza: Like A Dragon reporting 102 of its 158.
+ */
+describe('aggregatePlaytime across editions', () => {
+  const base = {
+    gameId: 'game-1',
+    provider: 'psn' as const,
+    activityType: 'LIFETIME_TOTAL' as const,
+    startedAt: null,
+    endedAt: null,
+    confidence: 'VERIFIED' as const,
+  };
+
+  it('adds two editions of the same game', () => {
+    const result = aggregatePlaytime([
+      { ...base, dedupeKey: 'psn:LIFETIME_TOTAL:CUSA00001_00', minutesPlayed: 6000 },
+      { ...base, dedupeKey: 'psn:LIFETIME_TOTAL:PPSA00002_00', minutesPlayed: 3500 },
+    ]);
+
+    expect(result.totalMinutes).toBe(9500);
+    expect(result.byGame['game-1']).toBe(9500);
+  });
+
+  it('still takes the maximum when one title is re-observed', () => {
+    // The original rule, and the reason a plain sum is wrong: syncing twice
+    // re-reports the same running total under the same key.
+    const result = aggregatePlaytime([
+      { ...base, dedupeKey: 'psn:LIFETIME_TOTAL:CUSA00001_00', minutesPlayed: 6000 },
+      { ...base, dedupeKey: 'psn:LIFETIME_TOTAL:CUSA00001_00', minutesPlayed: 6120 },
+    ]);
+
+    expect(result.totalMinutes).toBe(6120);
+  });
+
+  it('treats records with no key as one figure per game and provider', () => {
+    // A caller that cannot supply keys must not have its totals inflated.
+    const result = aggregatePlaytime([
+      { ...base, minutesPlayed: 6000 },
+      { ...base, minutesPlayed: 6120 },
+    ]);
+
+    expect(result.totalMinutes).toBe(6120);
+  });
+
+  it('keeps adding across providers, which was always right', () => {
+    const result = aggregatePlaytime([
+      { ...base, dedupeKey: 'psn:LIFETIME_TOTAL:CUSA00001_00', minutesPlayed: 6000 },
+      {
+        ...base,
+        provider: 'steam' as const,
+        dedupeKey: 'steam:LIFETIME_TOTAL:730',
+        minutesPlayed: 3000,
+      },
+    ]);
+
+    expect(result.totalMinutes).toBe(9000);
+    expect(result.byProvider['psn']).toBe(6000);
+    expect(result.byProvider['steam']).toBe(3000);
+  });
+});

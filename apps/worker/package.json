@@ -13,10 +13,12 @@
     "demo:enrich": "tsx --env-file-if-exists=../../.env src/dev/demo-enrich.ts",
     "reset": "tsx --env-file-if-exists=../../.env src/dev/reset-data.ts",
     "doctor": "tsx --env-file-if-exists=../../.env src/dev/doctor.ts",
+    "connect:psn": "tsx --env-file-if-exists=../../.env src/dev/connect-psn.ts",
     "link:steam": "tsx --env-file-if-exists=../../.env src/dev/link-steam.ts",
     "sync": "tsx --env-file-if-exists=../../.env src/dev/sync-now.ts",
     "enrich": "tsx --env-file-if-exists=../../.env src/dev/enrich-now.ts",
     "sweep": "tsx --env-file-if-exists=../../.env src/dev/sweep-queue.ts",
+    "probe:psn": "tsx --env-file-if-exists=../../.env src/dev/probe-psn.ts",
     "probe:xbox": "tsx --env-file-if-exists=../../.env src/dev/probe-openxbl.ts"
   },
   "dependencies": {

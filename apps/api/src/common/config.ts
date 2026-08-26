@@ -39,6 +39,9 @@ const schema = z.object({
    */
   OPENXBL_API_KEY: z.string().optional(),
 
+  /** PlayStation session token. See the note above OPENXBL_API_KEY. */
+  PSN_NPSSO: z.string().optional(),
+
   IGDB_CLIENT_ID: z.string().optional(),
   IGDB_CLIENT_SECRET: z.string().optional(),
 });

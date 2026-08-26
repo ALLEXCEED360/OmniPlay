@@ -178,7 +178,12 @@ export default async function AchievementsPage() {
                 : 0;
             return (
               <Link
-                key={game.gameId}
+                // Per game *and* provider: a game with achievements on two
+                // platforms is deliberately two rows here, since Steam and
+                // PlayStation track separate progress against separate sets.
+                // Keying on the game alone collided as soon as one library
+                // held both.
+                key={`${game.gameId}:${game.provider}`}
                 href={`/game/${game.slug}`}
                 className="flex items-center gap-4 p-4 transition-colors hover:bg-ink-850/40"
               >

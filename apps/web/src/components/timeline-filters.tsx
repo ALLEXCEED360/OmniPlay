@@ -55,7 +55,14 @@ export function TimelineFilters({
     [searchParams, update],
   );
 
-  const allKinds = EVENT_KINDS.map((kind) => kind.id);
+  // Only kinds this library actually contains.
+  //
+  // A chip that can never match anything is not a disabled control, it is
+  // clutter: "Added" stays empty until a file import supplies acquisition
+  // dates, because no platform API reports when a game was bought. Hiding it
+  // is honest — the filter reappears the moment the data does.
+  const presentKinds = EVENT_KINDS.filter((kind) => counts[kind.id] > 0);
+  const allKinds = presentKinds.map((kind) => kind.id);
   const activeKinds = (searchParams.get('kinds') ?? '').split(',').filter(Boolean);
   const activeProviders = (searchParams.get('providers') ?? '').split(',').filter(Boolean);
 
@@ -68,7 +75,7 @@ export function TimelineFilters({
   return (
     <div className={`mb-8 space-y-3 ${pending ? 'opacity-70' : ''} transition-opacity`}>
       <div className="flex flex-wrap items-center gap-2">
-        {EVENT_KINDS.map((kind) => {
+        {presentKinds.map((kind) => {
           const on = isKindOn(kind.id);
           const count = counts[kind.id];
 
@@ -77,9 +84,8 @@ export function TimelineFilters({
               key={kind.id}
               type="button"
               aria-pressed={on}
-              disabled={count === 0}
               onClick={() => toggleInList('kinds', kind.id, allKinds)}
-              className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+              className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
                 on
                   ? 'border-ink-600 bg-ink-800 text-ink-100'
                   : 'border-ink-850 text-ink-500 hover:border-ink-700 hover:text-ink-300'

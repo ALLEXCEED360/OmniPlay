@@ -1,4 +1,5 @@
 import type { ActivityType, Confidence, GameStatus, ProviderId } from '@omniplay/types';
+import { resolveGameStatus } from './status.js';
 
 /**
  * Playtime aggregation.
@@ -12,12 +13,28 @@ import type { ActivityType, Confidence, GameStatus, ProviderId } from '@omniplay
  * owned on Steam and Xbox, the two providers' lifetime figures describe
  * *different* playthroughs and genuinely should be added.
  *
- * So the rule is: take the maximum LIFETIME_TOTAL per (game, provider), then
- * sum across providers. Sessions are true events and are summed directly.
+ * So the rule is: take the maximum LIFETIME_TOTAL per *title*, then sum. The
+ * unit is the provider's own id for the thing it is describing, not the
+ * canonical game, and the distinction is not academic: a PS4 and a PS5 edition
+ * resolve to one canonical game while being two entitlements the provider
+ * reports separately. Keying the maximum on the canonical game silently
+ * discarded the smaller of the two - 345 hours across one real library, with
+ * Yakuza: Like A Dragon reporting 102 hours of a 158-hour history.
+ *
+ * Sessions are true events and are summed directly.
  */
 
 export interface ActivityRecord {
   gameId: string;
+  /**
+   * The writer's idempotency key, e.g. "psn:LIFETIME_TOTAL:CUSA00419_00".
+   *
+   * It identifies one logical fact, which is the right unit for the maximum
+   * below: re-syncing re-observes the same key, while two editions of one game
+   * carry different keys and their figures add. Null falls back to treating the
+   * canonical game as the unit, which is all a caller without one can assume.
+   */
+  dedupeKey?: string | null;
   provider: ProviderId;
   activityType: ActivityType;
   minutesPlayed: number | null;
@@ -53,14 +70,21 @@ function isCountable(record: ActivityRecord): boolean {
  * arithmetic, and two implementations would eventually disagree.
  */
 export function aggregatePlaytime(records: ActivityRecord[]): PlaytimeBreakdown {
-  /** (gameId, provider) -> max lifetime figure seen. */
+  /** (gameId, provider, title) -> max lifetime figure seen for that title. */
   const lifetime = new Map<string, number>();
-  /** (gameId, provider) -> sum of discrete sessions. */
+  /** (gameId, provider, title) -> sum of discrete sessions. */
   const sessions = new Map<string, number>();
+  /** Which canonical game and provider each key belongs to. */
+  const owner = new Map<string, { gameId: string; provider: ProviderId }>();
 
   for (const record of records) {
     if (!isCountable(record)) continue;
-    const key = `${record.gameId} ${record.provider}`;
+
+    // The dedupe key is part of the map key, so re-observing one title still
+    // takes a maximum while two editions of the same game each keep their own
+    // figure.
+    const key = `${record.gameId}\u0000${record.provider}\u0000${record.dedupeKey ?? ''}`;
+    owner.set(key, { gameId: record.gameId, provider: record.provider });
     const minutes = record.minutesPlayed!;
 
     if (record.activityType === 'LIFETIME_TOTAL') {
@@ -76,7 +100,9 @@ export function aggregatePlaytime(records: ActivityRecord[]): PlaytimeBreakdown 
   let totalMinutes = 0;
 
   for (const key of new Set([...lifetime.keys(), ...sessions.keys()])) {
-    const [gameId, provider] = key.split(' ') as [string, string];
+    const at = owner.get(key);
+    if (!at) continue;
+    const { gameId, provider } = at;
     // A provider reporting both a lifetime total and sessions would be double
     // counting; the lifetime figure is the authoritative one where present.
     const minutes = lifetime.get(key) ?? sessions.get(key) ?? 0;
@@ -206,6 +232,14 @@ export function computeLibraryStats(input: {
   ownerships: OwnershipRecord[];
   statuses: StatusRecord[];
   playtimeByGame: Record<string, number>;
+  /**
+   * Games where every achievement is unlocked.
+   *
+   * Without it the dashboard counts only statuses the user set by hand, which
+   * in a library that has never used them is none — reporting "0 completed"
+   * beside a game the library screen correctly calls complete.
+   */
+  fullyUnlockedGames?: Iterable<string>;
 }): LibraryStats {
   const owned = new Set<string>();
   const previouslyOwned = new Set<string>();
@@ -224,12 +258,27 @@ export function computeLibraryStats(input: {
   for (const gameId of owned) previouslyOwned.delete(gameId);
 
   const statusByGame = new Map(input.statuses.map((s) => [s.gameId, s.status]));
-  const allGames = new Set([...owned, ...previouslyOwned, ...statusByGame.keys()]);
+  const fullyUnlocked = new Set(input.fullyUnlockedGames ?? []);
+  const allGames = new Set([
+    ...owned,
+    ...previouslyOwned,
+    ...statusByGame.keys(),
+    ...fullyUnlocked,
+  ]);
 
+  // Counted per game through the shared resolver rather than by reading the
+  // status table directly, so these totals agree with the labels and filters
+  // on every other screen.
   let completed = 0;
   let abandoned = 0;
   let playing = 0;
-  for (const status of statusByGame.values()) {
+  for (const gameId of allGames) {
+    const { status } = resolveGameStatus({
+      declared: statusByGame.get(gameId),
+      allAchievementsUnlocked: fullyUnlocked.has(gameId),
+      hasPlaytime: (input.playtimeByGame[gameId] ?? 0) > 0,
+    });
+
     if (status === 'COMPLETED') completed++;
     else if (status === 'ABANDONED') abandoned++;
     else if (status === 'PLAYING' || status === 'REPLAYING') playing++;

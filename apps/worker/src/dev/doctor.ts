@@ -209,6 +209,67 @@ async function checkIgdb(): Promise<void> {
   }
 }
 
+/**
+ * PlayStation.
+ *
+ * The npsso is a session cookie with roughly a sixty-day life, so unlike an
+ * API key it expires on its own and takes the whole provider down with it.
+ * Checking it here means that shows up as "your session expired, here is how
+ * to renew it" rather than as a sync failing with an opaque 400.
+ */
+async function checkPsn(): Promise<void> {
+  const npsso = process.env.PSN_NPSSO;
+
+  if (!npsso) {
+    record({
+      name: 'PlayStation',
+      status: 'warn',
+      detail: 'PSN_NPSSO not set — PlayStation stays file-import only.',
+      fix: 'Sign in at playstation.com, open https://ca.account.sony.com/api/v1/ssocookie, and put the npsso value in .env',
+    });
+    return;
+  }
+
+  try {
+    const params = new URLSearchParams({
+      access_type: 'offline',
+      client_id: '09515159-7237-4370-9b40-3806e67c0891',
+      redirect_uri: 'com.scee.psxandroid.scecompcall://redirect',
+      response_type: 'code',
+      scope: 'psn:mobile.v2.core psn:clientapp',
+    });
+
+    const response = await fetch(
+      `https://ca.account.sony.com/api/authz/v3/oauth/authorize?${params.toString()}`,
+      {
+        redirect: 'manual',
+        headers: { Cookie: `npsso=${npsso}` },
+        signal: AbortSignal.timeout(15_000),
+      },
+    );
+
+    // A working cookie is redirected back with a code in the query string; a
+    // lapsed one is sent somewhere else entirely.
+    const code = new URLSearchParams(
+      (response.headers.get('location') ?? '').split('?')[1] ?? '',
+    ).get('code');
+
+    if (!code) {
+      record({
+        name: 'PlayStation',
+        status: 'fail',
+        detail: 'Sony rejected the session token — it has almost certainly expired.',
+        fix: 'Sign in at playstation.com, reopen https://ca.account.sony.com/api/v1/ssocookie, and replace PSN_NPSSO in .env',
+      });
+      return;
+    }
+
+    record({ name: 'PlayStation', status: 'ok', detail: 'Session token works.' });
+  } catch {
+    record({ name: 'PlayStation', status: 'warn', detail: 'Could not reach Sony to check.' });
+  }
+}
+
 async function checkXbox(): Promise<void> {
   const openXbl = process.env.OPENXBL_API_KEY;
 
@@ -284,6 +345,7 @@ async function main(): Promise<void> {
   checkSecrets();
   await checkSteam();
   await checkXbox();
+  await checkPsn();
   await checkIgdb();
 
   console.log();

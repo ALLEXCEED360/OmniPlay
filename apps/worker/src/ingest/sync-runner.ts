@@ -11,6 +11,7 @@ import {
   fromCredentialRow,
   needsRefresh,
   toCredentialRow,
+  Prisma,
   type PrismaClient,
 } from '@omniplay/database';
 import type { IgdbClient } from '@omniplay/providers';
@@ -54,6 +55,71 @@ export interface SyncStats {
   updated: number;
   failed: number;
   unresolved: number;
+}
+
+/**
+ * A kind of per-game detail that costs its own request.
+ *
+ * Tracked separately rather than under one "checked" flag — see
+ * {@link SyncRunner.markDetailChecked} for what that cost.
+ */
+export type DetailKind = 'playtime' | 'achievements';
+
+/** The titles each kind of detail should be fetched for this run. */
+export type DetailSweep = Record<DetailKind, string[]>;
+
+/** Where a kind's last-asked timestamp lives on `externalMetadata`. */
+export function detailStampField(kind: DetailKind): string {
+  return `${kind}CheckedAt`;
+}
+
+/**
+ * Which kinds a selected title still needs fetched this run.
+ *
+ * Catch-up before refresh: if any kind has never been asked, only the missing
+ * kinds are fetched, because re-requesting data already held to top up one gap
+ * doubles the cost of a sweep against a provider that charges per request.
+ * Once every kind is stamped the title is refreshed in full, which is what
+ * keeps a completed library current rather than frozen.
+ */
+export function kindsToFetch(
+  meta: Record<string, unknown> | null | undefined,
+  kinds: readonly DetailKind[],
+): DetailKind[] {
+  const missing = kinds.filter((kind) => {
+    const raw = meta?.[detailStampField(kind)];
+    return !(typeof raw === 'string' && Number.isFinite(Date.parse(raw)));
+  });
+
+  return missing.length > 0 ? missing : [...kinds];
+}
+
+/**
+ * When a title was last fully asked about — the *oldest* of its per-kind
+ * stamps, or `-Infinity` if any kind has never been asked at all.
+ *
+ * Taking the oldest is the whole point. A title fetched for achievements but
+ * never for playtime is not "checked"; it is half-checked, and must sort as
+ * urgently as one that has never been touched. Reading a single stamp as
+ * covering every kind is what previously hid thirty hours of Forza Horizon 6
+ * behind a flag written before playtime was ever fetched.
+ */
+export function oldestDetailStamp(
+  meta: Record<string, unknown> | null | undefined,
+  kinds: readonly DetailKind[],
+): number {
+  let oldest = Infinity;
+
+  for (const kind of kinds) {
+    const raw = meta?.[detailStampField(kind)];
+    const stamp = typeof raw === 'string' ? Date.parse(raw) : Number.NaN;
+    // An unstamped kind means nothing about this title is known to be current.
+    if (!Number.isFinite(stamp)) return -Infinity;
+    oldest = Math.min(oldest, stamp);
+  }
+
+  // No kinds to fetch: nothing is outstanding, so it sorts last.
+  return oldest;
 }
 
 export class SyncRunner {
@@ -113,10 +179,10 @@ export class SyncRunner {
 
     // ---- Play history --------------------------------------------------
     //
-    // Chosen once and reused: for a provider that charges a request per game,
-    // the same budgeted set gets both its playtime and its achievements, so a
-    // "checked" title comes back fully rather than half-populated.
-    const detailFor = await this.planDetailSweep(provider, gameIdByExternalId);
+    // One budgeted set of titles, split by which kinds of detail each still
+    // needs. A title already holding its achievements spends its request on
+    // the playtime it is missing rather than on both.
+    const sweep = await this.planDetailSweep(provider, gameIdByExternalId);
 
     if (provider.getPlayHistory) {
       await this.report(request, 'playtime', null, stats, 'RUNNING');
@@ -124,7 +190,7 @@ export class SyncRunner {
       try {
         for await (const event of provider.getPlayHistory(session, {
           full: request.full,
-          detailFor,
+          detailFor: sweep.playtime,
         })) {
           const gameId = gameIdByExternalId.get(event.externalGameId);
           // An activity for a title the library pass never yielded has nothing
@@ -133,6 +199,11 @@ export class SyncRunner {
 
           await this.upsertActivity(request, provider.id, gameId, event);
         }
+
+        // Stamped only after the pass completes: a run that threw partway
+        // through has asked for some of these and not others, and recording
+        // the lot would strand the remainder exactly as it did before.
+        await this.markDetailChecked(provider, sweep.playtime, 'playtime');
       } catch (error) {
         stats.failed++;
         this.logPhaseFailure(request, 'playtime', error);
@@ -143,7 +214,7 @@ export class SyncRunner {
     if (request.includeAchievements && provider.getAchievements) {
       await this.report(request, 'achievements', null, stats, 'RUNNING');
       await this.flushProgress(request, stats, 'achievements');
-      await this.ingestAchievements(provider, session, request, gameIdByExternalId, stats, detailFor);
+      await this.ingestAchievements(provider, session, request, gameIdByExternalId, stats, sweep.achievements);
     }
 
     // ---- Finalise ------------------------------------------------------
@@ -480,7 +551,7 @@ export class SyncRunner {
         }
         // Stamped whether or not anything came back, so a title with no
         // achievements is not asked again on every future sync.
-        await this.markAchievementsChecked(provider.id, externalId);
+        await this.markDetailChecked(provider, [externalId], 'achievements');
       } catch (error) {
         // Achievements are a bonus pass; a failure here must not undo the
         // library import that already succeeded.
@@ -490,29 +561,51 @@ export class SyncRunner {
     }
   }
 
-  /** Records that a title's achievements were requested, whatever came back. */
-  private async markAchievementsChecked(
-    provider: ProviderId,
-    externalId: string,
+  /**
+   * Records that a kind of per-game detail was requested, whatever came back.
+   *
+   * One stamp per kind, deliberately. A single "checked" flag covering every
+   * kind of detail is correct only until a new kind is added, at which point
+   * every title already stamped is considered done and never asked for the new
+   * data. That is not hypothetical: adding Xbox playtime after the achievement
+   * sweep had already run left nine titles permanently short of their hours —
+   * Forza Horizon 6 sat at zero while Xbox held thirty hours for it — because
+   * they had been stamped by a build in which playtime did not yet exist.
+   *
+   * Separate stamps mean an unfetched kind reads as never-asked and sorts to
+   * the front of the next sweep, which is what makes adding a third kind later
+   * a non-event.
+   */
+  private async markDetailChecked(
+    provider: GamingProvider,
+    externalIds: readonly string[],
+    kind: DetailKind,
   ): Promise<void> {
-    const identity = await this.deps.prisma.externalGameIdentity.findUnique({
-      where: { provider_externalId: { provider, externalId } },
-      select: { externalMetadata: true },
-    });
-    if (!identity) return;
+    // Only budgeted providers consult these stamps, and writing them for a
+    // whole Steam library every sync would be a lot of writes for nothing.
+    if (provider.capabilities.achievementSweepBudget === undefined) return;
 
-    const meta = (identity.externalMetadata as Record<string, unknown> | null) ?? {};
+    const field = detailStampField(kind);
+    const now = new Date().toISOString();
 
-    await this.deps.prisma.externalGameIdentity
-      .update({
-        where: { provider_externalId: { provider, externalId } },
-        data: {
-          externalMetadata: { ...meta, achievementsCheckedAt: new Date().toISOString() },
-        },
-      })
-      .catch(() => {
-        // Bookkeeping only: losing a stamp costs one repeated request later.
+    for (const externalId of externalIds) {
+      const identity = await this.deps.prisma.externalGameIdentity.findUnique({
+        where: { provider_externalId: { provider: provider.id, externalId } },
+        select: { externalMetadata: true },
       });
+      if (!identity) continue;
+
+      const meta = (identity.externalMetadata as Prisma.JsonObject | null) ?? {};
+
+      await this.deps.prisma.externalGameIdentity
+        .update({
+          where: { provider_externalId: { provider: provider.id, externalId } },
+          data: { externalMetadata: { ...meta, [field]: now } },
+        })
+        .catch(() => {
+          // Bookkeeping only: losing a stamp costs one repeated request later.
+        });
+    }
   }
 
   /**
@@ -530,11 +623,13 @@ export class SyncRunner {
   private async planDetailSweep(
     provider: GamingProvider,
     gameIdByExternalId: Map<string, string>,
-  ): Promise<string[]> {
+  ): Promise<DetailSweep> {
     const budget = provider.capabilities.achievementSweepBudget;
     const all = [...gameIdByExternalId.keys()];
 
-    if (budget === undefined || all.length <= budget) return all;
+    if (budget === undefined || all.length <= budget) {
+      return { playtime: all, achievements: all };
+    }
 
     // Ordered by when each title was last *asked*, not by whether it produced
     // anything.
@@ -549,13 +644,17 @@ export class SyncRunner {
       select: { externalId: true, externalMetadata: true },
     });
 
+    // Which kinds this provider actually fetches; a title counts as covered
+    // only once every one of them has been asked for.
+    const kinds: DetailKind[] = [];
+    if (provider.getPlayHistory) kinds.push('playtime');
+    if (provider.getAchievements) kinds.push('achievements');
+
     const checkedAt = new Map<string, number>();
     for (const identity of identities) {
       const meta = identity.externalMetadata as Record<string, unknown> | null;
-      const stamp = typeof meta?.['achievementsCheckedAt'] === 'string'
-        ? Date.parse(meta['achievementsCheckedAt'] as string)
-        : Number.NaN;
-      if (Number.isFinite(stamp)) checkedAt.set(identity.externalId, stamp);
+      const oldest = oldestDetailStamp(meta, kinds);
+      if (Number.isFinite(oldest)) checkedAt.set(identity.externalId, oldest);
     }
 
     // Never asked first, then longest ago — so a full library is covered in
@@ -567,15 +666,32 @@ export class SyncRunner {
     });
 
     const neverChecked = all.length - checkedAt.size;
+    const selected = ordered.slice(0, budget);
+
+    // Split per kind, so a title picked up only because its playtime is
+    // missing does not also spend a request re-reading achievements we hold.
+    const metaByExternalId = new Map(
+      identities.map((identity) => [
+        identity.externalId,
+        identity.externalMetadata as Record<string, unknown> | null,
+      ]),
+    );
+
+    const sweep: DetailSweep = { playtime: [], achievements: [] };
+    for (const externalId of selected) {
+      for (const kind of kindsToFetch(metaByExternalId.get(externalId), kinds)) {
+        sweep[kind].push(externalId);
+      }
+    }
 
     // eslint-disable-next-line no-console
     console.log(
-      `[sync] ${provider.id}: fetching per-game detail (playtime + achievements) for ` +
-        `${Math.min(budget, ordered.length)} of ${all.length} games this run ` +
-        `(${neverChecked} never checked).`,
+      `[sync] ${provider.id}: per-game detail for ${selected.length} of ${all.length} games ` +
+        `this run (${neverChecked} never fully checked) — ` +
+        `${sweep.playtime.length} playtime, ${sweep.achievements.length} achievements.`,
     );
 
-    return ordered.slice(0, budget);
+    return sweep;
   }
 
   /**

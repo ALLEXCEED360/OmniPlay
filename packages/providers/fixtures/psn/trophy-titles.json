@@ -1,0 +1,107 @@
+{
+  "trophyTitles": [
+    {
+      "npServiceName": "trophy2",
+      "npCommunicationId": "NPWR42737_00",
+      "trophySetVersion": "01.00",
+      "trophyTitleName": "UFL",
+      "trophyTitleIconUrl": "https://psnobj.prod.dl.playstation.net/psnobj/NPWR42737_00/a9aceb52-effa-49da-91e3-32ad0e69db66.png",
+      "trophyTitlePlatform": "PS5",
+      "hasTrophyGroups": false,
+      "trophyGroupCount": 1,
+      "definedTrophies": {
+        "bronze": 9,
+        "silver": 10,
+        "gold": 6,
+        "platinum": 1
+      },
+      "progress": 81,
+      "earnedTrophies": {
+        "bronze": 9,
+        "silver": 10,
+        "gold": 4,
+        "platinum": 0
+      },
+      "hiddenFlag": false,
+      "lastUpdatedDateTime": "2025-03-27T10:33:25Z"
+    },
+    {
+      "npServiceName": "trophy2",
+      "npCommunicationId": "NPWR25347_00",
+      "trophySetVersion": "01.00",
+      "trophyTitleName": "Metaphor: ReFantazio",
+      "trophyTitleIconUrl": "https://psnobj.prod.dl.playstation.net/psnobj/NPWR25347_00/acc1ea23-8069-438d-84a7-585bde6ab21c.png",
+      "trophyTitlePlatform": "PS5",
+      "hasTrophyGroups": false,
+      "trophyGroupCount": 1,
+      "definedTrophies": {
+        "bronze": 32,
+        "silver": 8,
+        "gold": 3,
+        "platinum": 1
+      },
+      "progress": 12,
+      "earnedTrophies": {
+        "bronze": 8,
+        "silver": 0,
+        "gold": 0,
+        "platinum": 0
+      },
+      "hiddenFlag": false,
+      "lastUpdatedDateTime": "2024-12-06T09:18:25Z"
+    },
+    {
+      "npServiceName": "trophy2",
+      "npCommunicationId": "NPWR35316_00",
+      "trophySetVersion": "01.00",
+      "trophyTitleName": "FINAL FANTASY VII REBIRTH",
+      "trophyTitleIconUrl": "https://psnobj.prod.dl.playstation.net/psnobj/NPWR35316_00/bd6c3068-37e0-40eb-8081-eee7323b04f0.PNG",
+      "trophyTitlePlatform": "PS5",
+      "hasTrophyGroups": false,
+      "trophyGroupCount": 1,
+      "definedTrophies": {
+        "bronze": 54,
+        "silver": 5,
+        "gold": 1,
+        "platinum": 1
+      },
+      "progress": 85,
+      "earnedTrophies": {
+        "bronze": 52,
+        "silver": 4,
+        "gold": 0,
+        "platinum": 0
+      },
+      "hiddenFlag": false,
+      "lastUpdatedDateTime": "2024-10-10T18:20:00Z"
+    },
+    {
+      "npServiceName": "trophy",
+      "npCommunicationId": "NPWR08983_00",
+      "trophySetVersion": "01.03",
+      "trophyTitleName": "NieR:Automata",
+      "trophyTitleDetail": "NieR:Automata Trophies",
+      "trophyTitleIconUrl": "https://image.api.playstation.com/trophy/np/NPWR08983_00_0028401200C35DF79459606ABAD48478BB4ED49539/E1BD1DCC141217DFB0A7180EB6EFF8A63156B4AC.PNG",
+      "trophyTitlePlatform": "PS4",
+      "hasTrophyGroups": false,
+      "trophyGroupCount": 1,
+      "definedTrophies": {
+        "bronze": 32,
+        "silver": 13,
+        "gold": 2,
+        "platinum": 1
+      },
+      "progress": 24,
+      "earnedTrophies": {
+        "bronze": 13,
+        "silver": 2,
+        "gold": 0,
+        "platinum": 0
+      },
+      "hiddenFlag": false,
+      "lastUpdatedDateTime": "2024-08-04T16:29:31Z"
+    }
+  ],
+  "nextOffset": 5,
+  "totalItemCount": 126
+}

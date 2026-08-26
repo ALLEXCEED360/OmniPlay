@@ -149,6 +149,8 @@ export function GameCard({
     totalMinutes: number;
     status: string;
     owned: boolean;
+    /** Distinguishes a removed entitlement from one that never existed. */
+    ownershipState?: 'OWNED' | 'PREVIOUSLY_OWNED' | 'UNKNOWN';
   };
 }) {
   return (
@@ -180,9 +182,12 @@ export function GameCard({
         {/* Gradient scrim so the title stays readable over any artwork. */}
         <div className="absolute inset-x-0 bottom-0 h-2/5 bg-gradient-to-t from-ink-950 via-ink-950/80 to-transparent" />
 
-        {!game.owned ? (
+        {/* Only a removed entitlement earns "previously owned". A game known
+            solely from play history was never recorded as owned, so claiming
+            it used to be would invent a purchase that may never have happened. */}
+        {game.ownershipState && game.ownershipState !== 'OWNED' ? (
           <span className="absolute right-2 top-2 rounded-full bg-ink-950/80 px-2 py-0.5 text-[10px] font-medium text-ink-400 backdrop-blur">
-            Previously owned
+            {game.ownershipState === 'PREVIOUSLY_OWNED' ? 'Previously owned' : 'Played'}
           </span>
         ) : null}
 

@@ -1,0 +1,447 @@
+{
+  "titles": [
+    {
+      "titleId": "PPSA21422_00",
+      "name": "UFL",
+      "localizedName": "UFL",
+      "imageUrl": "https://image.api.playstation.com/vulcan/ap/rnd/202608/1909/6cc8a7c521e75f80d6bcac4668567e24b322c3472b1cbdbb.png",
+      "localizedImageUrl": "https://image.api.playstation.com/vulcan/ap/rnd/202608/1909/6cc8a7c521e75f80d6bcac4668567e24b322c3472b1cbdbb.png",
+      "category": "ps5_native_game",
+      "service": "none(purchased)",
+      "sortableName": "ufl",
+      "playCount": 143,
+      "concept": {
+        "id": 10004289,
+        "titleIds": [
+          "PPSA20487_00",
+          "CUSA32743_00",
+          "PPSA15974_00",
+          "PPSA21609_00"
+        ],
+        "name": "UFL",
+        "media": {
+          "audios": [],
+          "videos": [],
+          "images": [
+            {
+              "url": "https://image.api.playstation.com/vulcan/ap/rnd/202608/1909/445979060e55c064685492c579bbdf1d744307976ad094ca.png",
+              "format": "UNKNOWN",
+              "type": "BACKGROUND_LAYER_ART"
+            },
+            {
+              "url": "https://image.api.playstation.com/vulcan/ap/rnd/202608/1909/0c59c73cab9b7869b4a38e0bb7e4d5a1f68f916a03dcaa3b.png",
+              "format": "UNKNOWN",
+              "type": "FOUR_BY_THREE_BANNER"
+            },
+            {
+              "url": "https://image.api.playstation.com/vulcan/ap/rnd/202608/1909/b7e5c9c074293e169f86256c025de63d6669f375f84d286f.png",
+              "format": "UNKNOWN",
+              "type": "GAMEHUB_COVER_ART"
+            },
+            {
+              "url": "https://image.api.playstation.com/vulcan/ap/rnd/202408/0712/4d7095b1371e949ffb6fbfe1626a7f69332a52472eb53db1.png",
+              "format": "UNKNOWN",
+              "type": "LOGO"
+            }
+          ]
+        },
+        "genres": [
+          "SPORTS"
+        ],
+        "localizedName": {
+          "defaultLanguage": "en-US",
+          "metadata": {
+            "fi-FI": "UFL",
+            "uk-UA": "UFL",
+            "de-DE": "UFL",
+            "en-US": "UFL",
+            "ko-KR": "UFL",
+            "pt-BR": "UFL",
+            "es-ES": "UFL",
+            "ar-AE": "UFL",
+            "no-NO": "UFL",
+            "fr-CA": "UFL",
+            "it-IT": "UFL",
+            "pl-PL": "UFL",
+            "ru-RU": "UFL",
+            "zh-Hans": "UFL",
+            "nl-NL": "UFL",
+            "pt-PT": "UFL",
+            "zh-Hant": "UFL",
+            "sv-SE": "UFL",
+            "da-DK": "UFL",
+            "tr-TR": "UFL",
+            "fr-FR": "UFL",
+            "en-GB": "UFL",
+            "es-419": "UFL",
+            "ja-JP": "UFL"
+          }
+        },
+        "country": "US",
+        "language": "en"
+      },
+      "media": {
+        "audios": [],
+        "videos": [],
+        "images": [
+          {
+            "url": "https://image.api.playstation.com/vulcan/ap/rnd/202608/1909/445979060e55c064685492c579bbdf1d744307976ad094ca.png",
+            "format": "UNKNOWN",
+            "type": "BACKGROUND_LAYER_ART"
+          },
+          {
+            "url": "https://image.api.playstation.com/vulcan/ap/rnd/202608/1909/0c59c73cab9b7869b4a38e0bb7e4d5a1f68f916a03dcaa3b.png",
+            "format": "UNKNOWN",
+            "type": "FOUR_BY_THREE_BANNER"
+          },
+          {
+            "url": "https://image.api.playstation.com/vulcan/ap/rnd/202608/1909/b7e5c9c074293e169f86256c025de63d6669f375f84d286f.png",
+            "format": "UNKNOWN",
+            "type": "GAMEHUB_COVER_ART"
+          },
+          {
+            "url": "https://image.api.playstation.com/vulcan/ap/rnd/202408/0712/4d7095b1371e949ffb6fbfe1626a7f69332a52472eb53db1.png",
+            "format": "UNKNOWN",
+            "type": "LOGO"
+          }
+        ]
+      },
+      "firstPlayedDateTime": "2024-12-08T14:14:43.810000Z",
+      "lastPlayedDateTime": "2025-06-23T02:20:35.140000Z",
+      "playDuration": "PT76H46M7S"
+    },
+    {
+      "titleId": "PPSA08666_00",
+      "name": "FINAL FANTASY VII REBIRTH",
+      "localizedName": "FINAL FANTASY VII REBIRTH",
+      "imageUrl": "https://image.api.playstation.com/vulcan/ap/rnd/202308/3005/6de6b1c4b0c475b5c28fd2011655ab8206ed846926fa1671.png",
+      "localizedImageUrl": "https://image.api.playstation.com/vulcan/ap/rnd/202308/3005/6de6b1c4b0c475b5c28fd2011655ab8206ed846926fa1671.png",
+      "category": "ps5_native_game",
+      "service": "other",
+      "sortableName": "final fantasy vii rebirth",
+      "playCount": 115,
+      "concept": {
+        "id": 10003999,
+        "titleIds": [
+          "PPSA08670_00",
+          "PPSA18939_00",
+          "PPSA08666_00",
+          "PPSA08668_00"
+        ],
+        "name": "FINAL FANTASY VII REBIRTH",
+        "media": {
+          "audios": [],
+          "videos": [],
+          "images": [
+            {
+              "url": "https://image.api.playstation.com/vulcan/ap/rnd/202308/3005/4a13ce96b9aee645c5e513658e93d7a19da511e7ef3501d9.png",
+              "format": "UNKNOWN",
+              "type": "GAMEHUB_COVER_ART"
+            },
+            {
+              "url": "https://image.api.playstation.com/vulcan/ap/rnd/202308/3005/dcf9ba62a6975c3ca81d3aa99f600fc258da69a02355c1f1.png",
+              "format": "UNKNOWN",
+              "type": "LOGO"
+            },
+            {
+              "url": "https://image.api.playstation.com/vulcan/ap/rnd/202308/3008/5901e5a43331122badb47a1890f65ab04c85dcaf8cb60268.jpg",
+              "format": "UNKNOWN",
+              "type": "SCREENSHOT"
+            },
+            {
+              "url": "https://image.api.playstation.com/vulcan/ap/rnd/202308/3008/c2206d1d25147997baa162bd7437ad5a8994668d32c5a952.jpg",
+              "format": "UNKNOWN",
+              "type": "SCREENSHOT"
+            }
+          ]
+        },
+        "genres": [
+          "ROLE_PLAYING_GAMES"
+        ],
+        "localizedName": {
+          "defaultLanguage": "en-US",
+          "metadata": {
+            "fi-FI": "FINAL FANTASY VII REBIRTH",
+            "uk-UA": "FINAL FANTASY VII REBIRTH",
+            "de-DE": "FINAL FANTASY VII REBIRTH",
+            "en-US": "FINAL FANTASY VII REBIRTH",
+            "ko-KR": "FINAL FANTASY VII REBIRTH",
+            "pt-BR": "FINAL FANTASY VII REBIRTH",
+            "es-ES": "FINAL FANTASY VII REBIRTH",
+            "ar-AE": "FINAL FANTASY VII REBIRTH",
+            "no-NO": "FINAL FANTASY VII REBIRTH",
+            "fr-CA": "FINAL FANTASY VII REBIRTH",
+            "it-IT": "FINAL FANTASY VII REBIRTH",
+            "pl-PL": "FINAL FANTASY VII REBIRTH",
+            "ru-RU": "FINAL FANTASY VII REBIRTH",
+            "zh-Hans": "FINAL FANTASY VII REBIRTH",
+            "nl-NL": "FINAL FANTASY VII REBIRTH",
+            "pt-PT": "FINAL FANTASY VII REBIRTH",
+            "zh-Hant": "FINAL FANTASY VII REBIRTH",
+            "sv-SE": "FINAL FANTASY VII REBIRTH",
+            "da-DK": "FINAL FANTASY VII REBIRTH",
+            "tr-TR": "FINAL FANTASY VII REBIRTH",
+            "fr-FR": "FINAL FANTASY VII REBIRTH",
+            "en-GB": "FINAL FANTASY VII REBIRTH",
+            "es-419": "FINAL FANTASY VII REBIRTH",
+            "ja-JP": "FINAL FANTASY VII REBIRTH"
+          }
+        },
+        "country": "US",
+        "language": "en"
+      },
+      "media": {
+        "audios": [],
+        "videos": [],
+        "images": [
+          {
+            "url": "https://image.api.playstation.com/vulcan/ap/rnd/202308/3005/4a13ce96b9aee645c5e513658e93d7a19da511e7ef3501d9.png",
+            "format": "UNKNOWN",
+            "type": "GAMEHUB_COVER_ART"
+          },
+          {
+            "url": "https://image.api.playstation.com/vulcan/ap/rnd/202308/3005/dcf9ba62a6975c3ca81d3aa99f600fc258da69a02355c1f1.png",
+            "format": "UNKNOWN",
+            "type": "LOGO"
+          },
+          {
+            "url": "https://image.api.playstation.com/vulcan/ap/rnd/202308/3008/5901e5a43331122badb47a1890f65ab04c85dcaf8cb60268.jpg",
+            "format": "UNKNOWN",
+            "type": "SCREENSHOT"
+          },
+          {
+            "url": "https://image.api.playstation.com/vulcan/ap/rnd/202308/3008/c2206d1d25147997baa162bd7437ad5a8994668d32c5a952.jpg",
+            "format": "UNKNOWN",
+            "type": "SCREENSHOT"
+          }
+        ]
+      },
+      "firstPlayedDateTime": "2024-04-05T16:55:43.870000Z",
+      "lastPlayedDateTime": "2025-06-23T02:14:52.900000Z",
+      "playDuration": "PT151H34M47S"
+    },
+    {
+      "titleId": "CUSA25882_00",
+      "name": "WWE 2K22",
+      "localizedName": "WWE 2K22",
+      "imageUrl": "https://image.api.playstation.com/vulcan/ap/rnd/202108/1915/GZu7bMokNvvuWIarYkhmzfGk.png",
+      "localizedImageUrl": "https://image.api.playstation.com/vulcan/ap/rnd/202108/1915/GZu7bMokNvvuWIarYkhmzfGk.png",
+      "category": "ps4_game",
+      "service": "other",
+      "sortableName": "wwe 2k22",
+      "playCount": 296,
+      "concept": {
+        "id": 10001814,
+        "titleIds": [
+          "CUSA25883_00",
+          "PPSA03150_00",
+          "PPSA02460_00",
+          "CUSA25882_00"
+        ],
+        "name": "WWE 2K22",
+        "media": {
+          "audios": [],
+          "videos": [],
+          "images": [
+            {
+              "url": "https://image.api.playstation.com/vulcan/ap/rnd/202201/0720/7oVR7PT1k4br6T0Cx62U0KOp.jpg",
+              "format": "UNKNOWN",
+              "type": "BACKGROUND_LAYER_ART"
+            },
+            {
+              "url": "https://image.api.playstation.com/vulcan/ap/rnd/202201/0720/7T480uZu2Y9iVR7BzEJm42hS.jpg",
+              "format": "UNKNOWN",
+              "type": "FOUR_BY_THREE_BANNER"
+            },
+            {
+              "url": "https://image.api.playstation.com/vulcan/ap/rnd/202201/0720/sFW5roDw5jvUo4NdNFa5LBwS.jpg",
+              "format": "UNKNOWN",
+              "type": "GAMEHUB_COVER_ART"
+            },
+            {
+              "url": "https://image.api.playstation.com/vulcan/ap/rnd/202201/0720/IJ9EBVLd6FvnzsBk0G6m5lbx.png",
+              "format": "UNKNOWN",
+              "type": "HERO_CHARACTER"
+            }
+          ]
+        },
+        "genres": [
+          "SPORTS"
+        ],
+        "localizedName": {
+          "defaultLanguage": "en-US",
+          "metadata": {
+            "fi-FI": "WWE 2K22",
+            "uk-UA": "WWE 2K22",
+            "de-DE": "WWE 2K22",
+            "en-US": "WWE 2K22",
+            "ko-KR": "WWE 2K22",
+            "pt-BR": "WWE 2K22",
+            "es-ES": "WWE 2K22",
+            "ar-AE": "WWE 2K22",
+            "no-NO": "WWE 2K22",
+            "fr-CA": "WWE 2K22",
+            "it-IT": "WWE 2K22",
+            "pl-PL": "WWE 2K22",
+            "ru-RU": "WWE 2K22",
+            "zh-Hans": "《WWE 2K22》",
+            "nl-NL": "WWE 2K22",
+            "pt-PT": "WWE 2K22",
+            "zh-Hant": "《WWE 2K22》",
+            "sv-SE": "WWE 2K22",
+            "da-DK": "WWE 2K22",
+            "tr-TR": "WWE 2K22",
+            "fr-FR": "WWE 2K22",
+            "en-GB": "WWE 2K22",
+            "es-419": "WWE 2K22",
+            "ja-JP": "WWE 2K22"
+          }
+        },
+        "country": "US",
+        "language": "en"
+      },
+      "media": {
+        "audios": [],
+        "videos": [],
+        "images": [
+          {
+            "url": "https://image.api.playstation.com/vulcan/ap/rnd/202201/0720/7oVR7PT1k4br6T0Cx62U0KOp.jpg",
+            "format": "UNKNOWN",
+            "type": "BACKGROUND_LAYER_ART"
+          },
+          {
+            "url": "https://image.api.playstation.com/vulcan/ap/rnd/202201/0720/7T480uZu2Y9iVR7BzEJm42hS.jpg",
+            "format": "UNKNOWN",
+            "type": "FOUR_BY_THREE_BANNER"
+          },
+          {
+            "url": "https://image.api.playstation.com/vulcan/ap/rnd/202201/0720/sFW5roDw5jvUo4NdNFa5LBwS.jpg",
+            "format": "UNKNOWN",
+            "type": "GAMEHUB_COVER_ART"
+          },
+          {
+            "url": "https://image.api.playstation.com/vulcan/ap/rnd/202201/0720/IJ9EBVLd6FvnzsBk0G6m5lbx.png",
+            "format": "UNKNOWN",
+            "type": "HERO_CHARACTER"
+          }
+        ]
+      },
+      "firstPlayedDateTime": "2022-06-13T17:20:14.490000Z",
+      "lastPlayedDateTime": "2025-05-01T09:36:25.310000Z",
+      "playDuration": "PT191H53M6S"
+    },
+    {
+      "titleId": "PPSA26963_00",
+      "name": "Like a Dragon: Pirate Yakuza in Hawaii",
+      "localizedName": "Like a Dragon: Pirate Yakuza in Hawaii",
+      "imageUrl": "https://image.api.playstation.com/vulcan/ap/rnd/202408/1401/5cbfb4502807fef739169f7e9bdd0cd615d7a86ce4e6af82.png",
+      "localizedImageUrl": "https://image.api.playstation.com/vulcan/ap/rnd/202408/1401/5cbfb4502807fef739169f7e9bdd0cd615d7a86ce4e6af82.png",
+      "category": "ps5_native_game",
+      "service": "none(purchased)",
+      "sortableName": "like a dragon: pirate yakuza in hawaii",
+      "playCount": 1,
+      "concept": {
+        "id": 10011704,
+        "titleIds": [
+          "PPSA24478_00",
+          "PPSA26963_00",
+          "CUSA49939_00"
+        ],
+        "name": "Like a Dragon: Pirate Yakuza in Hawaii",
+        "media": {
+          "audios": [],
+          "videos": [],
+          "images": [
+            {
+              "url": "https://image.api.playstation.com/vulcan/ap/rnd/202409/0400/217516b95875f62632a5e7f4b1dfb20e15f31c0aa5472168.png",
+              "format": "UNKNOWN",
+              "type": "BACKGROUND_LAYER_ART"
+            },
+            {
+              "url": "https://image.api.playstation.com/vulcan/ap/rnd/202408/1401/abb676a7a947406f52e1a41127520e1409856ef1f317e503.png",
+              "format": "UNKNOWN",
+              "type": "FOUR_BY_THREE_BANNER"
+            },
+            {
+              "url": "https://image.api.playstation.com/vulcan/ap/rnd/202409/1801/ae6245b25fd3adffb9c4fd9e59d2284baf13029beea44763.png",
+              "format": "UNKNOWN",
+              "type": "GAMEHUB_COVER_ART"
+            },
+            {
+              "url": "https://image.api.playstation.com/vulcan/ap/rnd/202409/0400/92937045f635bf5cf86c8dbfd846c8bb881202d8bfd0e95e.png",
+              "format": "UNKNOWN",
+              "type": "HERO_CHARACTER"
+            }
+          ]
+        },
+        "genres": [
+          "ADVENTURE",
+          "ACTION"
+        ],
+        "localizedName": {
+          "defaultLanguage": "en-US",
+          "metadata": {
+            "fi-FI": "Like a Dragon: Pirate Yakuza in Hawaii",
+            "uk-UA": "Like a Dragon: Pirate Yakuza in Hawaii",
+            "de-DE": "Like a Dragon: Pirate Yakuza in Hawaii",
+            "en-US": "Like a Dragon: Pirate Yakuza in Hawaii",
+            "ko-KR": "용과 같이8 외전 Pirates in Hawaii",
+            "pt-BR": "Like a Dragon: Pirate Yakuza in Hawaii",
+            "es-ES": "Like a Dragon: Pirate Yakuza in Hawaii",
+            "ar-AE": "Like a Dragon: Pirate Yakuza in Hawaii",
+            "no-NO": "Like a Dragon: Pirate Yakuza in Hawaii",
+            "fr-CA": "Like a Dragon: Pirate Yakuza in Hawaii",
+            "it-IT": "Like a Dragon: Pirate Yakuza in Hawaii",
+            "pl-PL": "Like a Dragon: Pirate Yakuza in Hawaii",
+            "ru-RU": "Like a Dragon: Pirate Yakuza in Hawaii",
+            "zh-Hans": "人中之龙８外传 Pirates in Hawaii",
+            "nl-NL": "Like a Dragon: Pirate Yakuza in Hawaii",
+            "pt-PT": "Like a Dragon: Pirate Yakuza in Hawaii",
+            "zh-Hant": "人中之龍８外傳 Pirates in Hawaii",
+            "sv-SE": "Like a Dragon: Pirate Yakuza in Hawaii",
+            "da-DK": "Like a Dragon: Pirate Yakuza in Hawaii",
+            "tr-TR": "Like a Dragon: Pirate Yakuza in Hawaii",
+            "fr-FR": "Like a Dragon: Pirate Yakuza in Hawaii",
+            "en-GB": "Like a Dragon: Pirate Yakuza in Hawaii",
+            "es-419": "Like a Dragon: Pirate Yakuza in Hawaii",
+            "ja-JP": "龍が如く８外伝 Pirates in Hawaii"
+          }
+        },
+        "country": "US",
+        "language": "en"
+      },
+      "media": {
+        "audios": [],
+        "videos": [],
+        "images": [
+          {
+            "url": "https://image.api.playstation.com/vulcan/ap/rnd/202409/0400/217516b95875f62632a5e7f4b1dfb20e15f31c0aa5472168.png",
+            "format": "UNKNOWN",
+            "type": "BACKGROUND_LAYER_ART"
+          },
+          {
+            "url": "https://image.api.playstation.com/vulcan/ap/rnd/202408/1401/abb676a7a947406f52e1a41127520e1409856ef1f317e503.png",
+            "format": "UNKNOWN",
+            "type": "FOUR_BY_THREE_BANNER"
+          },
+          {
+            "url": "https://image.api.playstation.com/vulcan/ap/rnd/202409/1801/ae6245b25fd3adffb9c4fd9e59d2284baf13029beea44763.png",
+            "format": "UNKNOWN",
+            "type": "GAMEHUB_COVER_ART"
+          },
+          {
+            "url": "https://image.api.playstation.com/vulcan/ap/rnd/202409/0400/92937045f635bf5cf86c8dbfd846c8bb881202d8bfd0e95e.png",
+            "format": "UNKNOWN",
+            "type": "HERO_CHARACTER"
+          }
+        ]
+      },
+      "firstPlayedDateTime": "2025-02-16T11:19:20.070000Z",
+      "lastPlayedDateTime": "2025-02-16T11:39:27.680000Z",
+      "playDuration": "PT20M5S"
+    }
+  ],
+  "nextOffset": 5,
+  "previousOffset": 0,
+  "totalItemCount": 177
+}

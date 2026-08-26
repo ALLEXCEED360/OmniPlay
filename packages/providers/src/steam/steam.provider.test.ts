@@ -134,7 +134,7 @@ describe('SteamProvider', () => {
 
       expect(profile).toMatchObject({
         providerUserId: '76561198000000000',
-        displayName: 'aryan',
+        displayName: 'TestPlayer',
         countryCode: 'IN',
       });
       expect(profile.createdAt).toBeInstanceOf(Date);

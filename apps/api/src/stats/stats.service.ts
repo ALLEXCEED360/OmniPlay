@@ -6,6 +6,7 @@ import {
   type ActivityRecord,
 } from '@omniplay/statistics';
 import { PrismaService } from '../common/prisma.service.js';
+import { fullyUnlockedGameIds } from '../common/completion.js';
 
 /**
  * The dashboard and statistics screens (spec 4.4, 16).
@@ -52,6 +53,7 @@ export class StatsService {
         where: { userId },
         select: {
           gameId: true,
+          dedupeKey: true,
           provider: true,
           activityType: true,
           minutesPlayed: true,
@@ -76,6 +78,10 @@ export class StatsService {
       ownerships,
       statuses: statuses.map((s) => ({ gameId: s.gameId, status: s.status })),
       playtimeByGame: playtime.byGame,
+      // Without this the dashboard counts only hand-set statuses, of which
+      // most libraries have none, and reports zero completed games while the
+      // library screen finds them.
+      fullyUnlockedGames: await fullyUnlockedGameIds(this.prisma.client, userId),
     });
 
     const currentlyPlaying = await this.currentlyPlaying(userId);
@@ -95,6 +101,76 @@ export class StatsService {
     };
   }
 
+  /**
+   * Every game in the library, ranked by recorded playtime.
+   *
+   * The dashboard shows a top five, which is a teaser rather than an answer —
+   * "how long have I played everything" is a question about the whole library,
+   * and 230 games is small enough to rank in one pass.
+   *
+   * Games with no recorded time are included rather than dropped. Most of them
+   * are not unplayed: Xbox reports hours only for titles that answer a separate
+   * stats call, so an absent figure usually means "not reported" rather than
+   * "never launched". Omitting them would quietly assert the opposite.
+   */
+  async playtimeRanking(userId: string) {
+    const activities = await this.prisma.client.playActivity.findMany({
+      where: { userId },
+      select: {
+        gameId: true,
+        dedupeKey: true,
+        provider: true,
+        activityType: true,
+        minutesPlayed: true,
+        startedAt: true,
+        endedAt: true,
+        confidence: true,
+      },
+    });
+
+    const playtime = aggregatePlaytime(activities.map(toActivityRecord));
+
+    // The library is ownership *or* activity, matching what the library screen
+    // lists — a game played on Xbox without an entitlement record still counts.
+    const games = await this.prisma.client.game.findMany({
+      where: {
+        mergedIntoId: null,
+        OR: [{ ownerships: { some: { userId } } }, { activities: { some: { userId } } }],
+      },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        coverImage: true,
+        ownerships: { where: { userId }, select: { provider: true } },
+        activities: { where: { userId }, select: { provider: true } },
+      },
+    });
+
+    const ranked = games
+      .map((game) => ({
+        id: game.id,
+        name: game.name,
+        slug: game.slug,
+        coverImage: game.coverImage,
+        minutes: playtime.byGame[game.id] ?? 0,
+        providers: [
+          ...new Set([
+            ...game.ownerships.map((o) => o.provider),
+            ...game.activities.map((a) => a.provider),
+          ]),
+        ].sort(),
+      }))
+      .sort((a, b) => b.minutes - a.minutes || a.name.localeCompare(b.name));
+
+    return {
+      totalMinutes: playtime.totalMinutes,
+      byProvider: playtime.byProvider,
+      games: ranked,
+      withoutPlaytime: ranked.filter((game) => game.minutes === 0).length,
+    };
+  }
+
   /** A year in review (spec 4.4). */
   async year(userId: string, year: number) {
     const start = new Date(Date.UTC(year, 0, 1));
@@ -110,6 +186,7 @@ export class StatsService {
       },
       select: {
         gameId: true,
+        dedupeKey: true,
         provider: true,
         activityType: true,
         minutesPlayed: true,
@@ -296,6 +373,55 @@ export class StatsService {
    * Only events we can actually place in time appear. A Steam lifetime total
    * has no date and is deliberately absent rather than pinned to the sync day.
    */
+  /**
+   * When each fully-unlocked game was finished, taken as its final unlock.
+   *
+   * Only games where every achievement we hold is unlocked qualify, which is
+   * the same rule the library filter and the dashboard count use.
+   */
+  private async inferredCompletions(userId: string): Promise<
+    Map<string, { at: Date; provider: string; game: { name: string; slug: string; coverImage: string | null } }>
+  > {
+    const complete = await fullyUnlockedGameIds(this.prisma.client, userId);
+    if (complete.size === 0) return new Map();
+
+    const rows = await this.prisma.client.userAchievement.findMany({
+      where: {
+        userId,
+        unlocked: true,
+        unlockedAt: { not: null },
+        achievement: { gameId: { in: [...complete] } },
+      },
+      select: {
+        unlockedAt: true,
+        achievement: {
+          select: {
+            gameId: true,
+            provider: true,
+            game: { select: { name: true, slug: true, coverImage: true } },
+          },
+        },
+      },
+    });
+
+    const latest = new Map<
+      string,
+      { at: Date; provider: string; game: { name: string; slug: string; coverImage: string | null } }
+    >();
+
+    for (const row of rows) {
+      const at = row.unlockedAt;
+      if (!at) continue;
+      const gameId = row.achievement.gameId;
+      const held = latest.get(gameId);
+      if (!held || at > held.at) {
+        latest.set(gameId, { at, provider: row.achievement.provider, game: row.achievement.game });
+      }
+    }
+
+    return latest;
+  }
+
   async timeline(userId: string) {
     const [activities, ownerships, statuses, unlocks] = await Promise.all([
       this.prisma.client.playActivity.findMany({
@@ -309,7 +435,11 @@ export class StatsService {
           game: { select: { name: true, slug: true, coverImage: true } },
         },
         orderBy: { endedAt: 'desc' },
-        take: 500,
+        // Generous rather than tight. The old 500 was quietly losing history:
+        // a decade of dated play across three platforms is a few thousand
+        // rows, and a timeline that silently stops part-way through 2019 is
+        // worse than a slightly larger response.
+        take: 10_000,
       }),
       this.prisma.client.ownership.findMany({
         where: { userId, acquiredAt: { not: null } },
@@ -319,7 +449,7 @@ export class StatsService {
           acquiredAt: true,
           game: { select: { name: true, slug: true, coverImage: true } },
         },
-        take: 500,
+        take: 10_000,
       }),
       this.prisma.client.userGameStatus.findMany({
         where: { userId, finishedAt: { not: null } },
@@ -344,7 +474,7 @@ export class StatsService {
           },
         },
         orderBy: { unlockedAt: 'desc' },
-        take: 2000,
+        take: 50_000,
       }),
     ]);
 
@@ -392,6 +522,22 @@ export class StatsService {
 
     for (const status of statuses) {
       entryFor(status.finishedAt!, status.game, null).completed = true;
+    }
+
+    // Completions the user never declared.
+    //
+    // The dashboard and the library both call a game complete once every
+    // achievement is unlocked, so a timeline that showed none disagreed with
+    // them. The date is the final unlock: the moment the last one landed is
+    // when the game was finished, and it is a real recorded instant rather
+    // than an invented one.
+    //
+    // Skipped where the user has set a status themselves — they may have
+    // finished it long before mopping up the last trophy.
+    const declared = new Set(statuses.map((status) => status.gameId));
+    for (const [gameId, finished] of await this.inferredCompletions(userId)) {
+      if (declared.has(gameId)) continue;
+      entryFor(finished.at, finished.game, finished.provider).completed = true;
     }
 
     for (const unlock of unlocks) {
@@ -482,6 +628,7 @@ function localDayKey(date: Date): string {
 
 function toActivityRecord(activity: {
   gameId: string;
+  dedupeKey?: string | null;
   provider: string;
   activityType: string;
   minutesPlayed: number | null;
@@ -491,6 +638,8 @@ function toActivityRecord(activity: {
 }): ActivityRecord {
   return {
     gameId: activity.gameId,
+    // Carried so two editions of one game are not collapsed to the larger.
+    dedupeKey: activity.dedupeKey ?? null,
     provider: activity.provider,
     activityType: activity.activityType as ActivityRecord['activityType'],
     minutesPlayed: activity.minutesPlayed,

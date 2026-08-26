@@ -1,22 +1,34 @@
 import Link from 'next/link';
 import { apiFetch } from '@/lib/api';
-import { formatDate, providerLabel } from '@/lib/format';
-import { EmptyState, PageHeader } from '@/components/ui';
+import { formatDate } from '@/lib/format';
+import { ConfidenceNote, EmptyState, PageHeader, StatCard } from '@/components/ui';
 import { TimelineFilters } from '@/components/timeline-filters';
-import { EVENT_KINDS, kindsOf, type EventKind, type TimelineEntry } from '@/lib/timeline';
+import { TimelineYear } from '@/components/timeline-year';
+import {
+  dayKeyToDate,
+  groupByDay,
+  kindsOf,
+  type EventKind,
+  type TimelineEntry,
+} from '@/lib/timeline';
 
 /**
  * The gaming timeline (spec 4.3).
  *
- * One row per game per day, listing everything that happened to it — a session
- * that unlocked ten achievements is one evening, not eleven entries.
+ * Shown as a calendar of days rather than a feed of rows. The feed could only
+ * render its first sixty entries per year, so a decade of history arrived
+ * pre-truncated — and a list answers "what is the 47th thing I did", which is
+ * not a question anyone has. A year of days answers the real one: when was I
+ * playing, and when did I stop.
  *
- * Only events that can honestly be placed in time appear. A Steam lifetime
- * total has no date, and pinning it to the day we happened to sync would
- * fabricate history, so it is absent and the empty state says why.
+ * Only events that can honestly be placed in time appear at all. A Steam
+ * lifetime total has no date, and pinning it to the day we happened to sync
+ * would fabricate history, so it is absent and the page says so. PlayStation
+ * changed the character of this page entirely: it dates every trophy, which is
+ * why the grid has ten years in it rather than a handful of Xbox unlocks.
  */
 
-interface TimelineYear {
+interface TimelineYearData {
   year: number;
   entries: TimelineEntry[];
 }
@@ -27,7 +39,7 @@ export default async function TimelinePage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const params = await searchParams;
-  const years = await apiFetch<TimelineYear[]>('/stats/timeline');
+  const years = await apiFetch<TimelineYearData[]>('/stats/timeline');
 
   const asList = (value: string | string[] | undefined): string[] =>
     typeof value === 'string' ? value.split(',').filter(Boolean) : [];
@@ -63,9 +75,9 @@ export default async function TimelinePage({
         return kindOk && providerOk;
       }),
     }))
-    .filter((year) => year.entries.length > 0);
+    .filter((year) => year.entries.length > 0)
+    .sort((a, b) => b.year - a.year);
 
-  const totalVisible = visible.reduce((sum, year) => sum + year.entries.length, 0);
   const isFiltered = activeKinds.length > 0 || activeProviders.length > 0;
 
   if (years.length === 0) {
@@ -88,98 +100,86 @@ export default async function TimelinePage({
     );
   }
 
+  const allVisible = visible.flatMap((year) => year.entries);
+  const days = groupByDay(allVisible);
+
+  // Shading is scaled to the busiest day in the whole history, not per year,
+  // so a quiet year reads as quiet instead of being stretched to look full.
+  const busiest = days.reduce(
+    (top, day) => Math.max(top, day.achievements, day.games),
+    0,
+  );
+  const busiestDay = days.reduce<(typeof days)[number] | null>(
+    (top, day) =>
+      !top || Math.max(day.achievements, day.games) > Math.max(top.achievements, top.games)
+        ? day
+        : top,
+    null,
+  );
+
+  const totalEvents = allVisible.reduce(
+    (sum, entry) => sum + Math.max(1, entry.achievements),
+    0,
+  );
+
+  const span =
+    visible.length > 0
+      ? `${visible[visible.length - 1]?.year}–${visible[0]?.year}`
+      : '—';
+
   return (
     <>
       <PageHeader
         title="Timeline"
         subtitle={
           isFiltered
-            ? `${totalVisible} of ${counts.played + counts.achievements + counts.acquired + counts.completed} entries`
-            : `${visible.length} ${visible.length === 1 ? 'year' : 'years'} of recorded activity`
+            ? `${days.length} active days match`
+            : 'Every day your platforms could actually date'
         }
       />
 
-      <TimelineFilters providers={[...providers].sort()} counts={counts} />
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <StatCard label="Active days" value={days.length.toLocaleString()} accent />
+        <StatCard label="Years" value={visible.length} hint={span} />
+        <StatCard label="Dated events" value={totalEvents.toLocaleString()} />
+        <StatCard
+          label="Busiest day"
+          value={busiestDay ? String(Math.max(busiestDay.achievements, busiestDay.games)) : '—'}
+          hint={busiestDay ? formatDate(dayKeyToDate(busiestDay.key)) : undefined}
+        />
+      </div>
 
-      {totalVisible === 0 ? (
+      <div className="mt-6">
+        <TimelineFilters providers={[...providers].sort()} counts={counts} />
+      </div>
+
+      {days.length === 0 ? (
         <EmptyState
           title="Nothing matches those filters"
           description="Try turning another kind of event back on."
         />
       ) : (
-        <div className="space-y-12">
-          {visible.map((year) => (
-            <section key={year.year}>
-              <h2 className="stat-figure mb-5 text-2xl text-ink-100">{year.year}</h2>
-
-              <ol className="relative space-y-4 border-l border-ink-850 pl-6">
-                {year.entries.slice(0, 60).map((entry, index) => (
-                  <li key={`${entry.game.slug}-${entry.date}-${index}`} className="relative">
-                    {/* The dot takes the colour of the entry's most notable
-                        kind, so a scan down the rail still reads as a legend. */}
-                    <span
-                      className={`absolute -left-[1.9rem] top-2 size-2 rounded-full ring-4 ring-ink-950 ${
-                        EVENT_KINDS.find((kind) => kindsOf(entry).includes(kind.id))?.dot ??
-                        'bg-ink-700'
-                      }`}
-                      aria-hidden
-                    />
-
-                    <div className="card flex items-center gap-4 p-3">
-                      {entry.game.coverImage ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={entry.game.coverImage}
-                          alt=""
-                          loading="lazy"
-                          className="hidden h-14 w-10 shrink-0 rounded object-cover sm:block"
-                        />
-                      ) : null}
-
-                      <div className="min-w-0 flex-1">
-                        <Link
-                          href={`/game/${entry.game.slug}`}
-                          className="block truncate text-sm font-medium text-ink-100 hover:text-accent"
-                        >
-                          {entry.game.name}
-                        </Link>
-                        <div className="mt-0.5 text-xs text-ink-500">
-                          {describe(entry)}
-                          {entry.provider ? ` on ${providerLabel(entry.provider)}` : ''} ·{' '}
-                          {formatDate(entry.date)}
-                        </div>
-                      </div>
-                    </div>
-                  </li>
-                ))}
-              </ol>
-
-              {year.entries.length > 60 ? (
-                <p className="mt-4 pl-6 text-xs text-ink-600">
-                  and {year.entries.length - 60} more in {year.year}
-                </p>
-              ) : null}
-            </section>
+        <div className="mt-8 space-y-12">
+          {visible.map((year, index) => (
+            <TimelineYear
+              key={year.year}
+              year={year.year}
+              entries={year.entries}
+              busiestOverall={busiest}
+              defaultOpen={index === 0}
+            />
           ))}
         </div>
       )}
+
+      <p className="mt-10">
+        <ConfidenceNote>
+          Only events a platform put a date on appear here. Steam reports playtime as an
+          undated lifetime total, so its hours cannot be placed on any particular day — the
+          grid would be inventing them. PlayStation dates every trophy, and Xbox dates most
+          of its achievements.
+        </ConfidenceNote>
+      </p>
     </>
   );
-}
-
-/** Everything that happened to one game on one day, as a single phrase. */
-function describe(entry: TimelineEntry): string {
-  const parts: string[] = [];
-
-  if (entry.acquired) parts.push('Added');
-  if (entry.completed) parts.push('Completed');
-  if (entry.achievements > 0) {
-    parts.push(
-      `${entry.achievements} achievement${entry.achievements === 1 ? '' : 's'} unlocked`,
-    );
-  }
-  // "Played" is implied by an unlock, so it is only worth saying on its own.
-  if (entry.played && parts.length === 0) parts.push('Played');
-
-  return parts.join(' · ');
 }

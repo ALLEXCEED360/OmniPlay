@@ -105,3 +105,29 @@ describe('slugify', () => {
     expect(slug.endsWith('-')).toBe(false);
   });
 });
+
+describe('normalizeTitle with platform suffixes stripped', () => {
+  it('does not leave a conjunction dangling', () => {
+    // "It Takes Two  PS4(tm) & PS5(tm)" is how PlayStation names a
+    // multi-generation release. The ampersand becomes "and" before the
+    // platform tokens go, and the leftover made the title unmatchable.
+    expect(normalizeTitle('It Takes Two  PS4\u2122 & PS5\u2122').base).toBe('it takes two');
+  });
+
+  it('handles the same shape with the platforms spelled out', () => {
+    expect(normalizeTitle('Hogwarts Legacy PlayStation 4 & PlayStation 5').base).toBe(
+      'hogwarts legacy',
+    );
+  });
+
+  it('keeps a conjunction that is part of the title', () => {
+    // Only a *dangling* one goes; "and" between real words is meaningful.
+    expect(normalizeTitle('Sam & Max Save the World').base).toBe('sam and max save the world');
+    expect(normalizeTitle('Ratchet & Clank').base).toBe('ratchet and clank');
+  });
+
+  it('leaves a title that is only a conjunction alone', () => {
+    // Degenerate, but stripping it to nothing would be worse than keeping it.
+    expect(normalizeTitle('And').base).toBe('and');
+  });
+});

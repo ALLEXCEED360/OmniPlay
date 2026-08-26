@@ -88,3 +88,18 @@ export const CONFIDENCE_NOTES: Record<string, string> = {
   DECLARED: 'You told us this',
   UNCERTAIN: 'Imported or matched automatically',
 };
+
+/**
+ * What a playtime figure on the game page actually means.
+ *
+ * REPORTED and ZERO need no note: a figure the provider gave us, or a zero it
+ * genuinely stands behind, speak for themselves. The other two exist because
+ * the alternative is printing "0h" over data we never received — which reads
+ * as "you never played this" rather than "we do not know".
+ */
+export const PLAYTIME_NOTES: Record<string, string | null> = {
+  REPORTED: null,
+  ZERO: null,
+  NOT_REPORTED: 'This platform holds no playtime for this title',
+  PENDING: 'Playtime not fetched yet — run a sync',
+};

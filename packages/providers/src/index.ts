@@ -8,6 +8,8 @@ export * from './steam/steam.mapper.js';
 export * from './xbox/xbox.provider.js';
 export * from './xbox/openxbl.provider.js';
 export * from './xbox/xbox.tokens.js';
+export * from './psn/psn.provider.js';
+export * from './psn/psn.client.js';
 export * from './igdb/igdb.client.js';
 export * from './import/csv.js';
 export * from './import/import.mapper.js';

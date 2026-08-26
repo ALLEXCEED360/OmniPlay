@@ -3,8 +3,8 @@
     "players": [
       {
         "steamid": "76561198000000000",
-        "personaname": "aryan",
-        "profileurl": "https://steamcommunity.com/id/aryan/",
+        "personaname": "TestPlayer",
+        "profileurl": "https://steamcommunity.com/id/testplayer/",
         "avatarfull": "https://avatars.steamstatic.com/abc_full.jpg",
         "avatarmedium": "https://avatars.steamstatic.com/abc_medium.jpg",
         "communityvisibilitystate": 3,

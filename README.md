@@ -87,19 +87,95 @@ pnpm --filter @omniplay/worker reset your@email.com --connections
 
 ---
 
+## Running it day to day
+
+Once the setup above has been done once, starting the app is two commands:
+
+```bash
+pnpm infra:up   # Postgres + Redis, if they are not already running
+pnpm dev        # API, worker and web together
+```
+
+Then open <http://localhost:3000> and sign in. Everything that was synced
+before is still there — the database lives in a Docker volume, not in the
+processes.
+
+`pnpm dev` runs all three via Turborepo. To watch one of them closely, run it
+on its own instead:
+
+```bash
+pnpm --filter @omniplay/api dev      # http://localhost:4000
+pnpm --filter @omniplay/worker dev   # no port; processes the sync queue
+pnpm --filter @omniplay/web dev      # http://localhost:3000
+```
+
+Stop everything with Ctrl-C. `pnpm infra:up` can be left running between
+sessions; `pnpm infra:down` stops the containers without deleting data.
+
+Check the setup at any time with:
+
+```bash
+pnpm doctor
+```
+
+It reports the database, Redis, both secrets, and every provider credential —
+including whether the PlayStation session token has expired, which it will do
+roughly every two months.
+
+### When something does not work
+
+**The page loads but the library is empty, or a sync never finishes.**
+The worker is not running. It has no port and prints little, so it is the easy
+one to miss — the API and the site both work fine without it, they just never
+process a job. Check for a queued job that nobody picked up:
+
+```bash
+docker exec omniplay-postgres psql -U omniplay -d omniplay   -c 'SELECT provider, status, phase FROM "SyncJob" ORDER BY "createdAt" DESC LIMIT 5;'
+```
+
+A row stuck at `QUEUED` means exactly that.
+
+**Port 3000 is already in use.** Another project is on it. Either stop that
+one, or run the site on a different port:
+
+```bash
+pnpm --filter @omniplay/web exec next dev -p 3007
+```
+
+The API URL is read from `NEXT_PUBLIC_API_URL`, so the site still finds it.
+
+**A sync behaves as though your code changes did nothing.** Two causes, both
+seen in practice:
+
+- *A second worker is still running.* Both consume the same queue and jobs land
+  on whichever grabs them first, so an old build appears to answer at random.
+  Closing a terminal does not always kill the process it started. On Windows:
+  `Get-CimInstance Win32_Process -Filter "Name='node.exe'" | Where-Object { $_.CommandLine -like '*OmniPlay*' }`
+- *A workspace package needs rebuilding.* The API and worker import
+  `@omniplay/providers` from its compiled `dist/`, so editing its source alone
+  changes nothing until `pnpm --filter @omniplay/providers build` runs. The
+  `dev` scripts watch their own app, not their dependencies.
+
+**PlayStation stops working after a couple of months.** The npsso is a browser
+session token, not an API key, and Sony expires it. `pnpm doctor` says so
+plainly. Sign in at playstation.com, reopen
+<https://ca.account.sony.com/api/v1/ssocookie>, and replace `PSN_NPSSO` in
+`.env`.
+
 ## Provider credentials
 
 None are required to boot. A provider is offered only when configured, so a
 Steam-only instance works fine.
 
-Two platforms have a real API. The rest do not, and no amount of engineering
-changes that — see [docs/feasibility.md](docs/feasibility.md).
+Two platforms have a supported API. PlayStation has an unofficial route, taken
+deliberately and described below. The rest have neither — see
+[docs/feasibility.md](docs/feasibility.md).
 
 | Platform | How it connects | What you need |
 |---|---|---|
 | **Steam** | Real API | [Web API key](https://steamcommunity.com/dev/apikey) → `STEAM_API_KEY`. Your profile *and* "Game details" must be Public |
 | **Xbox** | Real API | [OpenXBL key](https://xbl.io) → `OPENXBL_API_KEY` (no Azure needed), *or* an Azure app → `XBOX_CLIENT_ID` |
-| **PlayStation** | File import | No public consumer API exists |
+| **PlayStation** | Unofficial API, *or* file import | Session token from [ssocookie](https://ca.account.sony.com/api/v1/ssocookie) → `PSN_NPSSO`. Expires every ~60 days |
 | **Ubisoft Connect** | File import | No public API; community endpoints need your password, which we will not ask for |
 | **EA** | File import | No public API for the EA app |
 | **Manual entry** | File import | Physical copies, retro consoles, anything else |
@@ -199,11 +275,37 @@ response shape surfaces there rather than in someone's playtime total.
 
 ---
 
-## Importing PlayStation and physical copies
+## PlayStation
 
-PlayStation has no public consumer API, so it works by file import rather than
-sign-in (see [docs/feasibility.md](docs/feasibility.md)). Settings → PlayStation
-takes a CSV or JSON file:
+Sony publishes no consumer API. PlayStation is therefore the one provider here
+that talks to endpoints Sony never offered — the ones behind the PlayStation
+mobile app — authenticated with an `npsso` session token you paste in yourself.
+
+That is a deliberate exception to the rule the other adapters follow, and it is
+worth being clear about what it costs:
+
+- It is unofficial, and Sony can change or close those endpoints at any time.
+- The `npsso` is a **session credential, not an API key**. Anyone holding it can
+  act as you on PSN. It is stored only in `.env`, which is gitignored.
+- It expires roughly every 60 days and has to be replaced by hand.
+
+What it buys is the richest data in the app. PlayStation reports per-title
+durations *with* first and last played dates, play counts, and individually
+dated trophy unlocks. Steam, by comparison, reports a lifetime total with no
+dates at all — so PlayStation is the only provider that can say *when* a game
+was played rather than merely how long.
+
+Ownership is inferred from Sony's `service` field, which distinguishes titles
+that came through the store from those that did not (discs, pre-installed).
+Because Sony never states entitlement outright, those rows are recorded as
+DERIVED rather than VERIFIED.
+
+Leave `PSN_NPSSO` unset and PlayStation falls back to file import, below.
+
+### Importing PlayStation and physical copies
+
+Settings → PlayStation also takes a CSV or JSON file, which is the route for
+physical copies, retro consoles, and anything else no API knows about:
 
 ```csv
 Title,Platform,Hours,Status,Ownership,Acquired

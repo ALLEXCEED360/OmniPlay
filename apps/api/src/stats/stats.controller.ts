@@ -22,6 +22,11 @@ export class StatsController {
     return this.stats.timeline(user.id);
   }
 
+  @Get('playtime')
+  playtime(@CurrentUser() user: User) {
+    return this.stats.playtimeRanking(user.id);
+  }
+
   @Get('year/:year')
   year(@CurrentUser() user: User, @Param('year') year: string) {
     return this.stats.year(user.id, zodQuery(yearSchema, year));

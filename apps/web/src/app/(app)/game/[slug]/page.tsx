@@ -1,6 +1,13 @@
 import { notFound } from 'next/navigation';
 import { ApiError, apiFetch } from '@/lib/api';
-import { CONFIDENCE_NOTES, formatDate, formatHours, providerLabel, STATUS_LABELS } from '@/lib/format';
+import {
+  CONFIDENCE_NOTES,
+  formatDate,
+  formatHours,
+  PLAYTIME_NOTES,
+  providerLabel,
+  STATUS_LABELS,
+} from '@/lib/format';
 import { ConfidenceNote, PlatformBadge, SectionHeading } from '@/components/ui';
 import { AddToCollection } from '@/components/add-to-collection';
 
@@ -27,6 +34,8 @@ interface GameDetail {
   status: string;
   totalMinutes: number;
   playtimeByProvider: Record<string, number>;
+  /** Why each provider shows the figure it does; see PLAYTIME_NOTES. */
+  playtimeProvenance: Record<string, 'REPORTED' | 'ZERO' | 'NOT_REPORTED' | 'PENDING'>;
   ownership: Array<{
     provider: string;
     type: string;
@@ -52,7 +61,17 @@ export default async function GamePage({ params }: { params: Promise<{ slug: str
     throw error;
   }
 
-  const providers = [...new Set(game.ownership.map((o) => o.provider))];
+  // Every platform that knows anything about this game, not just the ones
+  // that sold it. A title played on Xbox without being bought there has no
+  // ownership row, and keying the section off ownership alone made those games
+  // render an empty panel — hiding the very games whose data needs explaining.
+  const providers = [
+    ...new Set([
+      ...game.ownership.map((o) => o.provider),
+      ...game.achievements.map((a) => a.provider),
+      ...Object.keys(game.playtimeProvenance ?? {}),
+    ]),
+  ];
 
   return (
     <article>
@@ -110,14 +129,28 @@ export default async function GamePage({ params }: { params: Promise<{ slug: str
             <div className="grid gap-4 sm:grid-cols-2">
               {providers.map((provider) => {
                 const minutes = game.playtimeByProvider[provider] ?? 0;
+                const provenance = game.playtimeProvenance?.[provider] ?? 'REPORTED';
                 const achievements = game.achievements.find((a) => a.provider === provider);
+                // Only a figure we can stand behind is printed as one. An
+                // unknown renders as a dash, because "0h" here would be the
+                // page asserting the user never played it.
+                const knowsHours = provenance === 'REPORTED' || provenance === 'ZERO';
 
                 return (
                   <div key={provider} className="card p-5">
                     <PlatformBadge provider={provider} small />
-                    <div className="stat-figure mt-3 text-2xl text-ink-100">
-                      {formatHours(minutes)}
+                    <div
+                      className={`stat-figure mt-3 text-2xl ${
+                        knowsHours ? 'text-ink-100' : 'text-ink-600'
+                      }`}
+                    >
+                      {knowsHours ? formatHours(minutes) : '—'}
                     </div>
+                    {PLAYTIME_NOTES[provenance] ? (
+                      <div className="mt-2">
+                        <ConfidenceNote>{PLAYTIME_NOTES[provenance]}</ConfidenceNote>
+                      </div>
+                    ) : null}
                     {achievements ? (
                       <div className="mt-3">
                         <div className="mb-1.5 flex items-baseline justify-between text-xs text-ink-400">
@@ -157,6 +190,15 @@ export default async function GamePage({ params }: { params: Promise<{ slug: str
 
           <section>
             <SectionHeading>Ownership</SectionHeading>
+            {game.ownership.length === 0 ? (
+              <p className="card p-4 text-sm text-ink-500">
+                No ownership recorded.{' '}
+                <span className="text-ink-600">
+                  This platform reports what you have played, which is not the same as what
+                  you own.
+                </span>
+              </p>
+            ) : null}
             <div className="card divide-y divide-ink-850">
               {game.ownership.map((ownership, index) => (
                 <div key={`${ownership.provider}-${index}`} className="flex flex-wrap items-center justify-between gap-3 p-4">
