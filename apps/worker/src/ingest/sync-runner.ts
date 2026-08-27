@@ -479,6 +479,18 @@ export class SyncRunner {
         gameId,
         minutesPlayed: event.minutesPlayed ?? null,
         endedAt: event.endedAt ?? null,
+        // Spread rather than assigned, so a later observation without a start
+        // instant cannot erase one we already hold.
+        //
+        // This row is routinely created twice over: the library pass writes a
+        // lifetime total from the library record, which for Steam carries no
+        // first-played date at all, and the playtime pass then re-asserts the
+        // same key with the date attached. Omitting the field here meant that
+        // second, richer observation was silently discarded — PlayStation
+        // supplies a first-played instant for all 169 of its titles and
+        // exactly one of them reached the database, the single game whose
+        // zero playtime made the library pass skip it.
+        ...(event.startedAt ? { startedAt: event.startedAt } : {}),
         // Provenance: when we last saw this asserted.
         observedAt: new Date(),
         confidence: event.confidence as never,

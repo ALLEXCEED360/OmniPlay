@@ -103,15 +103,33 @@ export const IGDB_EXTERNAL_CATEGORY = {
 /**
  * IGDB game types that represent something a person *owns as a library entry*.
  *
- * Excluded: DLC (1), expansions (2), bundles (3), mods (5), episodes (6),
- * seasons (7), packs (13) and updates (14). Remakes (8) and remasters (9) are
- * kept deliberately — they are distinct products, and the matcher's version
- * markers already keep them from being confused with the original.
+ * Excluded: DLC (1), expansions (2), mods (5), episodes (6), seasons (7),
+ * packs (13) and updates (14). Remakes (8) and remasters (9) are kept
+ * deliberately — they are distinct products, and the matcher's version markers
+ * already keep them from being confused with the original.
  *
  * Without this filter IGDB's search ranks DLC above base games: searching
  * "Batman: Arkham Knight" returns four cosmetic skin packs before the game.
+ *
+ * **Bundles (3) are included**, and were the single largest cause of failed
+ * enrichment here. They were originally lumped in with DLC, but a bundle is
+ * not an add-on to something else — it is the product on the shelf. Every
+ * compilation in one real library came back with zero results for that reason:
+ * Halo: The Master Chief Collection, Spyro Reignited Trilogy, Crash Bandicoot
+ * N. Sane Trilogy, Uncharted: Legacy of Thieves, Kingdom Hearts HD 1.5+2.5
+ * ReMIX. IGDB has all of them, every one typed 3.
  */
-export const LIBRARY_GAME_TYPES = [0, 4, 8, 9, 10, 11] as const;
+export const LIBRARY_GAME_TYPES = [0, 3, 4, 8, 9, 10, 11] as const;
+
+/**
+ * Types an exact-name lookup will accept.
+ *
+ * Broader than the list above, because an exact title match is already high
+ * precision — "Warface: Clutch" is typed 12 and is still plainly the game the
+ * user owns. Only add-ons stay excluded, since a DLC sharing its parent's
+ * exact name would otherwise stand in for it.
+ */
+const EXACT_MATCH_EXCLUDED_TYPES = [1, 2] as const;
 
 /** Reads whichever store-source field a payload carries. */
 export function externalGameSource(external: {
@@ -271,6 +289,27 @@ export class IgdbClient {
       `fields ${IgdbClient.GAME_FIELDS};` +
       ` where external_games.external_game_source = ${category} & external_games.uid = (${quoted});` +
       ` limit ${Math.min(uids.length * 2, 500)};`;
+    return this.parseGames(await this.query<unknown>('games', body));
+  }
+
+  /**
+   * Games whose title matches exactly, case-insensitively.
+   *
+   * IGDB's `search` is full-text and relevance-ranked, which serves long
+   * distinctive titles well and short generic ones badly: searching "Journey"
+   * returns Shin Megami Tensei: Strange Journey and AFK Journey while omitting
+   * Journey itself, and "THE FINALS" returns four Final Fantasy entries. An
+   * exact lookup finds all of them immediately.
+   */
+  async findGamesByName(name: string, limit = 5): Promise<IgdbGame[]> {
+    const escaped = name.replace(/"/g, '').trim();
+    if (!escaped) return [];
+
+    const body =
+      `fields ${IgdbClient.GAME_FIELDS};` +
+      ` where name ~ "${escaped}"` +
+      ` & game_type != (${EXACT_MATCH_EXCLUDED_TYPES.join(',')});` +
+      ` limit ${limit};`;
     return this.parseGames(await this.query<unknown>('games', body));
   }
 

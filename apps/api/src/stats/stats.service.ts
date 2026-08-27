@@ -33,6 +33,15 @@ export interface TimelineEntry {
   achievements: number;
   acquired: boolean;
   completed: boolean;
+  /**
+   * The first time this game was ever launched.
+   *
+   * A genuinely dated fact where a provider reports one — PlayStation attaches
+   * `firstPlayedDateTime` to every title. It is the closest thing the data has
+   * to "when did this game enter my life", and unlike acquisition it does not
+   * require a purchase date no platform API supplies.
+   */
+  firstPlayed: boolean;
 }
 
 @Injectable()
@@ -85,6 +94,7 @@ export class StatsService {
     });
 
     const currentlyPlaying = await this.currentlyPlaying(userId);
+    const activityByYear = await this.activityByYear(userId);
     const mostPlayed = await this.mostPlayed(userId, playtime.byGame, 5);
 
     return {
@@ -95,6 +105,7 @@ export class StatsService {
         ...playtimeByYear(records),
       },
       accounts,
+      activityByYear,
       currentlyPlaying,
       mostPlayed,
       lastSyncAt: lastSync?.finishedAt ?? null,
@@ -169,6 +180,55 @@ export class StatsService {
       games: ranked,
       withoutPlaytime: ranked.filter((game) => game.minutes === 0).length,
     };
+  }
+
+  /**
+   * Dated activity per calendar year.
+   *
+   * The dashboard's "Activity by year" panel used to chart *hours*, and stood
+   * empty because 93% of this library's playtime carries no date — Steam
+   * reports an undated lifetime total, and a provider's lifetime figure says
+   * when a game was first and last played but not how the hours fell between.
+   * Splitting them would be inventing a distribution.
+   *
+   * So the panel charts what is genuinely dated: days with activity, unlocks,
+   * and games started. Its title was always "activity", not "playtime".
+   */
+  async activityByYear(userId: string) {
+    const rows = await this.prisma.client.$queryRaw<
+      Array<{ year: number; activeDays: bigint; unlocks: bigint; started: bigint }>
+    >`
+      WITH dated AS (
+        SELECT date_trunc('year', ua."unlockedAt") AS y,
+               ua."unlockedAt"::date AS d,
+               1 AS unlock, 0 AS started
+        FROM "UserAchievement" ua
+        WHERE ua."userId" = ${userId} AND ua.unlocked AND ua."unlockedAt" IS NOT NULL
+        UNION ALL
+        SELECT date_trunc('year', p."startedAt"), p."startedAt"::date, 0, 1
+        FROM "PlayActivity" p
+        WHERE p."userId" = ${userId} AND p."startedAt" IS NOT NULL
+          AND p."activityType" <> 'RECENT_PLAY'
+        UNION ALL
+        SELECT date_trunc('year', p."endedAt"), p."endedAt"::date, 0, 0
+        FROM "PlayActivity" p
+        WHERE p."userId" = ${userId} AND p."endedAt" IS NOT NULL
+      )
+      SELECT EXTRACT(YEAR FROM y)::int AS "year",
+             count(DISTINCT d)         AS "activeDays",
+             sum(unlock)               AS "unlocks",
+             sum(started)              AS "started"
+      FROM dated
+      GROUP BY y
+      ORDER BY y
+    `;
+
+    return rows.map((row) => ({
+      year: row.year,
+      activeDays: Number(row.activeDays),
+      unlocks: Number(row.unlocks),
+      started: Number(row.started),
+    }));
   }
 
   /** A year in review (spec 4.4). */
@@ -503,10 +563,24 @@ export class StatsService {
         achievements: 0,
         acquired: false,
         completed: false,
+        firstPlayed: false,
       };
       entries.set(key, created);
       return created;
     };
+
+    // Earliest genuine start instant per game, before anything else is
+    // placed. RECENT_PLAY is excluded: its startedAt is a synthetic window
+    // boundary ("sometime in the last fortnight"), so trusting it would report
+    // a first play that never happened.
+    const firstStart = new Map<string, Date>();
+    for (const activity of activities) {
+      if (activity.activityType === 'RECENT_PLAY') continue;
+      const started = activity.startedAt;
+      if (!started) continue;
+      const held = firstStart.get(activity.gameId);
+      if (!held || started < held) firstStart.set(activity.gameId, started);
+    }
 
     for (const activity of activities) {
       const date = activity.endedAt ?? activity.startedAt;
@@ -547,6 +621,14 @@ export class StatsService {
         unlock.achievement.provider,
       );
       entry.achievements += 1;
+    }
+
+    // Attach first plays to the day they happened, which is usually a
+    // different day from the entry the lifetime total produced.
+    for (const activity of activities) {
+      const started = firstStart.get(activity.gameId);
+      if (!started || started.getTime() !== activity.startedAt?.getTime()) continue;
+      entryFor(started, activity.game, activity.provider).firstPlayed = true;
     }
 
     const ordered = [...entries.values()].sort((a, b) => b.date.getTime() - a.date.getTime());

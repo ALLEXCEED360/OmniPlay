@@ -4,12 +4,12 @@ import {
   CONFIDENCE_NOTES,
   formatDate,
   formatHours,
-  PLAYTIME_NOTES,
   providerLabel,
   STATUS_LABELS,
 } from '@/lib/format';
 import { ConfidenceNote, PlatformBadge, SectionHeading } from '@/components/ui';
 import { AddToCollection } from '@/components/add-to-collection';
+import { PlatformReport, type PlatformReportRow } from '@/components/platform-report';
 
 /**
  * The unified game page (spec 4.2).
@@ -34,8 +34,10 @@ interface GameDetail {
   status: string;
   totalMinutes: number;
   playtimeByProvider: Record<string, number>;
-  /** Why each provider shows the figure it does; see PLAYTIME_NOTES. */
+  /** Why each provider shows the figure it does. */
   playtimeProvenance: Record<string, 'REPORTED' | 'ZERO' | 'NOT_REPORTED' | 'PENDING'>;
+  /** What each platform can report about this game, and what we hold. */
+  platformReport: PlatformReportRow[];
   ownership: Array<{
     provider: string;
     type: string;
@@ -123,105 +125,29 @@ export default async function GamePage({ params }: { params: Promise<{ slug: str
             </section>
           ) : null}
 
-          {/* The heart of the page: per-provider figures, never merged away. */}
+          {/* The heart of the page: per-provider figures, never merged away.
+              A single combined number would answer the easy question and lose
+              the interesting one — which platform this history actually lived
+              on, and what each of them can and cannot tell us. */}
           <section>
-            <SectionHeading>Playtime and progress</SectionHeading>
-            <div className="grid gap-4 sm:grid-cols-2">
-              {providers.map((provider) => {
-                const minutes = game.playtimeByProvider[provider] ?? 0;
-                const provenance = game.playtimeProvenance?.[provider] ?? 'REPORTED';
-                const achievements = game.achievements.find((a) => a.provider === provider);
-                // Only a figure we can stand behind is printed as one. An
-                // unknown renders as a dash, because "0h" here would be the
-                // page asserting the user never played it.
-                const knowsHours = provenance === 'REPORTED' || provenance === 'ZERO';
+            <SectionHeading
+              action={
+                game.totalMinutes > 0 && providers.length > 1 ? (
+                  <span className="text-xs font-normal normal-case tracking-normal text-ink-400">
+                    <span className="stat-figure text-ink-100">
+                      {formatHours(game.totalMinutes)}
+                    </span>{' '}
+                    across {providers.length} platforms
+                  </span>
+                ) : null
+              }
+            >
+              Playtime and progress
+            </SectionHeading>
 
-                return (
-                  <div key={provider} className="card p-5">
-                    <PlatformBadge provider={provider} small />
-                    <div
-                      className={`stat-figure mt-3 text-2xl ${
-                        knowsHours ? 'text-ink-100' : 'text-ink-600'
-                      }`}
-                    >
-                      {knowsHours ? formatHours(minutes) : '—'}
-                    </div>
-                    {PLAYTIME_NOTES[provenance] ? (
-                      <div className="mt-2">
-                        <ConfidenceNote>{PLAYTIME_NOTES[provenance]}</ConfidenceNote>
-                      </div>
-                    ) : null}
-                    {achievements ? (
-                      <div className="mt-3">
-                        <div className="mb-1.5 flex items-baseline justify-between text-xs text-ink-400">
-                          <span>Achievements</span>
-                          <span className="stat-figure">
-                            {achievements.unlocked} / {achievements.total}
-                          </span>
-                        </div>
-                        <div className="h-1.5 overflow-hidden rounded-full bg-ink-850">
-                          <div
-                            className="h-full rounded-full bg-accent"
-                            style={{
-                              width: `${
-                                achievements.total > 0
-                                  ? (achievements.unlocked / achievements.total) * 100
-                                  : 0
-                              }%`,
-                            }}
-                          />
-                        </div>
-                      </div>
-                    ) : (
-                      <p className="mt-3 text-xs text-ink-600">No achievement data</p>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-
-            {providers.length > 1 ? (
-              <p className="mt-4 text-sm text-ink-400">
-                <span className="stat-figure text-ink-200">{formatHours(game.totalMinutes)}</span>{' '}
-                across all platforms.
-              </p>
-            ) : null}
+            <PlatformReport rows={game.platformReport ?? []} />
           </section>
 
-          <section>
-            <SectionHeading>Ownership</SectionHeading>
-            {game.ownership.length === 0 ? (
-              <p className="card p-4 text-sm text-ink-500">
-                No ownership recorded.{' '}
-                <span className="text-ink-600">
-                  This platform reports what you have played, which is not the same as what
-                  you own.
-                </span>
-              </p>
-            ) : null}
-            <div className="card divide-y divide-ink-850">
-              {game.ownership.map((ownership, index) => (
-                <div key={`${ownership.provider}-${index}`} className="flex flex-wrap items-center justify-between gap-3 p-4">
-                  <div>
-                    <div className="text-sm text-ink-200">
-                      {providerLabel(ownership.provider)}
-                      {ownership.platform ? (
-                        <span className="text-ink-500"> · {ownership.platform}</span>
-                      ) : null}
-                    </div>
-                    <div className="mt-0.5 text-xs text-ink-500">
-                      {ownership.removedAt
-                        ? `No longer in your library (since ${formatDate(ownership.removedAt)})`
-                        : ownership.type.toLowerCase().replace('_', ' ')}
-                    </div>
-                  </div>
-                  {ownership.confidence !== 'VERIFIED' ? (
-                    <ConfidenceNote>{CONFIDENCE_NOTES[ownership.confidence]}</ConfidenceNote>
-                  ) : null}
-                </div>
-              ))}
-            </div>
-          </section>
         </div>
 
         <aside className="space-y-6">

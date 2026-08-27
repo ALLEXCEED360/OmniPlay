@@ -175,3 +175,43 @@ describe('kindsToFetch', () => {
     expect(kindsToFetch(null, ['achievements'])).toEqual(['achievements']);
   });
 });
+
+/**
+ * Merging two observations of one activity.
+ *
+ * A lifetime total is written twice in a single sync: the library pass writes
+ * it from the library record, and the playtime pass re-asserts the same key
+ * with whatever extra the provider attached. Modelled here as the update
+ * payload builder, because the rule is about which fields a later observation
+ * is allowed to overwrite.
+ */
+describe('activity update payload', () => {
+  /** Mirrors the spread in upsertActivity's update branch. */
+  const updateFor = (event: { minutesPlayed?: number | null; startedAt?: Date | null; endedAt?: Date | null }) => ({
+    minutesPlayed: event.minutesPlayed ?? null,
+    endedAt: event.endedAt ?? null,
+    ...(event.startedAt ? { startedAt: event.startedAt } : {}),
+  });
+
+  it('writes a start instant when a later observation supplies one', () => {
+    // PlayStation reports a first-played date for every title, and the
+    // library pass has already created the row without one.
+    const started = new Date('2024-12-08T14:14:43.810Z');
+    expect(updateFor({ minutesPlayed: 4606, startedAt: started }).startedAt).toEqual(started);
+  });
+
+  it('omits the field entirely when the observation has no start', () => {
+    // Assigning null here is what silently erased 168 of 169 PlayStation
+    // first-played dates: Steam's library record carries no start instant, so
+    // the second write blanked what the first had stored.
+    expect('startedAt' in updateFor({ minutesPlayed: 100 })).toBe(false);
+    expect('startedAt' in updateFor({ minutesPlayed: 100, startedAt: null })).toBe(false);
+  });
+
+  it('still overwrites minutes and the end instant', () => {
+    // Those are running totals the provider owns; the newest value wins.
+    const payload = updateFor({ minutesPlayed: 0, endedAt: null });
+    expect(payload.minutesPlayed).toBe(0);
+    expect(payload.endedAt).toBeNull();
+  });
+});

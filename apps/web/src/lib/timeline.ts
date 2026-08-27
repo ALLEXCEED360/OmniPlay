@@ -11,7 +11,8 @@
 export const EVENT_KINDS = [
   { id: 'played', label: 'Played', dot: 'bg-accent' },
   { id: 'achievements', label: 'Achievements', dot: 'bg-warning' },
-  { id: 'acquired', label: 'Added', dot: 'bg-violet' },
+  { id: 'firstPlayed', label: 'Started', dot: 'bg-violet' },
+  { id: 'acquired', label: 'Added', dot: 'bg-accent-strong' },
   { id: 'completed', label: 'Completed', dot: 'bg-positive' },
 ] as const;
 
@@ -25,6 +26,8 @@ export interface TimelineEntry {
   achievements: number;
   acquired: boolean;
   completed: boolean;
+  /** The first time this game was ever launched. */
+  firstPlayed?: boolean;
 }
 
 /** Which filter kinds an entry satisfies. */
@@ -32,9 +35,46 @@ export function kindsOf(entry: TimelineEntry): EventKind[] {
   const kinds: EventKind[] = [];
   if (entry.played) kinds.push('played');
   if (entry.achievements > 0) kinds.push('achievements');
+  if (entry.firstPlayed) kinds.push('firstPlayed');
   if (entry.acquired) kinds.push('acquired');
   if (entry.completed) kinds.push('completed');
   return kinds;
+}
+
+/**
+ * What one year of history amounts to.
+ *
+ * Deliberately no hours. 93% of this library's playtime cannot be placed in
+ * any year — Steam reports an undated lifetime total, and PlayStation's
+ * durations are lifetime figures that say when a game was first and last
+ * played but not how the hours fell between. Splitting them across years
+ * would be inventing a distribution, so a year is summarised by the things
+ * that genuinely carry a date.
+ */
+export interface YearSummary {
+  activeDays: number;
+  games: number;
+  achievements: number;
+  started: number;
+  completed: number;
+}
+
+export function summariseYear(entries: TimelineEntry[]): YearSummary {
+  const games = new Set<string>();
+  const days = new Set<string>();
+  let achievements = 0;
+  let started = 0;
+  let completed = 0;
+
+  for (const entry of entries) {
+    games.add(entry.game.slug);
+    days.add(localDayKey(entry.date));
+    achievements += entry.achievements;
+    if (entry.firstPlayed) started += 1;
+    if (entry.completed) completed += 1;
+  }
+
+  return { activeDays: days.size, games: games.size, achievements, started, completed };
 }
 
 /* ------------------------------------------------------------------ *

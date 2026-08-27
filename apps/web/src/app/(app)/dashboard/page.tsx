@@ -36,6 +36,7 @@ interface Overview {
     byYear: Record<string, number>;
     unattributedMinutes: number;
   };
+  activityByYear: Array<{ year: number; activeDays: number; unlocks: number; started: number }>;
   accounts: Array<{
     provider: string;
     displayName: string | null;
@@ -87,9 +88,7 @@ export default async function DashboardPage() {
     .sort((a, b) => b.minutes - a.minutes || b.games - a.games);
 
   const maxProviderMinutes = Math.max(1, ...providerEntries.map((entry) => entry.minutes));
-  const years = Object.entries(data.playtime.byYear)
-    .map(([year, minutes]) => ({ year: Number(year), minutes }))
-    .sort((a, b) => a.year - b.year);
+  const years = (data.activityByYear ?? []).slice().sort((a, b) => a.year - b.year);
 
   return (
     <>
@@ -203,27 +202,36 @@ export default async function DashboardPage() {
       </div>
 
       <section className="mt-10 card p-6">
-        <SectionHeading>Activity by year</SectionHeading>
+        <SectionHeading
+          action={
+            <Link
+              href="/timeline"
+              className="shrink-0 text-xs font-normal normal-case tracking-normal text-ink-500 transition-colors hover:text-accent"
+            >
+              Open timeline &rarr;
+            </Link>
+          }
+        >
+          Activity by year
+        </SectionHeading>
         {years.length === 0 ? (
-          <div className="space-y-3">
-            <p className="text-sm text-ink-500">
-              No dated activity yet. Your connected platforms report total playtime without telling
-              us when those hours happened.
-            </p>
-            {data.playtime.unattributedMinutes > 0 ? (
-              <ConfidenceNote>
-                {formatHours(data.playtime.unattributedMinutes)} recorded without a date
-              </ConfidenceNote>
-            ) : null}
-          </div>
+          <p className="text-sm text-ink-500">
+            No dated activity yet. Achievement unlocks carry dates, so they appear here as you
+            earn them.
+          </p>
         ) : (
           <>
             <YearChart years={years} />
             {data.playtime.unattributedMinutes > 0 ? (
               <div className="mt-4">
+                {/* The panel charts days, not hours, and the reason is worth
+                    stating: nearly all of this playtime is a lifetime total
+                    with no date, so spreading it over years would be
+                    inventing a distribution. */}
                 <ConfidenceNote>
-                  A further {formatHours(data.playtime.unattributedMinutes)} could not be placed in
-                  time — providers report it as a lifetime total only.
+                  Days with recorded activity. {formatHours(data.playtime.unattributedMinutes)} of
+                  playtime cannot be placed in any year — providers report it as an undated
+                  lifetime total.
                 </ConfidenceNote>
               </div>
             ) : null}
@@ -235,17 +243,26 @@ export default async function DashboardPage() {
 }
 
 /** Bar chart rendered server-side; no client JS for a static visual. */
-function YearChart({ years }: { years: Array<{ year: number; minutes: number }> }) {
-  const max = Math.max(...years.map((y) => y.minutes), 1);
+function YearChart({
+  years,
+}: {
+  years: Array<{ year: number; activeDays: number; unlocks: number; started: number }>;
+}) {
+  const max = Math.max(...years.map((y) => y.activeDays), 1);
 
   return (
     <div className="flex h-40 items-end gap-2">
       {years.map((entry) => (
         <div key={entry.year} className="flex min-w-0 flex-1 flex-col items-center gap-2">
+          <span className="stat-figure text-[10px] text-ink-500">{entry.activeDays}</span>
           <div
             className="w-full rounded-t bg-gradient-to-t from-accent/40 to-accent transition-all"
-            style={{ height: `${Math.max(4, (entry.minutes / max) * 100)}%` }}
-            title={`${entry.year}: ${formatHours(entry.minutes)}`}
+            style={{ height: `${Math.max(4, (entry.activeDays / max) * 100)}%` }}
+            title={
+              `${entry.year}: ${entry.activeDays} active days` +
+              (entry.unlocks > 0 ? `, ${entry.unlocks} unlocks` : '') +
+              (entry.started > 0 ? `, ${entry.started} started` : '')
+            }
           />
           <span className="stat-figure text-[10px] text-ink-500">{entry.year}</span>
         </div>

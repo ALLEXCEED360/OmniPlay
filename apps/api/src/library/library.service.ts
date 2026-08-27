@@ -205,6 +205,17 @@ export class LibraryService {
       .filter((d): d is Date => d !== null)
       .sort((a, b) => b.getTime() - a.getTime())[0];
 
+    // Only platforms this user actually has a foothold on. Keying this off
+    // externalIds listed every store IGDB knows the game is sold on, so a
+    // Steam-only game grew Epic, GOG and PlayStation panels each claiming
+    // playtime was "not fetched yet" for accounts that were never connected.
+    const gameProviders = [
+      ...new Set([
+        ...game.ownerships.map((o) => o.provider),
+        ...game.activities.map((a) => a.provider),
+      ]),
+    ];
+
     const detailStatus = resolveGameStatus({
       declared: game.statuses[0]?.status,
       allAchievementsUnlocked:
@@ -234,19 +245,17 @@ export class LibraryService {
       notes: game.notes,
       totalMinutes: playtime.byGame[game.id] ?? 0,
       playtimeByProvider: playtime.byProvider,
+      /** What each platform can report about this game, and what we hold. */
+      platformReport: this.platformReport(
+        gameProviders,
+        game,
+        playtime.byProvider,
+        this.playtimeProvenance(gameProviders, playtime.byProvider, game.externalIds),
+      ),
       // Lets the UI distinguish a real zero from an unknown instead of
       // printing "0h" over both.
       playtimeProvenance: this.playtimeProvenance(
-        // Only platforms this user actually has a foothold on. Keying this off
-        // externalIds listed every store IGDB knows the game is sold on, so a
-        // Steam-only game grew Epic, GOG and PlayStation panels each claiming
-        // playtime was "not fetched yet" for accounts that were never connected.
-        [
-          ...new Set([
-            ...game.ownerships.map((o) => o.provider),
-            ...game.activities.map((a) => a.provider),
-          ]),
-        ],
+        gameProviders,
         playtime.byProvider,
         game.externalIds,
       ),
@@ -269,6 +278,79 @@ export class LibraryService {
       firstPlayedAt: firstPlayed ?? null,
       lastPlayedAt: lastPlayed ?? null,
     };
+  }
+
+  /**
+   * What each platform can report about this game, and what we actually hold.
+   *
+   * Two different questions, answered side by side. `capabilities` is what the
+   * platform is able to say at all — Steam reports hours for everything but
+   * dates none of them; Xbox reports hours only for titles that answer a
+   * separate call. The rest is what we hold for this particular game.
+   *
+   * Showing both turns a blank into an explanation: an empty playtime cell
+   * means something different when the platform cannot report it than when we
+   * simply have not asked yet, and only the pair distinguishes them.
+   */
+  private platformReport(
+    providers: string[],
+    game: {
+      ownerships: Array<{ provider: string; ownershipType: string; confidence: string; removedAt: Date | null }>;
+      activities: Array<{ provider: string; startedAt: Date | null; endedAt: Date | null }>;
+      achievements: Array<{ provider: string; unlocks: Array<{ unlocked: boolean }> }>;
+    },
+    minutesByProvider: Record<string, number>,
+    provenance: Record<string, PlaytimeProvenance>,
+  ) {
+    return providers.map((provider) => {
+      const capabilities = this.registry.find(provider as never)?.capabilities ?? null;
+
+      const mine = game.activities.filter((activity) => activity.provider === provider);
+      const firstPlayedAt =
+        mine
+          .map((activity) => activity.startedAt)
+          .filter((date): date is Date => date !== null)
+          .sort((a, b) => a.getTime() - b.getTime())[0] ?? null;
+      const lastPlayedAt =
+        mine
+          .map((activity) => activity.endedAt)
+          .filter((date): date is Date => date !== null)
+          .sort((a, b) => b.getTime() - a.getTime())[0] ?? null;
+
+      const held = game.achievements.filter((a) => a.provider === provider);
+      const ownership = game.ownerships.find((o) => o.provider === provider);
+
+      return {
+        provider,
+        capabilities: capabilities
+          ? {
+              library: capabilities.library,
+              playtime: capabilities.playtime,
+              achievements: capabilities.achievements,
+              playHistory: capabilities.playHistory,
+            }
+          : null,
+        ownership: ownership
+          ? {
+              type: ownership.ownershipType,
+              confidence: ownership.confidence,
+              removed: ownership.removedAt !== null,
+              removedAt: ownership.removedAt,
+            }
+          : null,
+        minutes: minutesByProvider[provider] ?? 0,
+        playtime: provenance[provider] ?? 'PENDING',
+        firstPlayedAt,
+        lastPlayedAt,
+        achievements:
+          held.length > 0
+            ? {
+                unlocked: held.filter((a) => a.unlocks.some((u) => u.unlocked)).length,
+                total: held.length,
+              }
+            : null,
+      };
+    });
   }
 
   /** Per-provider playtime provenance for one game. */

@@ -141,6 +141,17 @@ async function searchWithFallback(igdb: IgdbClient, rawName: string): Promise<Ig
   // removed — closer to how IGDB actually indexes a title.
   const cleaned = normalized.base.trim();
 
+  // Exact title first, because IGDB's relevance ranking is worst exactly where
+  // a title is short and common. "Journey" returns Strange Journey and AFK
+  // Journey but not Journey; "THE FINALS" returns four Final Fantasy games.
+  // An exact lookup answers both instantly, and anything it finds scores at
+  // or near 1.0 — so this only ever adds matches, never displaces a better one.
+  for (const candidate of [rawName, cleaned]) {
+    if (!candidate) continue;
+    const exact = await igdb.findGamesByName(candidate, 5);
+    if (exact.length > 0) return exact;
+  }
+
   if (cleaned && cleaned !== rawName.toLowerCase()) {
     const results = await igdb.searchGames(cleaned, 10);
     if (results.length > 0) return results;

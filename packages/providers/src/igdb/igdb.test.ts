@@ -5,6 +5,7 @@ import {
   IGDB_CATEGORY_TO_PROVIDER,
   IGDB_EXTERNAL_CATEGORY,
   IgdbClient,
+  LIBRARY_GAME_TYPES,
   externalGameSource,
   igdbImageUrl,
 } from './igdb.client.js';
@@ -269,5 +270,75 @@ describe('igdbImageUrl', () => {
       'https://images.igdb.com/igdb/image/upload/t_cover_big/co2mjs.jpg',
     );
     expect(igdbImageUrl('ar8xk', '1080p')).toContain('t_1080p');
+  });
+});
+
+describe('LIBRARY_GAME_TYPES', () => {
+  it('includes bundles, which are products rather than add-ons', () => {
+    // Type 3 was originally excluded alongside DLC and was the single largest
+    // cause of failed enrichment: every compilation in a real library came
+    // back with zero results. IGDB types Halo: The Master Chief Collection,
+    // Spyro Reignited Trilogy and Uncharted: Legacy of Thieves all as 3.
+    expect(LIBRARY_GAME_TYPES).toContain(3);
+  });
+
+  it('still excludes DLC and expansions', () => {
+    // The original reason for the filter, and still valid: without it,
+    // searching "Batman: Arkham Knight" returns cosmetic skin packs first.
+    expect(LIBRARY_GAME_TYPES).not.toContain(1);
+    expect(LIBRARY_GAME_TYPES).not.toContain(2);
+  });
+
+  it('keeps remakes and remasters, which are distinct products', () => {
+    expect(LIBRARY_GAME_TYPES).toContain(8);
+    expect(LIBRARY_GAME_TYPES).toContain(9);
+  });
+});
+
+describe('findGamesByName', () => {
+  it('asks for an exact, case-insensitive title match', async () => {
+    // IGDB's relevance ranking fails hardest on short generic titles, which
+    // is precisely where an exact lookup succeeds.
+    const { impl, calls } = stubFetch({
+      'id.twitch.tv': fixture('token'),
+      'api.igdb.com': fixture('games'),
+    });
+    await new IgdbClient({ ...config, fetchImpl: impl }).findGamesByName('Journey');
+
+    const body = String(calls.find((c) => c.url.includes('api.igdb.com'))?.init?.body);
+    expect(body).toContain('where name ~ "Journey"');
+    expect(body).not.toContain('search ');
+  });
+
+  it('excludes add-ons, so a DLC cannot stand in for its parent', async () => {
+    const { impl, calls } = stubFetch({
+      'id.twitch.tv': fixture('token'),
+      'api.igdb.com': fixture('games'),
+    });
+    await new IgdbClient({ ...config, fetchImpl: impl }).findGamesByName('Journey');
+
+    const body = String(calls.find((c) => c.url.includes('api.igdb.com'))?.init?.body);
+    expect(body).toContain('game_type != (1,2)');
+  });
+
+  it('accepts types the library filter rejects, since the title already matched', async () => {
+    // Warface: Clutch is typed 12 and is plainly the game the user owns. An
+    // exact title match is precise enough not to need the narrower list.
+    const { impl, calls } = stubFetch({
+      'id.twitch.tv': fixture('token'),
+      'api.igdb.com': fixture('games'),
+    });
+    await new IgdbClient({ ...config, fetchImpl: impl }).findGamesByName('Warface: Clutch');
+
+    const body = String(calls.find((c) => c.url.includes('api.igdb.com'))?.init?.body);
+    expect(body).not.toContain('game_type = (');
+  });
+
+  it('returns nothing for an empty name rather than querying', async () => {
+    const { impl, calls } = stubFetch({ 'id.twitch.tv': fixture('token') });
+    await expect(
+      new IgdbClient({ ...config, fetchImpl: impl }).findGamesByName('   '),
+    ).resolves.toEqual([]);
+    expect(calls.filter((c) => c.url.includes('api.igdb.com'))).toHaveLength(0);
   });
 });

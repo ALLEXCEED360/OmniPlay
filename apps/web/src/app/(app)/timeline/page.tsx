@@ -6,6 +6,7 @@ import { TimelineFilters } from '@/components/timeline-filters';
 import { TimelineYear } from '@/components/timeline-year';
 import {
   dayKeyToDate,
+  EVENT_KINDS,
   groupByDay,
   kindsOf,
   type EventKind,
@@ -49,7 +50,11 @@ export default async function TimelinePage({
 
   // Counts come from the unfiltered set so a chip always shows how much it
   // would bring back, not how much is currently visible.
-  const counts = { played: 0, achievements: 0, acquired: 0, completed: 0 } as Record<
+  // Built from EVENT_KINDS rather than written out, so adding a kind cannot
+  // leave it silently uncounted: a hand-written initialiser missed the new
+  // "Started" key, every increment produced NaN, and the chip hid itself
+  // because NaN > 0 is false — with 144 events behind it.
+  const counts = Object.fromEntries(EVENT_KINDS.map((kind) => [kind.id, 0])) as Record<
     EventKind,
     number
   >;

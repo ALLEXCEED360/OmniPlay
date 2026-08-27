@@ -9,6 +9,7 @@ import {
   intensityOf,
   INTENSITY_CLASSES,
   monthColumns,
+  summariseYear,
   weeksOfYear,
   type TimelineDay,
   type TimelineEntry,
@@ -53,27 +54,24 @@ export function TimelineYear({
     defaultOpen ? (days[0]?.key ?? null) : null,
   );
 
-  const totals = useMemo(() => {
-    let achievements = 0;
-    const games = new Set<string>();
-    for (const entry of entries) {
-      achievements += entry.achievements;
-      games.add(entry.game.slug);
-    }
-    return { achievements, games: games.size, activeDays: days.length };
-  }, [entries, days]);
+  const totals = useMemo(() => summariseYear(entries), [entries]);
 
   const selectedDay = selected ? byKey.get(selected) : undefined;
 
   return (
     <section>
-      <div className="mb-4 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <h2 className="stat-figure text-2xl text-ink-100">{year}</h2>
-        <p className="text-xs text-ink-500">
-          {totals.activeDays} active {totals.activeDays === 1 ? 'day' : 'days'} ·{' '}
-          {totals.games} {totals.games === 1 ? 'game' : 'games'}
-          {totals.achievements > 0 ? ` · ${totals.achievements.toLocaleString()} unlocks` : ''}
-        </p>
+      {/* A year in figures. Deliberately no hours: see summariseYear — most
+          of this library's playtime carries no date at all, and spreading it
+          across years would be inventing a distribution. */}
+      <div className="mb-4">
+        <h2 className="stat-figure mb-3 text-3xl text-ink-100">{year}</h2>
+        <dl className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-5">
+          <YearFigure label="Active days" value={totals.activeDays} accent />
+          <YearFigure label="Games" value={totals.games} />
+          <YearFigure label={totals.achievements === 1 ? 'Unlock' : 'Unlocks'} value={totals.achievements} />
+          <YearFigure label="Started" value={totals.started} />
+          <YearFigure label="Finished" value={totals.completed} />
+        </dl>
       </div>
 
       {/* Horizontal scroll rather than shrinking cells: a squashed year is
@@ -160,6 +158,22 @@ export function TimelineYear({
   );
 }
 
+/** One figure in a year's summary row. */
+function YearFigure({ label, value, accent = false }: { label: string; value: number; accent?: boolean }) {
+  return (
+    <div>
+      <dt className="text-[11px] uppercase tracking-wider text-ink-600">{label}</dt>
+      <dd
+        className={`stat-figure mt-0.5 text-xl ${
+          value === 0 ? 'text-ink-700' : accent ? 'text-accent' : 'text-ink-100'
+        }`}
+      >
+        {value.toLocaleString()}
+      </dd>
+    </div>
+  );
+}
+
 /** Everything that happened on one selected day. */
 function DayDetail({ day, onClose }: { day: TimelineDay; onClose: () => void }) {
   return (
@@ -225,6 +239,9 @@ function summarise(day: TimelineDay): string {
 function describeEntry(entry: TimelineEntry): string {
   const parts: string[] = [];
 
+  // Ordered by how much each says about the day. "Started playing" is the
+  // most notable thing that can happen to a game, so it leads.
+  if (entry.firstPlayed) parts.push('Started playing');
   if (entry.acquired) parts.push('Added');
   if (entry.completed) parts.push('Completed');
   if (entry.achievements > 0) {
