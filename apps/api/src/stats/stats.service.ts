@@ -93,8 +93,13 @@ export class StatsService {
       fullyUnlockedGames: await fullyUnlockedGameIds(this.prisma.client, userId),
     });
 
-    const currentlyPlaying = await this.currentlyPlaying(userId);
-    const activityByYear = await this.activityByYear(userId);
+    const [currentlyPlaying, activityByYear, crossPlatform, unlocks] = await Promise.all([
+      this.currentlyPlaying(userId),
+      this.activityByYear(userId),
+      this.crossPlatformGames(userId),
+      this.unlockSummary(userId),
+    ]);
+    const genres = await this.genreBreakdown(userId);
     const mostPlayed = await this.mostPlayed(userId, playtime.byGame, 5);
 
     return {
@@ -106,6 +111,9 @@ export class StatsService {
       },
       accounts,
       activityByYear,
+      crossPlatform,
+      unlocks,
+      genres,
       currentlyPlaying,
       mostPlayed,
       lastSyncAt: lastSync?.finishedAt ?? null,
@@ -196,26 +204,29 @@ export class StatsService {
    */
   async activityByYear(userId: string) {
     const rows = await this.prisma.client.$queryRaw<
-      Array<{ year: number; activeDays: bigint; unlocks: bigint; started: bigint }>
+      Array<{ year: number; activeDays: bigint; games: bigint; unlocks: bigint; started: bigint }>
     >`
       WITH dated AS (
         SELECT date_trunc('year', ua."unlockedAt") AS y,
                ua."unlockedAt"::date AS d,
+               a."gameId" AS game,
                1 AS unlock, 0 AS started
         FROM "UserAchievement" ua
+        JOIN "Achievement" a ON a.id = ua."achievementId"
         WHERE ua."userId" = ${userId} AND ua.unlocked AND ua."unlockedAt" IS NOT NULL
         UNION ALL
-        SELECT date_trunc('year', p."startedAt"), p."startedAt"::date, 0, 1
+        SELECT date_trunc('year', p."startedAt"), p."startedAt"::date, p."gameId", 0, 1
         FROM "PlayActivity" p
         WHERE p."userId" = ${userId} AND p."startedAt" IS NOT NULL
           AND p."activityType" <> 'RECENT_PLAY'
         UNION ALL
-        SELECT date_trunc('year', p."endedAt"), p."endedAt"::date, 0, 0
+        SELECT date_trunc('year', p."endedAt"), p."endedAt"::date, p."gameId", 0, 0
         FROM "PlayActivity" p
         WHERE p."userId" = ${userId} AND p."endedAt" IS NOT NULL
       )
       SELECT EXTRACT(YEAR FROM y)::int AS "year",
              count(DISTINCT d)         AS "activeDays",
+             count(DISTINCT game)      AS "games",
              sum(unlock)               AS "unlocks",
              sum(started)              AS "started"
       FROM dated
@@ -223,11 +234,147 @@ export class StatsService {
       ORDER BY y
     `;
 
+    // Completions are dated at the final unlock, matching every other screen.
+    const finishedByYear = new Map<number, number>();
+    for (const [, finished] of await this.inferredCompletions(userId)) {
+      const year = finished.at.getFullYear();
+      finishedByYear.set(year, (finishedByYear.get(year) ?? 0) + 1);
+    }
+
     return rows.map((row) => ({
       year: row.year,
       activeDays: Number(row.activeDays),
+      games: Number(row.games),
       unlocks: Number(row.unlocks),
       started: Number(row.started),
+      finished: finishedByYear.get(row.year) ?? 0,
+    }));
+  }
+
+  /**
+   * Games this library holds on more than one platform.
+   *
+   * The single thing no storefront can tell you, and the reason this app
+   * exists — Apex Legends is 633 hours only once PlayStation and Steam are
+   * added together, and neither platform will ever show you that number. The
+   * dashboard never mentioned it.
+   *
+   * Built from ownership *and* activity, matching the library screen: a game
+   * played on Xbox without an entitlement record still counts as being on Xbox.
+   */
+  async crossPlatformGames(userId: string, limit = 6) {
+    const rows = await this.prisma.client.$queryRaw<
+      Array<{
+        id: string;
+        name: string;
+        slug: string;
+        coverImage: string | null;
+        providers: string[];
+        minutes: bigint | null;
+      }>
+    >`
+      WITH mine AS (
+        SELECT "gameId", provider FROM "Ownership" WHERE "userId" = ${userId}
+        UNION
+        SELECT "gameId", provider FROM "PlayActivity" WHERE "userId" = ${userId}
+      )
+      SELECT g.id,
+             g.name,
+             g.slug,
+             g."coverImage",
+             array_agg(DISTINCT m.provider ORDER BY m.provider) AS providers,
+             (
+               SELECT sum(p."minutesPlayed")
+               FROM "PlayActivity" p
+               WHERE p."gameId" = g.id
+                 AND p."userId" = ${userId}
+                 AND p."activityType" = 'LIFETIME_TOTAL'
+             ) AS minutes
+      FROM mine m
+      JOIN "Game" g ON g.id = m."gameId"
+      WHERE g."mergedIntoId" IS NULL
+      GROUP BY g.id, g.name, g.slug, g."coverImage"
+      HAVING count(DISTINCT m.provider) > 1
+      ORDER BY minutes DESC NULLS LAST
+      LIMIT ${limit}
+    `;
+
+    return rows.map((row) => ({
+      name: row.name,
+      slug: row.slug,
+      coverImage: row.coverImage,
+      providers: row.providers,
+      minutes: Number(row.minutes ?? 0),
+    }));
+  }
+
+  /** Everything the dashboard needs about achievements, in one figure. */
+  async unlockSummary(userId: string) {
+    const rows = await this.prisma.client.$queryRaw<
+      Array<{ unlocked: bigint; years: bigint; first: Date | null; last: Date | null }>
+    >`
+      SELECT count(*)                                   AS unlocked,
+             count(DISTINCT date_trunc('year', ua."unlockedAt")) AS years,
+             min(ua."unlockedAt")                       AS first,
+             max(ua."unlockedAt")                       AS last
+      FROM "UserAchievement" ua
+      WHERE ua."userId" = ${userId} AND ua.unlocked AND ua."unlockedAt" IS NOT NULL
+    `;
+
+    const row = rows[0];
+    return {
+      unlocked: Number(row?.unlocked ?? 0),
+      years: Number(row?.years ?? 0),
+      first: row?.first ?? null,
+      last: row?.last ?? null,
+    };
+  }
+
+  /**
+   * Genres across the whole library, weighted by hours.
+   *
+   * The Gaming DNA panel previously ranked the *current year's* genres by
+   * unlocks, because year-scoped playtime does not exist — which made a
+   * decade-long library look like whatever happened to be played since
+   * January. Ranked over everything and weighted by time, one 200-hour RPG
+   * outranks twelve unplayed platformers, which is the point of the panel.
+   */
+  async genreBreakdown(userId: string, limit = 8) {
+    const rows = await this.prisma.client.$queryRaw<
+      Array<{ genre: string; games: bigint; minutes: bigint | null }>
+    >`
+      WITH mine AS (
+        SELECT DISTINCT "gameId" FROM "Ownership" WHERE "userId" = ${userId}
+        UNION
+        SELECT DISTINCT "gameId" FROM "PlayActivity" WHERE "userId" = ${userId}
+      ),
+      per_game AS (
+        SELECT g.id,
+               g.genres,
+               (
+                 SELECT sum(p."minutesPlayed")
+                 FROM "PlayActivity" p
+                 WHERE p."gameId" = g.id
+                   AND p."userId" = ${userId}
+                   AND p."activityType" = 'LIFETIME_TOTAL'
+               ) AS minutes
+        FROM mine m
+        JOIN "Game" g ON g.id = m."gameId"
+        WHERE g."mergedIntoId" IS NULL AND array_length(g.genres, 1) > 0
+      )
+      SELECT unnest(genres) AS genre,
+             count(*)       AS games,
+             sum(COALESCE(minutes, 0)) AS minutes
+      FROM per_game
+      GROUP BY 1
+      ORDER BY minutes DESC NULLS LAST, games DESC
+      LIMIT ${limit}
+    `;
+
+    return rows.map((row) => ({
+      genre: row.genre,
+      games: Number(row.games),
+      minutes: Number(row.minutes ?? 0),
     }));
   }
 

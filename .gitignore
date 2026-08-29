@@ -8,3 +8,7 @@ coverage/
 .env.*
 !.env.example
 .DS_Store
+
+# Local editor/agent workspace config. Machine-specific paths and launch
+# settings, useful to keep out of shared history.
+.claude/
