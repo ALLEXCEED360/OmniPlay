@@ -211,7 +211,7 @@ describe('computeLibraryStats', () => {
         { gameId: 'c', provider: 'xbox', removedAt: new Date('2024-01-01') },
       ],
       statuses: [],
-      playtimeByGame: { a: 500 },
+      playtimeByGame: { a: 500 }, fullyUnlockedGames: [],
     });
 
     expect(stats.currentlyOwned).toBe(2);
@@ -228,7 +228,7 @@ describe('computeLibraryStats', () => {
         { gameId: 'a', provider: 'xbox', removedAt: null },
       ],
       statuses: [],
-      playtimeByGame: {},
+      playtimeByGame: {}, fullyUnlockedGames: [],
     });
 
     expect(stats.currentlyOwned).toBe(1);
@@ -244,7 +244,7 @@ describe('computeLibraryStats', () => {
         { gameId: 'c', provider: 'steam', removedAt: null },
       ],
       statuses: [{ gameId: 'b', status: 'COMPLETED' }],
-      playtimeByGame: { a: 10 },
+      playtimeByGame: { a: 10 }, fullyUnlockedGames: [],
     });
 
     expect(stats.gamesPlayed).toBe(2);
@@ -265,7 +265,7 @@ describe('computeLibraryStats', () => {
         { gameId: 'g0', status: 'COMPLETED' },
         { gameId: 'g1', status: 'PLAYING' },
       ],
-      playtimeByGame: { g0: 600, g1: 120 },
+      playtimeByGame: { g0: 600, g1: 120 }, fullyUnlockedGames: [],
     });
 
     expect(stats.gamesPlayed).toBe(2);
@@ -276,7 +276,7 @@ describe('computeLibraryStats', () => {
     const stats = computeLibraryStats({
       ownerships: [{ gameId: 'a', provider: 'steam', removedAt: null }],
       statuses: [],
-      playtimeByGame: {},
+      playtimeByGame: {}, fullyUnlockedGames: [],
     });
     expect(stats.completionRate).toBe(0);
   });

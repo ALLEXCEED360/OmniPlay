@@ -21,6 +21,8 @@ import {
   steamOwnedGamesResponseSchema,
   steamPlayerAchievementsResponseSchema,
   steamPlayerSummariesResponseSchema,
+  steamGlobalPercentagesSchema,
+  steamGameSchemaSchema,
 } from './steam.mapper.js';
 
 /**
@@ -251,6 +253,13 @@ export class SteamProvider implements GamingProvider {
     const parsed = parseOrThrow(steamPlayerAchievementsResponseSchema, data, 'achievements');
     if (parsed.playerstats.success === false) return;
 
+    // How many players worldwide hold each one. A separate endpoint, and a
+    // public one needing no key, which is why this was missing: the rest of
+    // the Steam adapter authenticates and this call does not.
+    const rarity = await this.globalUnlockRates(externalGameId);
+    // Artwork lives in the game schema, not in the player's achievements.
+    const art = await this.achievementArt(externalGameId);
+
     for (const achievement of parsed.playerstats.achievements ?? []) {
       const unlockedAt =
         achievement.unlocktime && achievement.unlocktime > 0
@@ -262,12 +271,84 @@ export class SteamProvider implements GamingProvider {
         externalGameId,
         name: achievement.name ?? achievement.apiname,
         description: achievement.description ?? null,
+        iconUrl: art.get(achievement.apiname) ?? null,
         // Steam has no per-achievement score; Gamerscore has no equivalent here.
         points: null,
+        globalUnlockRate: rarity.get(achievement.apiname) ?? null,
         unlocked: achievement.achieved === 1,
         unlockedAt,
       };
     }
+  }
+
+  /**
+   * Global unlock rate per achievement, as a fraction of all players.
+   *
+   * Steam publishes this on an unauthenticated endpoint separate from
+   * everything else the adapter calls, keyed by the same `apiname` the player
+   * achievements use — so the join is exact rather than by title. A failure
+   * here is not a failure of the sweep: rarity is an enrichment, and a game
+   * without it still imports its achievements.
+   */
+  /**
+   * Achievement artwork, from the game's schema.
+   *
+   * `GetPlayerAchievements` carries names and unlock state but no icons, so
+   * every Steam achievement was stored with a null icon and rendered as an
+   * empty box beside PlayStation and Xbox artwork. Two icons exist per
+   * achievement — earned and greyed-out — and the earned one is taken, since
+   * this is the image shown wherever an unlock is displayed.
+   *
+   * Best-effort like the rarity call: no artwork must never cost the sweep
+   * its achievements.
+   */
+  private async achievementArt(appId: string): Promise<Map<string, string>> {
+    const art = new Map<string, string>();
+
+    let data: unknown;
+    try {
+      data = await this.http.requestJson<unknown>({
+        path: 'ISteamUserStats/GetSchemaForGame/v2/',
+        query: { key: this.config.apiKey, appid: appId, l: 'english' },
+      });
+    } catch {
+      return art;
+    }
+
+    const parsed = steamGameSchemaSchema.safeParse(data);
+    if (!parsed.success) return art;
+
+    for (const entry of parsed.data.game?.availableGameStats?.achievements ?? []) {
+      if (entry.icon) art.set(entry.name, entry.icon);
+    }
+
+    return art;
+  }
+
+  private async globalUnlockRates(appId: string): Promise<Map<string, number>> {
+    const rates = new Map<string, number>();
+
+    let data: unknown;
+    try {
+      data = await this.http.requestJson<unknown>({
+        path: 'ISteamUserStats/GetGlobalAchievementPercentagesForApp/v2/',
+        query: { gameid: appId },
+      });
+    } catch {
+      return rates;
+    }
+
+    const parsed = steamGlobalPercentagesSchema.safeParse(data);
+    if (!parsed.success) return rates;
+
+    for (const entry of parsed.data.achievementpercentages?.achievements ?? []) {
+      const percent = typeof entry.percent === 'string' ? Number(entry.percent) : entry.percent;
+      // Stored as a fraction, matching how PlayStation's rate is stored, so
+      // the two are directly comparable wherever they are shown together.
+      if (Number.isFinite(percent)) rates.set(entry.name, percent / 100);
+    }
+
+    return rates;
   }
 
   async disconnect(): Promise<void> {

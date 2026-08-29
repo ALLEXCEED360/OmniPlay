@@ -215,3 +215,44 @@ describe('activity update payload', () => {
     expect(payload.endedAt).toBeNull();
   });
 });
+
+/**
+ * Merging two observations of one achievement.
+ *
+ * The same rule as activities, and it has now bitten twice. A field left out
+ * of the update branch is silently frozen at whatever the first sync wrote:
+ * Steam achievements kept null icons through a full re-sync because artwork
+ * comes from a different endpoint than the achievements, so the rows already
+ * existed by the time that call was added.
+ */
+describe('achievement update payload', () => {
+  /** Mirrors the spread in the achievement upsert's update branch. */
+  const updateFor = (achievement: {
+    name: string;
+    points?: number | null;
+    iconUrl?: string | null;
+    globalUnlockRate?: number | null;
+  }) => ({
+    name: achievement.name,
+    points: achievement.points ?? null,
+    globalUnlockRate: achievement.globalUnlockRate ?? null,
+    ...(achievement.iconUrl ? { iconUrl: achievement.iconUrl } : {}),
+  });
+
+  it('writes artwork when a later observation supplies it', () => {
+    const payload = updateFor({ name: 'First', iconUrl: 'https://cdn/one.jpg' });
+    expect(payload.iconUrl).toBe('https://cdn/one.jpg');
+  });
+
+  it('omits the field when the observation has none, rather than nulling it', () => {
+    // Steam's artwork endpoint is best-effort; a failed call must not wipe
+    // icons a previous sync stored.
+    expect('iconUrl' in updateFor({ name: 'First' })).toBe(false);
+    expect('iconUrl' in updateFor({ name: 'First', iconUrl: null })).toBe(false);
+  });
+
+  it('still overwrites rarity, which the provider owns outright', () => {
+    expect(updateFor({ name: 'First', globalUnlockRate: 0.045 }).globalUnlockRate).toBe(0.045);
+    expect(updateFor({ name: 'First' }).globalUnlockRate).toBeNull();
+  });
+});

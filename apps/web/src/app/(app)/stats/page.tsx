@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { apiFetch } from '@/lib/api';
 import { formatHours, providerLabel } from '@/lib/format';
 import { ConfidenceNote, PageHeader, ProportionBar, SectionHeading, StatCard } from '@/components/ui';
@@ -40,7 +41,15 @@ interface YearStats {
   /** Which measure topGenres is ranked by — see the Gaming DNA panel. */
   genreBasis: 'playtime' | 'achievements' | 'none';
   topGenres: Array<{ genre: string; minutes: number; unlocks?: number }>;
-  topGames: Array<{ name?: string; slug?: string; minutes: number }>;
+  topGames: Array<{
+    name?: string;
+    slug?: string;
+    coverImage?: string | null;
+    unlocks?: number;
+    minutes: number;
+  }>;
+  /** Which measure topGames is ranked by, so the panel can say so. */
+  topGamesBasis: 'achievements' | 'playtime';
 }
 
 export default async function StatsPage() {
@@ -88,6 +97,49 @@ export default async function StatsPage() {
               undated lifetime total. What you played, and when, comes from achievement unlocks.
             </ConfidenceNote>
           </p>
+        ) : null}
+
+        {thisYear.topGames.length > 0 ? (
+          <div className="mt-6">
+            <h3 className="mb-3 text-[11px] uppercase tracking-wider text-ink-600">
+              {thisYear.topGamesBasis === 'achievements'
+                ? `Most unlocks in ${currentYear}`
+                : `Most played in ${currentYear}`}
+            </h3>
+            <ol className="card divide-y divide-ink-850">
+              {thisYear.topGames.map((game, index) => (
+                <li key={game.slug ?? index}>
+                  <Link
+                    href={game.slug ? `/game/${game.slug}` : '#'}
+                    className="flex items-center gap-3 p-3 transition-colors hover:bg-ink-850/40"
+                  >
+                    <span className="stat-figure w-5 shrink-0 text-xs text-ink-600">
+                      {index + 1}
+                    </span>
+                    {game.coverImage ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={game.coverImage}
+                        alt=""
+                        loading="lazy"
+                        className="h-12 w-9 shrink-0 rounded object-cover"
+                      />
+                    ) : (
+                      <span className="h-12 w-9 shrink-0 rounded bg-ink-850" />
+                    )}
+                    <span className="min-w-0 flex-1 truncate text-sm text-ink-100">
+                      {game.name}
+                    </span>
+                    <span className="stat-figure shrink-0 text-sm text-ink-300">
+                      {thisYear.topGamesBasis === 'achievements'
+                        ? `${game.unlocks} unlocked`
+                        : formatHours(game.minutes)}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ol>
+          </div>
         ) : null}
       </section>
 

@@ -540,6 +540,19 @@ export class SyncRunner {
               description: achievement.description,
               points: achievement.points ?? null,
               globalUnlockRate: achievement.globalUnlockRate ?? null,
+              // Spread rather than assigned, for the same reason `startedAt`
+              // is on activities: an observation without artwork must not
+              // erase artwork already held.
+              //
+              // Omitting it entirely was worse. Steam publishes achievement
+              // icons from a different endpoint than the achievements
+              // themselves, so when that call was added every Steam row
+              // already existed and took this path — 2,611 achievements kept
+              // their null icons through a full re-sync while the rarity
+              // fetched alongside them landed, because rarity was listed here
+              // and the icon was not.
+              ...(achievement.iconUrl ? { iconUrl: achievement.iconUrl } : {}),
+              hidden: achievement.hidden ?? false,
             },
           });
 

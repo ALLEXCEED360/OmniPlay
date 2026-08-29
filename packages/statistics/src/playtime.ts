@@ -235,11 +235,15 @@ export function computeLibraryStats(input: {
   /**
    * Games where every achievement is unlocked.
    *
-   * Without it the dashboard counts only statuses the user set by hand, which
-   * in a library that has never used them is none — reporting "0 completed"
-   * beside a game the library screen correctly calls complete.
+   * Required, not optional, and deliberately so. A caller that omits it counts
+   * only statuses the user set by hand — which in a library that has never
+   * used them is none — and silently reports "0 completed" beside a game every
+   * other screen calls complete. That happened twice: once on the dashboard,
+   * and again on the public profile, which is the copy people share. Pass an
+   * empty iterable to mean "no completions", so choosing that is visible in
+   * the calling code rather than an omission nobody notices.
    */
-  fullyUnlockedGames?: Iterable<string>;
+  fullyUnlockedGames: Iterable<string>;
 }): LibraryStats {
   const owned = new Set<string>();
   const previouslyOwned = new Set<string>();

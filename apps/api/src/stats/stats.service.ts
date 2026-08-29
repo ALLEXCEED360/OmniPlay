@@ -275,9 +275,27 @@ export class StatsService {
     /** Every game with any evidence of activity in the window. */
     const gamesTouched = new Set(activities.map((activity) => activity.gameId));
 
-    const completed = await this.prisma.client.userGameStatus.count({
-      where: { userId, status: 'COMPLETED', finishedAt: { gte: start, lt: end } },
-    });
+    // Completions the user declared, plus the ones the achievements prove.
+    //
+    // Counting only declared statuses reported zero for every year, because a
+    // UserGameStatus row is written solely when someone sets one by hand and
+    // most libraries have none at all. The library screen, the dashboard and
+    // the timeline all infer completion from a fully unlocked achievement set,
+    // and this has to agree with them or the same year reads two ways on two
+    // pages. The date is the final unlock: a real recorded instant.
+    const [declaredCompletions, inferredCompletions] = await Promise.all([
+      this.prisma.client.userGameStatus.findMany({
+        where: { userId, status: 'COMPLETED', finishedAt: { gte: start, lt: end } },
+        select: { gameId: true },
+      }),
+      this.inferredCompletions(userId),
+    ]);
+
+    const completedGames = new Set(declaredCompletions.map((row) => row.gameId));
+    for (const [gameId, finished] of inferredCompletions) {
+      if (finished.at >= start && finished.at < end) completedGames.add(gameId);
+    }
+    const completed = completedGames.size;
 
     // An achievement unlocked in this year is proof the game was played in it.
     // Counting only PlayActivity reported "0 games played" for a user with
@@ -354,10 +372,36 @@ export class StatsService {
         ? 'playtime'
         : 'none';
 
-    const topGames = Object.entries(playtime.byGame)
+    // The year's most active games.
+    //
+    // Ranked by unlocks earned *in* the year where playtime cannot be, which
+    // is nearly always: a lifetime total says how long a game was played, not
+    // how much of that fell inside these twelve months. Ranking on it produced
+    // an empty list every year, because `playtime.byGame` here only holds the
+    // handful of activities that carry a date inside the window.
+    const unlocksByGame = new Map<string, number>();
+    for (const row of unlockedThisYear) {
+      const gameId = row.achievement.gameId;
+      unlocksByGame.set(gameId, (unlocksByGame.get(gameId) ?? 0) + 1);
+    }
+
+    const rankedGames = unlocksByGame.size > 0 ? unlocksByGame : new Map(Object.entries(playtime.byGame));
+    const rankedByUnlocks = unlocksByGame.size > 0;
+
+    const topGames = [...rankedGames.entries()]
       .sort((a, b) => b[1] - a[1])
       .slice(0, 5)
-      .map(([gameId, minutes]) => ({ ...gamesById.get(gameId), minutes }));
+      .map(([gameId, weight]) => {
+        const game = gamesById.get(gameId) ?? gamesFromAchievements.get(gameId);
+        return {
+          name: game?.name,
+          slug: game?.slug,
+          coverImage: game?.coverImage ?? null,
+          unlocks: rankedByUnlocks ? weight : undefined,
+          minutes: rankedByUnlocks ? (playtime.byGame[gameId] ?? 0) : weight,
+        };
+      })
+      .filter((entry) => entry.name !== undefined);
 
     // Union of "had recorded playtime" and "unlocked something": either is
     // evidence the game was played this year.
@@ -373,6 +417,8 @@ export class StatsService {
       completed,
       newGames,
       achievementsUnlocked: unlockCount,
+      /** Which measure topGames is ranked by, so the UI can label it. */
+      topGamesBasis: rankedByUnlocks ? ('achievements' as const) : ('playtime' as const),
       genreBasis,
       topGenres,
       topGames,
@@ -660,15 +706,49 @@ export class StatsService {
 
     // Nothing marked by hand: fall back to whatever was played most recently,
     // so a brand-new account still has a populated dashboard.
-    const recent = await this.prisma.client.playActivity.findMany({
-      where: { userId, endedAt: { not: null } },
-      include: { game: { select: { name: true, slug: true, coverImage: true } } },
-      orderBy: { endedAt: 'desc' },
-      take: 6,
-      distinct: ['gameId'],
-    });
+    //
+    // "Recently" needs a date and "played" needs evidence, and they come from
+    // different rows. Xbox stamps every title in its history with a
+    // lastTimePlayed that moves when a game is merely listed — installed,
+    // cloud-synced, launched for a moment — so ordering on that alone filled
+    // this panel with titles carrying zero minutes and zero unlocks. Ghost
+    // Recon: Future Soldier led the dashboard as "currently playing" on the
+    // strength of a timestamp and nothing else.
+    //
+    // So the date may come from any dated activity, but the game only
+    // qualifies if something says it was actually played.
+    const recent = await this.prisma.client.$queryRaw<
+      Array<{ name: string; slug: string; coverImage: string | null }>
+    >`
+      WITH played AS (
+        SELECT DISTINCT "gameId" FROM "PlayActivity"
+        WHERE "userId" = ${userId} AND "minutesPlayed" > 0
+        UNION
+        SELECT DISTINCT a."gameId"
+        FROM "UserAchievement" ua
+        JOIN "Achievement" a ON a.id = ua."achievementId"
+        WHERE ua."userId" = ${userId} AND ua.unlocked
+      ),
+      signals AS (
+        SELECT "gameId", "endedAt" AS at FROM "PlayActivity"
+        WHERE "userId" = ${userId} AND "endedAt" IS NOT NULL
+        UNION ALL
+        SELECT a."gameId", ua."unlockedAt"
+        FROM "UserAchievement" ua
+        JOIN "Achievement" a ON a.id = ua."achievementId"
+        WHERE ua."userId" = ${userId} AND ua.unlocked AND ua."unlockedAt" IS NOT NULL
+      )
+      SELECT g.name, g.slug, g."coverImage"
+      FROM signals s
+      JOIN played p ON p."gameId" = s."gameId"
+      JOIN "Game" g ON g.id = s."gameId"
+      WHERE g."mergedIntoId" IS NULL
+      GROUP BY g.id, g.name, g.slug, g."coverImage"
+      ORDER BY max(s.at) DESC
+      LIMIT 6
+    `;
 
-    return recent.map((a) => ({ ...a.game, status: 'PLAYING' as const }));
+    return recent.map((game) => ({ ...game, status: 'PLAYING' as const }));
   }
 
   private async mostPlayed(userId: string, byGame: Record<string, number>, limit: number) {

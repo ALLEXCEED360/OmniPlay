@@ -312,3 +312,83 @@ describe('SteamProvider.completeAuth', () => {
     expect(returnTo.searchParams.get('state')).toBe(state);
   });
 });
+
+/**
+ * Steam publishes achievement names, artwork and rarity from three different
+ * endpoints, and the adapter originally called only the first — so every Steam
+ * achievement was stored with no icon and no rarity, rendering as an empty box
+ * beside PlayStation and Xbox artwork.
+ */
+describe('Steam achievement enrichment', () => {
+  const schemaResponse = {
+    game: {
+      availableGameStats: {
+        achievements: [
+          { name: 'ACH_ONE', displayName: 'First', icon: 'https://cdn/one.jpg' },
+          { name: 'ACH_TWO', displayName: 'Second', icon: 'https://cdn/two.jpg' },
+        ],
+      },
+    },
+  };
+
+  const percentResponse = {
+    achievementpercentages: {
+      achievements: [
+        { name: 'ACH_ONE', percent: 4.5 },
+        { name: 'ACH_TWO', percent: 88.25 },
+      ],
+    },
+  };
+
+  const playerResponse = {
+    playerstats: {
+      success: true,
+      achievements: [
+        { apiname: 'ACH_ONE', achieved: 1, unlocktime: 1_700_000_000, name: 'First' },
+        { apiname: 'ACH_TWO', achieved: 0, unlocktime: 0, name: 'Second' },
+      ],
+    },
+  };
+
+  const routes = {
+    GetPlayerAchievements: playerResponse,
+    GetSchemaForGame: schemaResponse,
+    GetGlobalAchievementPercentagesForApp: percentResponse,
+  };
+
+  it('attaches artwork from the game schema', async () => {
+    const provider = new SteamProvider({ apiKey: 'k', realm: 'https://x', fetchImpl: stubFetch(routes) });
+    const out = [];
+    for await (const achievement of provider.getAchievements!(session, '1091500')) out.push(achievement);
+
+    expect(out[0]?.iconUrl).toBe('https://cdn/one.jpg');
+    expect(out[1]?.iconUrl).toBe('https://cdn/two.jpg');
+  });
+
+  it('stores rarity as a fraction, matching how PlayStation reports it', async () => {
+    // Steam sends 4.5 meaning 4.5%; PlayStation's rate is already a fraction,
+    // and the two are shown side by side, so they must share a unit.
+    const provider = new SteamProvider({ apiKey: 'k', realm: 'https://x', fetchImpl: stubFetch(routes) });
+    const out = [];
+    for await (const achievement of provider.getAchievements!(session, '1091500')) out.push(achievement);
+
+    expect(out[0]?.globalUnlockRate).toBeCloseTo(0.045, 5);
+    expect(out[1]?.globalUnlockRate).toBeCloseTo(0.8825, 5);
+  });
+
+  it('still yields achievements when artwork and rarity are unavailable', async () => {
+    // Both are enrichments fetched from separate endpoints. Losing them must
+    // never cost the sweep the achievements themselves.
+    const provider = new SteamProvider({
+      apiKey: 'k',
+      realm: 'https://x',
+      fetchImpl: stubFetch({ GetPlayerAchievements: playerResponse }),
+    });
+    const out = [];
+    for await (const achievement of provider.getAchievements!(session, '1091500')) out.push(achievement);
+
+    expect(out).toHaveLength(2);
+    expect(out[0]?.iconUrl).toBeNull();
+    expect(out[0]?.globalUnlockRate).toBeNull();
+  });
+});

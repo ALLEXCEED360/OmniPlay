@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { aggregatePlaytime, computeLibraryStats, type ActivityRecord } from '@omniplay/statistics';
 import { PrismaService } from '../common/prisma.service.js';
+import { fullyUnlockedGameIds } from '../common/completion.js';
 
 /**
  * Public profiles (spec 4.7).
@@ -88,6 +89,10 @@ export class ProfileService {
       ownerships,
       statuses,
       playtimeByGame: playtime.byGame,
+      // The shared copy of this profile has to agree with the owner's own
+      // dashboard. Omitting this counted only hand-set statuses and published
+      // "0 completed" for a library with sixteen finished games.
+      fullyUnlockedGames: await fullyUnlockedGameIds(this.prisma.client, user.id),
     });
 
     const favourites = await this.topGames(playtime.byGame, 6);

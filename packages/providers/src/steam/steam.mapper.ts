@@ -139,3 +139,51 @@ export function parseOrThrow<T>(schema: z.ZodType<T>, data: unknown, context: st
   }
   return result.data;
 }
+
+/**
+ * Global achievement percentages.
+ *
+ * A public Steam endpoint needing no key, keyed by the same `apiname` the
+ * player-achievements call uses, so the join is exact rather than by title.
+ * `percent` arrives as a number in practice but is typed loosely because Steam
+ * has been known to send it as a string.
+ */
+export const steamGlobalPercentagesSchema = z.object({
+  achievementpercentages: z
+    .object({
+      achievements: z
+        .array(z.object({ name: z.string(), percent: z.union([z.number(), z.string()]) }))
+        .optional(),
+    })
+    .optional(),
+});
+
+/**
+ * A game's achievement schema.
+ *
+ * The only place Steam publishes achievement artwork: `GetPlayerAchievements`
+ * returns names and unlock state but no icons at all, which is why every Steam
+ * achievement rendered as an empty placeholder. Keyed by the same `apiname`,
+ * so the join is exact.
+ */
+export const steamGameSchemaSchema = z.object({
+  game: z
+    .object({
+      availableGameStats: z
+        .object({
+          achievements: z
+            .array(
+              z.object({
+                name: z.string(),
+                displayName: z.string().optional(),
+                description: z.string().optional(),
+                icon: z.string().optional(),
+                icongray: z.string().optional(),
+              }),
+            )
+            .optional(),
+        })
+        .optional(),
+    })
+    .optional(),
+});
