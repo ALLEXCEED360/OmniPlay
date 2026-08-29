@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { apiFetch } from '@/lib/api';
 import { EmptyState, PageHeader, SectionHeading } from '@/components/ui';
 import { CreateCollectionButton } from '@/components/collection-form';
+import { staggerStep } from '@/lib/platform';
+import type { CSSProperties } from 'react';
 
 /**
  * Collections index (spec 4.6).
@@ -33,8 +35,9 @@ export default async function CollectionsPage() {
   return (
     <>
       <PageHeader
+        eyebrow="The part you author"
         title="Collections"
-        subtitle="Your own way of organising your catalogue."
+        subtitle="Your own way of organising your catalogue. Nothing syncs into these — you write them."
         action={<CreateCollectionButton />}
       />
 
@@ -45,12 +48,16 @@ export default async function CollectionsPage() {
           action={<CreateCollectionButton />}
         />
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {collections.map((collection) => (
+        <div
+          className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+          style={{ '--stagger-step': staggerStep(collections.length) } as CSSProperties}
+        >
+          {collections.map((collection, index) => (
             <Link
               key={collection.id}
               href={`/collections/${collection.slug}`}
-              className="card group overflow-hidden transition-colors hover:border-ink-600"
+              style={{ '--i': index } as CSSProperties}
+              className="card group anim-rise stagger lift overflow-hidden"
             >
               {/* A 2x2 mosaic of covers gives each collection a face. */}
               <div className="grid aspect-[16/9] grid-cols-2 grid-rows-2 gap-px bg-ink-850">
@@ -62,7 +69,7 @@ export default async function CollectionsPage() {
                       key={index}
                       src={cover}
                       alt=""
-                      className="size-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      className="size-full object-cover transition-transform duration-500 group-hover:scale-[1.08]"
                     />
                   ) : (
                     <div key={index} className="bg-ink-900" />
@@ -72,7 +79,9 @@ export default async function CollectionsPage() {
 
               <div className="p-4">
                 <div className="flex items-start justify-between gap-3">
-                  <h2 className="font-medium text-ink-100">{collection.name}</h2>
+                  <h2 className="font-medium text-ink-100 transition-colors group-hover:text-accent">
+                    {collection.name}
+                  </h2>
                   {collection.visibility !== 'PRIVATE' ? (
                     <span className="shrink-0 rounded-full border border-accent/30 bg-accent/10 px-2 py-0.5 text-[10px] text-accent">
                       {VISIBILITY_LABELS[collection.visibility]}
@@ -91,7 +100,7 @@ export default async function CollectionsPage() {
         </div>
       )}
 
-      <section className="mt-12">
+      <section className="anim-rise mt-12">
         <SectionHeading>Ideas</SectionHeading>
         <p className="text-sm leading-relaxed text-ink-500">
           All-Time Favourites · Childhood Games · 100% Completed · Games I Want to Replay ·

@@ -1,15 +1,10 @@
 import { notFound } from 'next/navigation';
 import { ApiError, apiFetch } from '@/lib/api';
-import {
-  CONFIDENCE_NOTES,
-  formatDate,
-  formatHours,
-  providerLabel,
-  STATUS_LABELS,
-} from '@/lib/format';
-import { ConfidenceNote, PlatformBadge, SectionHeading } from '@/components/ui';
+import { formatDate, formatHours, STATUS_LABELS } from '@/lib/format';
+import { PlatformBadge, SectionHeading } from '@/components/ui';
 import { AddToCollection } from '@/components/add-to-collection';
 import { PlatformReport, type PlatformReportRow } from '@/components/platform-report';
+import type { CSSProperties } from 'react';
 
 /**
  * The unified game page (spec 4.2).
@@ -82,7 +77,11 @@ export default async function GamePage({ params }: { params: Promise<{ slug: str
         {game.heroImage ? (
           <>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={game.heroImage} alt="" className="h-64 w-full object-cover sm:h-80" />
+            <img
+              src={game.heroImage}
+              alt=""
+              className="anim-fade h-64 w-full scale-105 object-cover sm:h-80"
+            />
             <div className="absolute inset-0 bg-gradient-to-t from-ink-950 via-ink-950/70 to-ink-950/20" />
           </>
         ) : (
@@ -96,16 +95,22 @@ export default async function GamePage({ params }: { params: Promise<{ slug: str
               <img
                 src={game.coverImage}
                 alt=""
-                className="hidden w-32 rounded-lg border border-ink-800 shadow-xl shadow-black/50 sm:block"
+                className="anim-rise hidden w-32 rounded-lg border border-ink-800 shadow-xl shadow-black/50 sm:block"
               />
             ) : null}
-            <div className="min-w-0 flex-1 pb-1">
+            <div className="anim-rise stagger min-w-0 flex-1 pb-1" style={{ '--i': 1 } as CSSProperties}>
               <h1 className="text-3xl font-semibold tracking-tight text-ink-100 sm:text-4xl">
                 {game.name}
               </h1>
               <div className="mt-3 flex flex-wrap items-center gap-2">
-                {providers.map((provider) => (
-                  <PlatformBadge key={provider} provider={provider} />
+                {providers.map((provider, index) => (
+                  <span
+                    key={provider}
+                    className="anim-pop stagger"
+                    style={{ '--i': index + 2, '--stagger-step': '70ms' } as CSSProperties}
+                  >
+                    <PlatformBadge provider={provider} />
+                  </span>
                 ))}
                 <span className="rounded-full border border-ink-700 px-2.5 py-1 text-xs text-ink-400">
                   {STATUS_LABELS[game.status] ?? game.status}
@@ -119,7 +124,7 @@ export default async function GamePage({ params }: { params: Promise<{ slug: str
       <div className="grid gap-8 lg:grid-cols-[1fr_20rem]">
         <div className="min-w-0 space-y-8">
           {game.summary ? (
-            <section>
+            <section className="anim-rise stagger" style={{ '--i': 2 } as CSSProperties}>
               <SectionHeading>About</SectionHeading>
               <p className="text-sm leading-relaxed text-ink-300">{game.summary}</p>
             </section>
@@ -129,7 +134,7 @@ export default async function GamePage({ params }: { params: Promise<{ slug: str
               A single combined number would answer the easy question and lose
               the interesting one — which platform this history actually lived
               on, and what each of them can and cannot tell us. */}
-          <section>
+          <section className="anim-rise stagger" style={{ '--i': 3 } as CSSProperties}>
             <SectionHeading
               action={
                 game.totalMinutes > 0 && providers.length > 1 ? (
@@ -150,7 +155,7 @@ export default async function GamePage({ params }: { params: Promise<{ slug: str
 
         </div>
 
-        <aside className="space-y-6">
+        <aside className="anim-rise stagger space-y-6" style={{ '--i': 4 } as CSSProperties}>
           <AddToCollection gameId={game.id} />
 
           <div className="card divide-y divide-ink-850 text-sm">
@@ -169,10 +174,11 @@ export default async function GamePage({ params }: { params: Promise<{ slug: str
             <div className="card p-5">
               <SectionHeading>Genres</SectionHeading>
               <div className="flex flex-wrap gap-2">
-                {game.genres.map((genre) => (
+                {game.genres.map((genre, index) => (
                   <span
                     key={genre}
-                    className="rounded-full border border-ink-800 px-2.5 py-1 text-xs text-ink-400"
+                    style={{ '--i': index, '--stagger-step': '55ms' } as CSSProperties}
+                    className="anim-pop stagger rounded-full border border-ink-800 px-2.5 py-1 text-xs text-ink-400 transition-colors hover:border-accent/40 hover:text-accent"
                   >
                     {genre}
                   </span>
@@ -195,8 +201,8 @@ export default async function GamePage({ params }: { params: Promise<{ slug: str
 
 function Detail({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-baseline justify-between gap-4 p-4">
-      <span className="shrink-0 text-xs uppercase tracking-wider text-ink-500">{label}</span>
+    <div className="flex items-baseline justify-between gap-4 p-4 transition-colors hover:bg-ink-850/40">
+      <span className="eyebrow shrink-0 text-ink-500">{label}</span>
       <span className="text-right text-ink-300">{value}</span>
     </div>
   );

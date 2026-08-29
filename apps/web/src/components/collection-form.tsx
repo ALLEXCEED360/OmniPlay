@@ -58,7 +58,7 @@ export function CreateCollectionButton() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-ink-950 transition-colors hover:bg-accent-strong"
+        className="btn-primary"
       >
         New collection
       </button>
@@ -125,7 +125,7 @@ export function CreateCollectionButton() {
         <button
           type="submit"
           disabled={busy}
-          className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-ink-950 disabled:opacity-60"
+          className="btn-primary"
         >
           {busy ? 'Creating…' : 'Create'}
         </button>

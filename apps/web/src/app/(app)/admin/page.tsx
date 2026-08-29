@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import { ApiError, apiFetch } from '@/lib/api';
 import { formatRelative, providerLabel } from '@/lib/format';
 import { PageHeader, SectionHeading, StatCard } from '@/components/ui';
@@ -84,24 +85,26 @@ export default async function AdminPage() {
   return (
     <>
       <PageHeader
+        eyebrow="What matching would not guess"
         title="Data quality"
         subtitle="Resolve what automatic matching would not guess at."
         action={<EnrichButton />}
       />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
-        <StatCard label="Canonical games" value={overview.games} />
+        <StatCard label="Canonical games" value={overview.games} index={0} />
         <StatCard
           label="To resolve"
           value={overview.unresolvedPending}
           accent={overview.unresolvedPending > 0}
+          index={1}
         />
-        <StatCard label="No metadata" value={overview.provisional} />
-        <StatCard label="Duplicates" value={overview.duplicateCandidates} />
-        <StatCard label="Failed syncs" value={overview.failedSyncs} />
+        <StatCard label="No metadata" value={overview.provisional} index={2} />
+        <StatCard label="Duplicates" value={overview.duplicateCandidates} index={3} />
+        <StatCard label="Failed syncs" value={overview.failedSyncs} index={4} />
       </div>
 
-      <section className="mt-10">
+      <section className="anim-rise mt-10">
         <SectionHeading>
           Unresolved provider records{' '}
           {unresolved.total > 0 ? (
@@ -122,7 +125,7 @@ export default async function AdminPage() {
       </section>
 
       {duplicates.length > 0 ? (
-        <section className="mt-10">
+        <section className="anim-rise mt-10">
           <SectionHeading>Possible duplicate games</SectionHeading>
           <p className="mb-4 text-xs text-ink-500">
             These share a normalised title. Editions have already been stripped and version
@@ -133,7 +136,7 @@ export default async function AdminPage() {
         </section>
       ) : null}
 
-      <section className="mt-10">
+      <section className="anim-rise mt-10">
         <SectionHeading>
           Games without metadata{' '}
           {provisional.total > 0 ? (
@@ -147,8 +150,12 @@ export default async function AdminPage() {
           </p>
         ) : (
           <div className="card divide-y divide-ink-850">
-            {provisional.games.map((game) => (
-              <div key={game.id} className="flex flex-wrap items-center justify-between gap-3 p-4">
+            {provisional.games.map((game, index) => (
+              <div
+                key={game.id}
+                style={{ '--i': index, '--stagger-step': '35ms' } as CSSProperties}
+                className="anim-fade stagger flex flex-wrap items-center justify-between gap-3 p-4 transition-colors hover:bg-ink-850/40"
+              >
                 <div className="min-w-0">
                   <div className="truncate text-sm text-ink-200">{game.name}</div>
                   <div className="mt-0.5 text-xs text-ink-600">
@@ -168,21 +175,31 @@ export default async function AdminPage() {
       </section>
 
       {failures.length > 0 ? (
-        <section className="mt-10">
+        <section className="anim-rise mt-10">
           <SectionHeading>Recent sync problems</SectionHeading>
           <div className="card divide-y divide-ink-850">
-            {failures.map((failure) => (
-              <div key={failure.id} className="p-4">
+            {failures.map((failure, index) => (
+              <div
+                key={failure.id}
+                style={{ '--i': index, '--stagger-step': '40ms' } as CSSProperties}
+                className="anim-fade stagger p-4 transition-colors hover:bg-ink-850/40"
+              >
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="text-sm text-ink-200">
                     {providerLabel(failure.provider)}{' '}
                     <span className="text-ink-600">· @{failure.user.username}</span>
                   </span>
                   <span
-                    className={`text-xs ${
+                    className={`inline-flex items-center gap-1.5 text-xs ${
                       failure.status === 'FAILED' ? 'text-danger' : 'text-warning'
                     }`}
                   >
+                    <span
+                      className={`size-1.5 rounded-full ${
+                        failure.status === 'FAILED' ? 'bg-danger' : 'bg-warning'
+                      }`}
+                      aria-hidden
+                    />
                     {failure.status}
                     {failure.errorKind ? ` · ${failure.errorKind}` : ''}
                   </span>

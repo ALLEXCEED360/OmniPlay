@@ -86,7 +86,7 @@ export function ImportPanel({
       </p>
 
       <div className="mt-3 flex flex-wrap items-center gap-3">
-        <label className="cursor-pointer rounded-lg bg-accent px-4 py-1.5 text-xs font-medium text-ink-950 transition-colors hover:bg-accent-strong">
+        <label className="btn-primary btn-sm cursor-pointer">
           {busy ? 'Importing…' : 'Choose a file'}
           <input
             ref={inputRef}

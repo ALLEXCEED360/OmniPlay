@@ -2,6 +2,8 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { Wordmark } from '@/components/wordmark';
+import type { CSSProperties } from 'react';
 import { useState } from 'react';
 
 /**
@@ -36,7 +38,7 @@ export function Sidebar({
 
   const nav = (
     <nav className="flex flex-col gap-1" aria-label="Primary">
-      {items.map((item) => {
+      {items.map((item, index) => {
         // Prefix match so /game/foo keeps Library highlighted.
         const active =
           pathname === item.href ||
@@ -48,13 +50,33 @@ export function Sidebar({
             href={item.href}
             onClick={() => setMobileOpen(false)}
             aria-current={active ? 'page' : undefined}
-            className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
+            style={{ '--i': index } as CSSProperties}
+            className={`group anim-fade stagger relative flex items-center gap-3 rounded-lg py-2 pl-4 pr-3 text-sm transition-colors duration-200 ${
               active
-                ? 'bg-ink-800 font-medium text-ink-100'
-                : 'text-ink-400 hover:bg-ink-850 hover:text-ink-200'
+                ? 'bg-ink-850/70 font-medium text-ink-100'
+                : 'text-ink-400 hover:bg-ink-850/40 hover:text-ink-200'
             }`}
           >
-            <NavIcon name={item.icon} />
+            {/* A rail marker rather than a filled pill. The active row reads
+                as a position in a list, which is what navigation is, and it
+                leaves the row's own background free to respond to hover.
+                It grows from a stub on hover and runs full height when
+                active, so the pointer gets an answer before the click. */}
+            <span
+              className={`absolute left-0 w-0.5 rounded-full bg-accent transition-all duration-200 ${
+                active
+                  ? 'inset-y-1.5 opacity-100'
+                  : 'inset-y-1/2 -translate-y-1/2 opacity-0 group-hover:inset-y-2.5 group-hover:translate-y-0 group-hover:opacity-60'
+              }`}
+              aria-hidden
+            />
+            <span
+              className={`transition-transform duration-200 group-hover:scale-110 ${
+                active ? 'text-accent' : ''
+              }`}
+            >
+              <NavIcon name={item.icon} />
+            </span>
             {item.label}
           </Link>
         );
@@ -81,7 +103,7 @@ export function Sidebar({
       </div>
 
       {mobileOpen ? (
-        <div className="glass border-t-0 px-4 py-3 lg:hidden">{nav}</div>
+        <div className="glass anim-rise border-t-0 px-4 py-3 lg:hidden">{nav}</div>
       ) : null}
 
       {/* Desktop rail */}
@@ -94,26 +116,15 @@ export function Sidebar({
 
         <Link
           href={`/u/${user.username}`}
-          className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-ink-400 transition-colors hover:bg-ink-850 hover:text-ink-200"
+          className="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-ink-400 transition-colors hover:bg-ink-850 hover:text-ink-200"
         >
-          <span className="grid size-8 shrink-0 place-items-center rounded-full bg-gradient-to-br from-accent to-violet text-xs font-semibold text-ink-950">
+          <span className="grid size-8 shrink-0 place-items-center rounded-full bg-gradient-to-br from-accent via-violet to-positive text-xs font-semibold text-ink-950 transition-transform duration-200 group-hover:scale-105">
             {(user.displayName ?? user.username).slice(0, 2).toUpperCase()}
           </span>
           <span className="truncate">{user.displayName ?? user.username}</span>
         </Link>
       </aside>
     </>
-  );
-}
-
-function Wordmark() {
-  return (
-    <Link href="/dashboard" className="inline-flex items-baseline gap-0.5">
-      <span className="text-lg font-bold tracking-tight text-ink-100">OMNI</span>
-      <span className="bg-gradient-to-r from-accent to-violet bg-clip-text text-lg font-bold tracking-tight text-transparent">
-        PLAY
-      </span>
-    </Link>
   );
 }
 

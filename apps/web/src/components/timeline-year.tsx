@@ -1,8 +1,10 @@
 'use client';
 
+import type { CSSProperties } from 'react';
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { formatDate, providerLabel } from '@/lib/format';
+import { Counter } from '@/components/counter';
 import {
   dayKeyToDate,
   groupByDay,
@@ -63,14 +65,21 @@ export function TimelineYear({
       {/* A year in figures. Deliberately no hours: see summariseYear — most
           of this library's playtime carries no date at all, and spreading it
           across years would be inventing a distribution. */}
-      <div className="mb-4">
-        <h2 className="stat-figure mb-3 text-3xl text-ink-100">{year}</h2>
+      <div className="anim-rise mb-4">
+        <div className="mb-3 flex items-center gap-4">
+          <h2 className="stat-figure text-4xl text-ink-100 sm:text-5xl">{year}</h2>
+          <span className="rule-soft flex-1" aria-hidden />
+        </div>
         <dl className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-5">
-          <YearFigure label="Active days" value={totals.activeDays} accent />
-          <YearFigure label="Games" value={totals.games} />
-          <YearFigure label={totals.achievements === 1 ? 'Unlock' : 'Unlocks'} value={totals.achievements} />
-          <YearFigure label="Started" value={totals.started} />
-          <YearFigure label="Finished" value={totals.completed} />
+          <YearFigure label="Active days" value={totals.activeDays} accent index={0} />
+          <YearFigure label="Games" value={totals.games} index={1} />
+          <YearFigure
+            label={totals.achievements === 1 ? 'Unlock' : 'Unlocks'}
+            value={totals.achievements}
+            index={2}
+          />
+          <YearFigure label="Started" value={totals.started} index={3} />
+          <YearFigure label="Finished" value={totals.completed} index={4} />
         </dl>
       </div>
 
@@ -99,7 +108,11 @@ export function TimelineYear({
             </div>
 
             {weeks.map((week, column) => (
-              <div key={column} className="flex flex-col gap-[3px]">
+              <div
+                key={column}
+                className="anim-fade stagger flex flex-col gap-[3px]"
+                style={{ '--i': column, '--stagger-step': '8ms' } as CSSProperties}
+              >
                 {week.map((key, row) => {
                   if (!key) return <span key={row} className="size-[11px]" aria-hidden />;
 
@@ -125,10 +138,16 @@ export function TimelineYear({
                       aria-label={
                         day ? `${formatDate(dayKeyToDate(key))}, ${summarise(day)}` : undefined
                       }
-                      className={`size-[11px] rounded-[2px] transition-colors ${
+                      className={`size-[11px] rounded-[2px] transition-[background-color,transform,box-shadow] duration-150 ${
                         INTENSITY_CLASSES[level]
-                      } ${day ? 'cursor-pointer hover:ring-1 hover:ring-ink-400' : ''} ${
-                        isSelected ? 'ring-2 ring-accent ring-offset-1 ring-offset-ink-900' : ''
+                      } ${
+                        day
+                          ? 'cursor-pointer hover:scale-150 hover:ring-1 hover:ring-ink-300'
+                          : ''
+                      } ${
+                        isSelected
+                          ? 'scale-150 ring-2 ring-accent ring-offset-1 ring-offset-ink-900'
+                          : ''
                       }`}
                     />
                   );
@@ -159,16 +178,26 @@ export function TimelineYear({
 }
 
 /** One figure in a year's summary row. */
-function YearFigure({ label, value, accent = false }: { label: string; value: number; accent?: boolean }) {
+function YearFigure({
+  label,
+  value,
+  accent = false,
+  index = 0,
+}: {
+  label: string;
+  value: number;
+  accent?: boolean;
+  index?: number;
+}) {
   return (
-    <div>
-      <dt className="text-[11px] uppercase tracking-wider text-ink-600">{label}</dt>
+    <div className="anim-rise stagger" style={{ '--i': index } as CSSProperties}>
+      <dt className="eyebrow text-ink-600">{label}</dt>
       <dd
         className={`stat-figure mt-0.5 text-xl ${
-          value === 0 ? 'text-ink-700' : accent ? 'text-accent' : 'text-ink-100'
+          value === 0 ? 'text-ink-600' : accent ? 'text-accent' : 'text-ink-100'
         }`}
       >
-        {value.toLocaleString()}
+        <Counter value={value} />
       </dd>
     </div>
   );
@@ -177,7 +206,7 @@ function YearFigure({ label, value, accent = false }: { label: string; value: nu
 /** Everything that happened on one selected day. */
 function DayDetail({ day, onClose }: { day: TimelineDay; onClose: () => void }) {
   return (
-    <div className="mt-3">
+    <div className="anim-rise mt-3">
       <div className="mb-2 flex items-baseline justify-between gap-3">
         <h3 className="text-sm font-medium text-ink-100">
           {formatDate(dayKeyToDate(day.key))}
@@ -193,14 +222,18 @@ function DayDetail({ day, onClose }: { day: TimelineDay; onClose: () => void }) 
 
       <div className="card divide-y divide-ink-850">
         {day.entries.map((entry, index) => (
-          <div key={`${entry.game.slug}-${index}`} className="flex items-center gap-3 p-3">
+          <div
+            key={`${entry.game.slug}-${index}`}
+            style={{ '--i': index, '--stagger-step': '45ms' } as CSSProperties}
+            className="group anim-fade stagger flex items-center gap-3 p-3 transition-colors hover:bg-ink-850/50"
+          >
             {entry.game.coverImage ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={entry.game.coverImage}
                 alt=""
                 loading="lazy"
-                className="h-12 w-9 shrink-0 rounded object-cover"
+                className="h-12 w-9 shrink-0 rounded object-cover transition-transform duration-200 group-hover:scale-105"
               />
             ) : (
               <span className="h-12 w-9 shrink-0 rounded bg-ink-850" />

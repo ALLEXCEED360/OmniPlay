@@ -3,6 +3,8 @@
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useState, useTransition } from 'react';
 
+import { platformStyle } from '@/lib/platform';
+
 const PROVIDERS = [
   { id: 'steam', label: 'Steam' },
   { id: 'xbox', label: 'Xbox' },
@@ -77,7 +79,18 @@ export function LibraryFilters() {
   const sort = searchParams.get('sort') ?? 'name';
 
   return (
-    <div className={`space-y-4 ${pending ? 'opacity-70' : ''} transition-opacity`}>
+    <div className="relative space-y-4">
+      {/* A determinate-looking sweep rather than dimming the controls: the
+          reader is mid-decision, and greying out the chips they are aiming at
+          is the one thing not to do while a navigation resolves. */}
+      <span
+        className={`absolute -top-2 left-0 h-px w-full overflow-hidden rounded-full transition-opacity duration-200 ${
+          pending ? 'opacity-100' : 'opacity-0'
+        }`}
+        aria-hidden
+      >
+        <span className="shimmer absolute inset-0 bg-ink-800" />
+      </span>
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative min-w-64 flex-1">
           <svg
@@ -122,6 +135,7 @@ export function LibraryFilters() {
           <FilterChip
             key={provider.id}
             active={activeProviders.includes(provider.id)}
+            provider={provider.id}
             onClick={() => toggleInList('providers', provider.id)}
           >
             {provider.label}
@@ -166,22 +180,39 @@ function FilterChip({
   active,
   onClick,
   children,
+  /** When set, the active chip wears that platform's colour. */
+  provider,
 }: {
   active: boolean;
   onClick: () => void;
   children: React.ReactNode;
+  provider?: string;
 }) {
+  const style = provider ? platformStyle(provider) : null;
+
   return (
     <button
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+      className={`group relative inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-all duration-200 active:scale-[0.96] ${
         active
-          ? 'border-accent/40 bg-accent/15 text-accent'
-          : 'border-ink-800 text-ink-400 hover:border-ink-700 hover:text-ink-200'
+          ? style
+            ? `${style.border} ${style.text} bg-ink-850`
+            : 'border-accent/40 bg-accent/15 text-accent'
+          : 'border-ink-800 text-ink-400 hover:-translate-y-px hover:border-ink-700 hover:text-ink-200'
       }`}
     >
+      {/* A dot that only exists once the chip is on, so the row of chips reads
+          as a set of switches rather than a row of buttons. */}
+      {style ? (
+        <span
+          className={`size-1.5 rounded-full transition-all duration-200 ${
+            active ? style.bar : 'bg-ink-700 group-hover:bg-ink-600'
+          }`}
+          aria-hidden
+        />
+      ) : null}
       {children}
     </button>
   );

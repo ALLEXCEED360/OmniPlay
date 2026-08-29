@@ -2,6 +2,9 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { formatHours, providerLabel } from '@/lib/format';
+import { platformStyle, staggerStep } from '@/lib/platform';
+import { Wordmark } from '@/components/wordmark';
+import type { CSSProperties } from 'react';
 
 /**
  * The public profile (spec 4.7).
@@ -85,15 +88,10 @@ export default async function PublicProfilePage({
     <div className="min-h-dvh">
       <header className="border-b border-ink-850">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
-          <Link href="/" className="inline-flex items-baseline gap-0.5">
-            <span className="text-lg font-bold tracking-tight text-ink-100">OMNI</span>
-            <span className="bg-gradient-to-r from-accent to-violet bg-clip-text text-lg font-bold tracking-tight text-transparent">
-              PLAY
-            </span>
-          </Link>
+          <Wordmark href="/" />
           <Link
             href="/register"
-            className="rounded-lg border border-ink-700 px-3 py-1.5 text-xs text-ink-300 transition-colors hover:bg-ink-850"
+            className="rounded-lg border border-ink-700 px-3 py-1.5 text-xs text-ink-300 transition-all duration-200 hover:-translate-y-px hover:border-accent/50 hover:bg-ink-850 hover:text-ink-100"
           >
             Build your own
           </Link>
@@ -101,8 +99,8 @@ export default async function PublicProfilePage({
       </header>
 
       <main className="mx-auto max-w-5xl px-6 py-12">
-        <section className="flex flex-wrap items-center gap-6">
-          <span className="grid size-20 shrink-0 place-items-center rounded-full bg-gradient-to-br from-accent to-violet text-2xl font-bold text-ink-950">
+        <section className="anim-rise flex flex-wrap items-center gap-6">
+          <span className="grid size-20 shrink-0 place-items-center rounded-full bg-gradient-to-br from-accent via-violet to-positive text-2xl font-bold text-ink-950">
             {name.slice(0, 2).toUpperCase()}
           </span>
           <div className="min-w-0">
@@ -115,48 +113,78 @@ export default async function PublicProfilePage({
         </section>
 
         <section className="mt-10 grid grid-cols-2 gap-4 lg:grid-cols-4">
-          <Stat label="Games" value={profile.stats.totalGames.toLocaleString()} />
-          <Stat label="Hours played" value={formatHours(profile.stats.totalMinutes)} accent />
-          <Stat label="Completed" value={profile.stats.completed.toLocaleString()} />
+          <Stat label="Games" value={profile.stats.totalGames.toLocaleString()} index={0} />
+          <Stat
+            label="Hours played"
+            value={formatHours(profile.stats.totalMinutes)}
+            accent
+            index={1}
+          />
+          <Stat label="Completed" value={profile.stats.completed.toLocaleString()} index={2} />
           <Stat
             label="Completion rate"
             value={`${Math.round(profile.stats.completionRate * 100)}%`}
+            index={3}
           />
         </section>
 
         {profile.platforms.length > 0 ? (
-          <section className="mt-10">
-            <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-ink-400">
+          <section className="anim-rise mt-10">
+            <h2 className="eyebrow mb-4 flex items-center gap-2 text-ink-400">
+              <span className="h-3 w-0.5 rounded-full bg-accent/70" aria-hidden />
               Platforms
             </h2>
             <div className="flex flex-wrap gap-3">
-              {profile.platforms.map((platform) => (
-                <div
-                  key={platform.provider}
-                  className="card px-4 py-3 text-sm"
-                >
-                  <span className="text-ink-200">{providerLabel(platform.provider)}</span>
-                  <span className="stat-figure ml-3 text-ink-500">
-                    {platform.gameCount.toLocaleString()}
-                  </span>
-                </div>
-              ))}
+              {profile.platforms.map((platform, index) => {
+                const style = platformStyle(platform.provider);
+                return (
+                  <div
+                    key={platform.provider}
+                    style={
+                      {
+                        '--i': index,
+                        '--bloom': style.bloom,
+                        '--stagger-step': '80ms',
+                      } as CSSProperties
+                    }
+          className={`card bloom anim-rise stagger flex items-center gap-2.5 px-4 py-3 text-sm ring-1 ${style.ring}`}
+                  >
+                    <span className={`size-2 rounded-full ${style.bar}`} aria-hidden />
+                    <span className="text-ink-200">{providerLabel(platform.provider)}</span>
+                    <span className={`stat-figure ml-1 ${style.text}`}>
+                      {platform.gameCount.toLocaleString()}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           </section>
         ) : null}
 
         {profile.favourites.length > 0 ? (
-          <section className="mt-10">
-            <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-ink-400">
+          <section className="anim-rise mt-10">
+            <h2 className="eyebrow mb-4 flex items-center gap-2 text-ink-400">
+              <span className="h-3 w-0.5 rounded-full bg-accent/70" aria-hidden />
               Most played
             </h2>
-            <div className="grid grid-cols-3 gap-4 sm:grid-cols-6">
-              {profile.favourites.map((game) => (
-                <div key={game.slug} className="overflow-hidden rounded-[var(--radius-card)] border border-ink-800 bg-ink-900">
-                  <div className="aspect-[3/4] bg-ink-850">
+            <div
+              className="grid grid-cols-3 gap-4 sm:grid-cols-6"
+              style={{ '--stagger-step': staggerStep(profile.favourites.length) } as CSSProperties}
+            >
+              {profile.favourites.map((game, index) => (
+                <div
+                  key={game.slug}
+                  style={{ '--i': index } as CSSProperties}
+         className="group anim-rise stagger overflow-hidden rounded-[var(--radius-card)] border border-ink-800 bg-ink-900"
+                >
+                  <div className="aspect-[3/4] overflow-hidden bg-ink-850">
                     {game.coverImage ? (
                       /* eslint-disable-next-line @next/next/no-img-element */
-                      <img src={game.coverImage} alt="" className="size-full object-cover" />
+                      <img
+                        src={game.coverImage}
+                        alt=""
+                        className="size-full object-cover transition-transform duration-500 group-hover:scale-[1.07]"
+                      />
                     ) : (
                       <div className="grid size-full place-items-center px-2 text-center text-[10px] text-ink-600">
                         {game.name}
@@ -176,13 +204,18 @@ export default async function PublicProfilePage({
         ) : null}
 
         {profile.collections.length > 0 ? (
-          <section className="mt-10">
-            <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-ink-400">
+          <section className="anim-rise mt-10">
+            <h2 className="eyebrow mb-4 flex items-center gap-2 text-ink-400">
+              <span className="h-3 w-0.5 rounded-full bg-accent/70" aria-hidden />
               Collections
             </h2>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {profile.collections.map((collection) => (
-                <div key={collection.slug} className="card overflow-hidden">
+              {profile.collections.map((collection, index) => (
+                <div
+                  key={collection.slug}
+                  style={{ '--i': index, '--stagger-step': '80ms' } as CSSProperties}
+         className="card anim-rise stagger overflow-hidden"
+                >
                   <div className="grid aspect-[16/9] grid-cols-2 grid-rows-2 gap-px bg-ink-850">
                     {Array.from({ length: 4 }).map((_, index) => {
                       const cover = collection.covers[index];
@@ -221,10 +254,23 @@ export default async function PublicProfilePage({
   );
 }
 
-function Stat({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
+function Stat({
+  label,
+  value,
+  accent,
+  index = 0,
+}: {
+  label: string;
+  value: string;
+  accent?: boolean;
+  index?: number;
+}) {
   return (
-    <div className="card p-5">
-      <div className="text-xs font-medium uppercase tracking-wider text-ink-500">{label}</div>
+    <div
+      style={{ '--i': index } as CSSProperties}
+   className="card bloom anim-rise stagger p-5"
+    >
+      <div className="eyebrow text-ink-500">{label}</div>
       <div className={`stat-figure mt-2 text-3xl ${accent ? 'text-accent' : 'text-ink-100'}`}>
         {value}
       </div>

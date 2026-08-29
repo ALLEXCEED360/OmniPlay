@@ -3,6 +3,7 @@
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useTransition } from 'react';
 import { providerLabel } from '@/lib/format';
+import { platformStyle } from '@/lib/platform';
 import { EVENT_KINDS, type EventKind } from '@/lib/timeline';
 
 /**
@@ -73,7 +74,15 @@ export function TimelineFilters({
   const filtered = activeKinds.length > 0 || activeProviders.length > 0;
 
   return (
-    <div className={`mb-8 space-y-3 ${pending ? 'opacity-70' : ''} transition-opacity`}>
+    <div className="relative mb-8 space-y-3">
+      <span
+        className={`absolute -top-3 left-0 h-px w-full overflow-hidden transition-opacity duration-200 ${
+          pending ? 'opacity-100' : 'opacity-0'
+        }`}
+        aria-hidden
+      >
+        <span className="shimmer absolute inset-0 bg-ink-800" />
+      </span>
       <div className="flex flex-wrap items-center gap-2">
         {presentKinds.map((kind) => {
           const on = isKindOn(kind.id);
@@ -85,14 +94,16 @@ export function TimelineFilters({
               type="button"
               aria-pressed={on}
               onClick={() => toggleInList('kinds', kind.id, allKinds)}
-              className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+              className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium transition-all duration-200 active:scale-[0.96] ${
                 on
                   ? 'border-ink-600 bg-ink-800 text-ink-100'
-                  : 'border-ink-850 text-ink-500 hover:border-ink-700 hover:text-ink-300'
+                  : 'border-ink-850 text-ink-500 hover:-translate-y-px hover:border-ink-700 hover:text-ink-300'
               }`}
             >
               <span
-                className={`size-2 rounded-full ${on ? kind.dot : 'bg-ink-700'}`}
+                className={`size-2 rounded-full transition-all duration-200 ${
+                  on ? `${kind.dot} scale-110` : 'bg-ink-700'
+                }`}
                 aria-hidden
               />
               {kind.label}
@@ -112,12 +123,18 @@ export function TimelineFilters({
                 type="button"
                 aria-pressed={on}
                 onClick={() => toggleInList('providers', provider, providers)}
-                className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-all duration-200 active:scale-[0.96] ${
                   on
-                    ? 'border-accent/40 bg-accent/15 text-accent'
-                    : 'border-ink-850 text-ink-500 hover:border-ink-700 hover:text-ink-300'
+                    ? `${platformStyle(provider).border} ${platformStyle(provider).text} bg-ink-850`
+                    : 'border-ink-850 text-ink-500 hover:-translate-y-px hover:border-ink-700 hover:text-ink-300'
                 }`}
               >
+                <span
+                  className={`size-1.5 rounded-full ${
+                    on ? platformStyle(provider).bar : 'bg-ink-700'
+                  }`}
+                  aria-hidden
+                />
                 {providerLabel(provider)}
               </button>
             );

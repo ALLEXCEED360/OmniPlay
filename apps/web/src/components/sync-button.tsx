@@ -95,11 +95,16 @@ export function SyncButton() {
         type="button"
         onClick={() => void startSync()}
         disabled={starting || active}
-        className="inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-ink-950 transition-colors hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-60"
+        className="btn-primary group relative overflow-hidden disabled:cursor-wait"
       >
+        {/* A running sync sweeps rather than dims: the button is doing the
+            thing it was pressed for, which is not the same as being off. */}
+        {active ? <span className="shimmer absolute inset-0" aria-hidden /> : null}
         <svg
           viewBox="0 0 24 24"
-          className={`size-4 ${active ? 'animate-spin' : ''}`}
+          className={`relative size-4 transition-transform duration-300 ${
+            active ? 'animate-spin' : 'group-hover:rotate-90'
+          }`}
           fill="none"
           stroke="currentColor"
           strokeWidth="2"
@@ -108,14 +113,22 @@ export function SyncButton() {
         >
           <path d="M21 12a9 9 0 11-3-6.7M21 3v6h-6" />
         </svg>
-        {active ? 'Syncing…' : 'Sync all'}
+        <span className="relative">{active ? 'Syncing…' : 'Sync all'}</span>
       </button>
 
       {active && jobs ? (
-        <div className="glass w-64 rounded-lg p-3 text-xs" role="status" aria-live="polite">
+        <div className="glass anim-rise w-64 rounded-lg p-3 text-xs" role="status" aria-live="polite">
           {jobs.map((job) => (
             <div key={job.id} className="flex items-center justify-between gap-2 py-0.5">
-              <span className="capitalize text-ink-300">{job.provider}</span>
+              <span className="flex items-center gap-1.5 capitalize text-ink-300">
+                <span
+                  className={`size-1.5 rounded-full ${
+                    job.status === 'RUNNING' ? 'animate-pulse bg-accent' : 'bg-ink-600'
+                  }`}
+                  aria-hidden
+                />
+                {job.provider}
+              </span>
               <span className="stat-figure text-ink-500">
                 {job.status === 'RUNNING'
                   ? `${job.recordsFetched} processed`
@@ -126,7 +139,7 @@ export function SyncButton() {
         </div>
       ) : null}
 
-      {error ? <p className="text-xs text-danger">{error}</p> : null}
+      {error ? <p className="anim-fade text-xs text-danger">{error}</p> : null}
 
       {/* Sync failures explain themselves and reassure about existing data. */}
       {failed.map((job) => (

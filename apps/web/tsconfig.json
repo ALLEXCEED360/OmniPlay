@@ -5,6 +5,12 @@
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
+    // Matches packages/config/tsconfig.base.json, which every other workspace
+    // inherits. The web app was the one that did not, so four dead imports and
+    // a leftover variable had accumulated here behind a green typecheck.
+    "noUncheckedIndexedAccess": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
     "noEmit": true,
     "esModuleInterop": true,
     "module": "esnext",

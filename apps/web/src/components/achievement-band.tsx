@@ -1,7 +1,9 @@
 'use client';
 
+import type { CSSProperties } from 'react';
 import { useState } from 'react';
 import Link from 'next/link';
+import { staggerStep } from '@/lib/platform';
 
 /**
  * One completion band's worth of games, collapsed by default.
@@ -68,7 +70,7 @@ export function AchievementBand({
               type="button"
               onClick={() => setOpen((value) => !value)}
               aria-expanded={open}
-              className="rounded-full border border-ink-700 px-2.5 py-0.5 text-[11px] text-ink-400 transition-colors hover:border-ink-600 hover:text-ink-100"
+              className="rounded-full border border-ink-700 px-2.5 py-0.5 text-[11px] text-ink-400 transition-all duration-200 hover:-translate-y-px hover:border-accent/50 hover:text-accent active:scale-95"
             >
               {open ? 'Show less' : `See all ${games.length}`}
             </button>
@@ -76,8 +78,11 @@ export function AchievementBand({
         </span>
       </div>
 
-      <div className="grid grid-cols-3 gap-3 sm:grid-cols-5 lg:grid-cols-8">
-        {shown.map((game) => {
+      <div
+        className="grid grid-cols-3 gap-3 sm:grid-cols-5 lg:grid-cols-8"
+        style={{ '--stagger-step': staggerStep(shown.length) } as CSSProperties}
+      >
+        {shown.map((game, index) => {
           const label = game.totalKnown
             ? `${game.unlocked} / ${game.total}`
             : `${game.unlocked} unlocked`;
@@ -87,7 +92,8 @@ export function AchievementBand({
               key={`${game.gameId}:${game.provider}`}
               href={`/game/${game.slug}`}
               title={`${game.name} — ${label}`}
-              className="group relative block overflow-hidden rounded-[var(--radius-card)] border border-ink-800 bg-ink-900 transition-transform hover:-translate-y-0.5"
+              style={{ '--i': index } as CSSProperties}
+              className="group anim-rise stagger lift relative block overflow-hidden rounded-[var(--radius-card)] border border-ink-800 bg-ink-900"
             >
               <div className="aspect-[3/4] overflow-hidden bg-ink-850">
                 {game.coverImage ? (
@@ -96,7 +102,7 @@ export function AchievementBand({
                     src={game.coverImage}
                     alt=""
                     loading="lazy"
-                    className="size-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    className="size-full object-cover transition-transform duration-500 group-hover:scale-[1.07]"
                   />
                 ) : null}
               </div>
@@ -110,14 +116,14 @@ export function AchievementBand({
                 </div>
                 <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-ink-850">
                   <div
-                    className={`h-full rounded-full ${game.bar}`}
-                    style={{ width: `${Math.max(2, game.percent)}%` }}
+                    className={`anim-grow stagger h-full rounded-full ${game.bar}`}
+                    style={{ width: `${Math.max(2, game.percent)}%`, '--i': index } as CSSProperties}
                   />
                 </div>
               </div>
 
               {game.percent >= 100 ? (
-                <span className="absolute right-1.5 top-1.5 rounded-full bg-ink-950/85 px-1.5 py-0.5 text-[10px] font-medium text-positive backdrop-blur">
+                <span className="anim-pop absolute right-1.5 top-1.5 rounded-full bg-ink-950/85 px-1.5 py-0.5 text-[10px] font-medium text-positive backdrop-blur">
                   100%
                 </span>
               ) : null}
@@ -130,7 +136,7 @@ export function AchievementBand({
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="mt-3 w-full rounded-[var(--radius-card)] border border-dashed border-ink-800 py-2 text-xs text-ink-500 transition-colors hover:border-ink-700 hover:text-ink-200"
+          className="mt-3 w-full rounded-[var(--radius-card)] border border-dashed border-ink-800 py-2 text-xs text-ink-500 transition-all duration-200 hover:border-accent/40 hover:bg-ink-900/60 hover:text-ink-200"
         >
           {overflow} more
         </button>

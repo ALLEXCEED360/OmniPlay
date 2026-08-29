@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { apiFetch } from '@/lib/api';
 import { EmptyState, GameCard, PageHeader } from '@/components/ui';
 import { LibraryFilters } from '@/components/library-filters';
+import { staggerStep } from '@/lib/platform';
+import type { CSSProperties } from 'react';
 
 /**
  * The universal library (spec 4.1, 16).
@@ -46,8 +48,9 @@ export default async function LibraryPage({
   return (
     <>
       <PageHeader
+        eyebrow="Everything you own and everything you played"
         title="Library"
-        subtitle={`${data.total.toLocaleString()} ${data.total === 1 ? 'game' : 'games'}`}
+        subtitle={`${data.total.toLocaleString()} ${data.total === 1 ? 'game' : 'games'} across every platform you have connected.`}
       />
 
       <LibraryFilters />
@@ -60,7 +63,7 @@ export default async function LibraryPage({
             action={
               <Link
                 href="/library"
-                className="rounded-lg border border-ink-700 px-4 py-2 text-sm text-ink-200 transition-colors hover:bg-ink-850"
+                className="btn-ghost"
               >
                 Clear filters
               </Link>
@@ -68,9 +71,12 @@ export default async function LibraryPage({
           />
         </div>
       ) : (
-        <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6">
-          {data.games.map((game) => (
-            <GameCard key={game.id} game={game} />
+        <div
+          className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6"
+          style={{ '--stagger-step': staggerStep(data.games.length) } as CSSProperties}
+        >
+          {data.games.map((game, index) => (
+            <GameCard key={game.id} game={game} index={index} />
           ))}
         </div>
       )}
@@ -121,7 +127,7 @@ function PageLink({
   return (
     <Link
       href={`/library?${next.toString()}`}
-      className="rounded-lg border border-ink-700 px-4 py-2 text-sm text-ink-200 transition-colors hover:bg-ink-850"
+      className="rounded-lg border border-ink-700 px-4 py-2 text-sm text-ink-200 transition-all hover:-translate-y-0.5 hover:border-accent/50 hover:bg-ink-850 hover:text-ink-100"
     >
       {children}
     </Link>

@@ -208,7 +208,7 @@ export function EnrichButton({ gameId, label }: { gameId?: string; label?: strin
         className={
           gameId
             ? 'rounded-lg border border-ink-700 px-3 py-1.5 text-xs text-ink-300 transition-colors hover:bg-ink-850 disabled:opacity-60'
-            : 'rounded-lg bg-accent px-4 py-2 text-sm font-medium text-ink-950 transition-colors hover:bg-accent-strong disabled:opacity-60'
+            : 'btn-primary'
         }
       >
         {busy ? 'Queueing…' : (label ?? 'Fetch missing metadata')}
@@ -391,7 +391,7 @@ export function SweepQueueButton() {
               type="button"
               onClick={() => void call(false)}
               disabled={busy || preview.resolved === 0}
-              className="rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-ink-950 disabled:opacity-60"
+              className="btn-primary btn-sm"
             >
               {busy ? 'Closing…' : `Close ${preview.resolved}`}
             </button>

@@ -67,7 +67,7 @@ export function AddToCollection({ gameId }: { gameId: string }) {
         type="button"
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
-        className="w-full rounded-lg border border-ink-700 px-4 py-2 text-sm text-ink-200 transition-colors hover:bg-ink-850"
+        className="w-full btn-ghost"
       >
         Add to collection
       </button>

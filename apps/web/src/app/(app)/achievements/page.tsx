@@ -2,6 +2,9 @@ import Link from 'next/link';
 import { apiFetch } from '@/lib/api';
 import { formatDate, providerLabel } from '@/lib/format';
 import { ConfidenceNote, EmptyState, PageHeader, SectionHeading, StatCard } from '@/components/ui';
+import { Counter } from '@/components/counter';
+import { platformStyle } from '@/lib/platform';
+import type { CSSProperties } from 'react';
 import { AchievementBand } from '@/components/achievement-band';
 
 /**
@@ -59,22 +62,6 @@ interface YearSlice {
   providers: Record<string, number>;
   total: number;
 }
-
-/**
- * A colour per platform, used everywhere a platform appears.
- *
- * Each is the colour the platform is actually known by — PlayStation blue,
- * Xbox green, Steam's violet — so the stacked chart, the cards and the badges
- * all read as one system rather than three arbitrary hues.
- */
-const PROVIDER_STYLE: Record<string, { bar: string; text: string; ring: string }> = {
-  psn: { bar: 'bg-accent', text: 'text-accent', ring: 'ring-accent/40' },
-  xbox: { bar: 'bg-positive', text: 'text-positive', ring: 'ring-positive/40' },
-  steam: { bar: 'bg-violet', text: 'text-violet', ring: 'ring-violet/40' },
-};
-
-const styleFor = (provider: string) =>
-  PROVIDER_STYLE[provider] ?? { bar: 'bg-ink-500', text: 'text-ink-300', ring: 'ring-ink-600' };
 
 interface Highlight {
   provider: string;
@@ -150,7 +137,7 @@ export default async function AchievementsPage() {
           action={
             <Link
               href="/settings"
-              className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-ink-950 hover:bg-accent-strong"
+              className="btn-primary"
             >
               Connect an account
             </Link>
@@ -162,7 +149,6 @@ export default async function AchievementsPage() {
 
   const started = data.byGame.filter((game) => game.unlocked > 0);
   const untouched = data.byGame.filter((game) => game.unlocked === 0);
-  const maxYear = Math.max(...data.yearsByProvider.map((slice) => slice.total), 1);
 
   const banded = BANDS.map((band, index) => {
     const upper = index === 0 ? Infinity : BANDS[index - 1]!.min;
@@ -186,6 +172,7 @@ export default async function AchievementsPage() {
   return (
     <>
       <PageHeader
+        eyebrow="Everything you have earned"
         title="Achievements"
         subtitle={
           span
@@ -199,21 +186,23 @@ export default async function AchievementsPage() {
           of every owned game, including the ones never launched, which made a
           serious player look like a 9% one. */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard label="Unlocked" value={data.unlocked.toLocaleString()} accent />
+        <StatCard label="Unlocked" value={data.unlocked.toLocaleString()} accent index={0} />
         <StatCard
           label="Complete"
           value={data.perfectGames}
           hint={`of ${started.length} started`}
+          index={1}
         />
         {data.tiers.platinum > 0 ? (
-          <StatCard label="Platinums" value={data.tiers.platinum} hint="PlayStation" />
+          <StatCard label="Platinums" value={data.tiers.platinum} hint="PlayStation" provider="psn" index={2} />
         ) : (
-          <StatCard label="Games started" value={started.length} />
+          <StatCard label="Games started" value={started.length} index={2} />
         )}
         <StatCard
           label="Rarest"
           value={rarest?.rate != null ? `${(rarest.rate * 100).toFixed(1)}%` : '—'}
           hint={rarest?.game.name}
+          index={3}
         />
       </div>
 
@@ -233,40 +222,40 @@ export default async function AchievementsPage() {
           mention of either. Counts, games and completions are reported by all
           three, so the comparison is built from those — and each platform's
           own signature figure rides alongside rather than instead. */}
-      <section className="mt-10">
+      <section className="anim-rise mt-10">
         <SectionHeading>By platform</SectionHeading>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {data.providers.map((platform) => {
-            const style = styleFor(platform.provider);
+          {data.providers.map((platform, index) => {
+            const style = platformStyle(platform.provider);
             const percent =
               platform.tracked > 0 ? (platform.unlocked / platform.tracked) * 100 : 0;
 
             return (
               <div
                 key={platform.provider}
-                className={`card relative overflow-hidden p-5 ring-1 ${style.ring}`}
+                style={{ '--i': index, '--bloom': style.bloom } as CSSProperties}
+        className={`card bloom anim-rise stagger relative p-5 ring-1 ${style.ring}`}
               >
-                {/* A wash of the platform's colour, so the card is
-                    recognisable before a word of it is read. */}
-                <div
-                  className={`pointer-events-none absolute -right-10 -top-10 size-32 rounded-full opacity-[0.12] blur-2xl ${style.bar}`}
-                  aria-hidden
-                />
-
                 <div className="relative">
                   <div className="flex items-baseline justify-between gap-3">
                     <h3 className={`text-sm font-semibold ${style.text}`}>
                       {providerLabel(platform.provider)}
                     </h3>
                     <span className="stat-figure text-2xl text-ink-100">
-                      {platform.unlocked.toLocaleString()}
+                      <Counter value={platform.unlocked} />
                     </span>
                   </div>
 
                   <div className="mt-3 h-2 overflow-hidden rounded-full bg-ink-850">
                     <div
-                      className={`h-full rounded-full ${style.bar}`}
-                      style={{ width: `${Math.max(2, percent)}%` }}
+                      className={`anim-grow stagger h-full rounded-full ${style.bar}`}
+                      style={
+                        {
+                          width: `${Math.max(2, percent)}%`,
+                          '--i': index,
+                          '--stagger-step': '110ms',
+                        } as CSSProperties
+                      }
                     />
                   </div>
                   <p className="mt-1.5 text-[11px] text-ink-600">
@@ -283,7 +272,7 @@ export default async function AchievementsPage() {
                       <dt className="text-ink-600">Complete</dt>
                       <dd
                         className={`stat-figure mt-0.5 text-sm ${
-                          platform.perfect > 0 ? style.text : 'text-ink-700'
+                          platform.perfect > 0 ? style.text : 'text-ink-600'
                         }`}
                       >
                         {platform.perfect}
@@ -295,7 +284,7 @@ export default async function AchievementsPage() {
                       </dt>
                       <dd className="stat-figure mt-0.5 text-sm text-ink-200">
                         {platform.points === null ? (
-                          <span className="text-ink-700">not reported</span>
+                          <span className="text-ink-600">not reported</span>
                         ) : (
                           platform.points.toLocaleString()
                         )}
@@ -317,7 +306,7 @@ export default async function AchievementsPage() {
       </section>
 
       {data.yearsByProvider.length > 0 ? (
-        <section className="mt-10 card p-6 sm:p-7">
+        <section className="card anim-rise mt-10 p-6 sm:p-7">
           <SectionHeading>A decade, by platform</SectionHeading>
 
           {/* One row per platform rather than one bar per year.
@@ -340,8 +329,8 @@ export default async function AchievementsPage() {
                 ))}
               </div>
 
-              {data.providers.map((platform) => {
-                const style = styleFor(platform.provider);
+              {data.providers.map((platform, row) => {
+                const style = platformStyle(platform.provider);
                 const peak = Math.max(
                   ...data.yearsByProvider.map((slice) => slice.providers[platform.provider] ?? 0),
                   1,
@@ -357,7 +346,7 @@ export default async function AchievementsPage() {
                       {providerLabel(platform.provider)}
                     </span>
 
-                    {data.yearsByProvider.map((slice) => {
+                    {data.yearsByProvider.map((slice, column) => {
                       const count = slice.providers[platform.provider] ?? 0;
                       // Scaled within the platform's own peak: PlayStation's
                       // 742 would otherwise flatten every Xbox year to nothing.
@@ -366,10 +355,23 @@ export default async function AchievementsPage() {
                         <div
                           key={slice.year}
                           title={`${providerLabel(platform.provider)} · ${slice.year} · ${count} unlocked`}
-                          className={`flex h-11 items-center justify-center rounded-md text-[11px] transition-transform hover:scale-105 ${
+                          className={`anim-pop stagger flex h-11 items-center justify-center rounded-md text-[11px] transition-transform duration-200 hover:scale-110 ${
                             count > 0 ? style.bar : 'bg-ink-850/60'
                           }`}
-                          style={count > 0 ? { opacity: 0.35 + share * 0.65 } : undefined}
+                          style={
+                            {
+                              // Reading order: the migration between platforms
+                              // is a left-to-right story, so the cells fill
+                              // that way rather than all at once. The stride
+                              // has to be the row count — at a fixed 2 the
+                              // third platform's cell shared a slot with the
+                              // next column's first, and the sweep folded back
+                              // on itself instead of crossing the decade once.
+                              '--i': column * data.providers.length + row,
+                              '--stagger-step': '22ms',
+                              ...(count > 0 ? { opacity: 0.35 + share * 0.65 } : {}),
+                            } as CSSProperties
+                          }
                         >
                           <span
                             className={`stat-figure font-medium ${
@@ -410,7 +412,7 @@ export default async function AchievementsPage() {
       ) : null}
 
       {data.highlights.length > 0 ? (
-        <section className="mt-10">
+        <section className="anim-rise mt-10">
           <SectionHeading>Standouts</SectionHeading>
 
           {/* One column per platform, each ranked by what that platform
@@ -419,10 +421,14 @@ export default async function AchievementsPage() {
               placed even though Steam publishes rarity too, and Xbox, which
               publishes none, could never appear at all. */}
           <div className="grid gap-4 lg:grid-cols-3">
-            {data.highlights.map((group) => {
-              const style = styleFor(group.provider);
+            {data.highlights.map((group, index) => {
+              const style = platformStyle(group.provider);
               return (
-                <div key={group.provider} className={`card p-5 ring-1 ${style.ring}`}>
+                <div
+                  key={group.provider}
+                  style={{ '--i': index, '--bloom': style.bloom } as CSSProperties}
+                  className={`card bloom anim-rise stagger p-5 ring-1 ${style.ring}`}
+                >
                   <div className="mb-4 flex items-baseline justify-between gap-3">
                     <h3 className={`text-sm font-semibold ${style.text}`}>
                       {providerLabel(group.provider)}
@@ -433,11 +439,15 @@ export default async function AchievementsPage() {
                   </div>
 
                   <ol className="space-y-3">
-                    {group.items.map((item, index) => (
-                      <li key={`${item.gameSlug}-${index}`}>
+                    {group.items.map((item, rank) => (
+                      <li
+                        key={`${item.gameSlug}-${rank}`}
+                        className="anim-fade stagger"
+                        style={{ '--i': rank + index, '--stagger-step': '60ms' } as CSSProperties}
+                      >
                         <Link
                           href={`/game/${item.gameSlug}`}
-                          className="group flex items-center gap-3 transition-opacity hover:opacity-90"
+                          className="group -mx-2 flex items-center gap-3 rounded-lg px-2 py-1 transition-colors hover:bg-ink-850/60"
                         >
                           {item.iconUrl ? (
                             // eslint-disable-next-line @next/next/no-img-element
@@ -445,7 +455,7 @@ export default async function AchievementsPage() {
                               src={item.iconUrl}
                               alt=""
                               loading="lazy"
-                              className="size-11 shrink-0 rounded-lg shadow"
+                              className="size-11 shrink-0 rounded-lg shadow transition-transform duration-200 group-hover:scale-110"
                             />
                           ) : (
                             <span className="size-11 shrink-0 rounded-lg bg-ink-850" />
@@ -483,26 +493,41 @@ export default async function AchievementsPage() {
       ) : null}
 
       {tierTotal > 0 ? (
-        <section className="mt-10">
+        <section className="anim-rise mt-10">
           <SectionHeading>Trophy tiers</SectionHeading>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {(
               [
-                ['Platinum', data.tiers.platinum, 'from-accent/20', 'text-accent'],
-                ['Gold', data.tiers.gold, 'from-warning/20', 'text-warning'],
-                ['Silver', data.tiers.silver, 'from-ink-400/20', 'text-ink-300'],
-                ['Bronze', data.tiers.bronze, 'from-violet/20', 'text-violet'],
+                ['Platinum', data.tiers.platinum, 'from-accent/20', 'text-accent', 'bg-accent'],
+                ['Gold', data.tiers.gold, 'from-warning/20', 'text-warning', 'bg-warning'],
+                ['Silver', data.tiers.silver, 'from-ink-400/20', 'text-ink-300', 'bg-ink-300'],
+                ['Bronze', data.tiers.bronze, 'from-violet/20', 'text-violet', 'bg-violet'],
               ] as const
-            ).map(([label, count, wash, text]) => (
+            ).map(([label, count, wash, text, bar], index) => (
               <div
                 key={label}
-                className={`card bg-gradient-to-b ${wash} to-transparent p-5`}
+                style={{ '--i': index, '--stagger-step': '70ms' } as CSSProperties}
+        className={`card anim-rise stagger bg-gradient-to-b ${wash} to-transparent p-5`}
               >
-                <div className="text-[11px] uppercase tracking-wider text-ink-500">{label}</div>
-                <div className={`stat-figure mt-1 text-3xl ${count > 0 ? text : 'text-ink-700'}`}>
-                  {count.toLocaleString()}
+                <div className="eyebrow text-ink-500">{label}</div>
+                <div className={`stat-figure mt-1 text-3xl ${count > 0 ? text : 'text-ink-600'}`}>
+                  <Counter value={count} />
                 </div>
-                <div className="mt-1 text-[11px] text-ink-600">
+                {/* The share as a bar as well as a percentage: bronze being
+                    most of a trophy case is a shape, not a figure. */}
+                <div className="mt-2.5 h-1 overflow-hidden rounded-full bg-ink-850">
+                  <div
+                    className={`anim-grow stagger h-full rounded-full ${bar}`}
+                    style={
+                      {
+                        width: `${Math.max(2, Math.round((count / tierTotal) * 100))}%`,
+                        '--i': index,
+                        '--stagger-step': '70ms',
+                      } as CSSProperties
+                    }
+                  />
+                </div>
+                <div className="mt-1.5 text-[11px] text-ink-600">
                   {Math.round((count / tierTotal) * 100)}% of trophies
                 </div>
               </div>
@@ -518,14 +543,15 @@ export default async function AchievementsPage() {
       ) : null}
 
       {data.recent.length > 0 ? (
-        <section className="mt-10">
+        <section className="anim-rise mt-10">
           <SectionHeading>Recently unlocked</SectionHeading>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {data.recent.slice(0, 8).map((achievement, index) => (
               <Link
                 key={`${achievement.game.slug}-${index}`}
                 href={`/game/${achievement.game.slug}`}
-                className="card flex items-center gap-3 p-3 transition-colors hover:bg-ink-850/50"
+                style={{ '--i': index, '--stagger-step': '50ms' } as CSSProperties}
+                className="card group anim-rise stagger lift flex items-center gap-3 p-3"
               >
                 {achievement.iconUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -533,7 +559,7 @@ export default async function AchievementsPage() {
                     src={achievement.iconUrl}
                     alt=""
                     loading="lazy"
-                    className="size-11 shrink-0 rounded-lg"
+                    className="size-11 shrink-0 rounded-lg transition-transform duration-200 group-hover:scale-110"
                   />
                 ) : (
                   <span className="size-11 shrink-0 rounded-lg bg-ink-850" />
@@ -542,7 +568,7 @@ export default async function AchievementsPage() {
                   <div className="truncate text-sm text-ink-100">{achievement.name}</div>
                   <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-ink-500">
                     <span
-                      className={`size-1.5 shrink-0 rounded-full ${styleFor(achievement.provider).bar}`}
+                      className={`size-1.5 shrink-0 rounded-full ${platformStyle(achievement.provider).bar}`}
                       aria-hidden
                     />
                     <span className="truncate">{achievement.game.name}</span>
@@ -557,7 +583,7 @@ export default async function AchievementsPage() {
         </section>
       ) : null}
 
-      <section className="mt-10">
+      <section className="anim-rise mt-10">
         <SectionHeading>Progress by game</SectionHeading>
 
         {/* Poster tiles rather than rows, and collapsed by default. 141 tiles
@@ -573,7 +599,7 @@ export default async function AchievementsPage() {
               tallies={[...new Set(band.games.map((game) => game.provider))].map((provider) => ({
                 provider,
                 count: band.games.filter((game) => game.provider === provider).length,
-                bar: styleFor(provider).bar,
+                bar: platformStyle(provider).bar,
               }))}
               games={band.games.map((game) => ({
                 gameId: game.gameId,
@@ -585,7 +611,7 @@ export default async function AchievementsPage() {
                 unlocked: game.unlocked,
                 totalKnown: game.totalKnown,
                 percent: fractionOf(game) * 100,
-                bar: styleFor(game.provider).bar,
+                bar: platformStyle(game.provider).bar,
               }))}
             />
           ))}

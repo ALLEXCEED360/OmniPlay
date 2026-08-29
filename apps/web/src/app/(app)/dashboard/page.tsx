@@ -3,6 +3,9 @@ import { apiFetch } from '@/lib/api';
 import { formatHours, formatRelative, providerLabel } from '@/lib/format';
 import { ConfidenceNote, EmptyState, PageHeader, SectionHeading } from '@/components/ui';
 import { SyncButton } from '@/components/sync-button';
+import { Counter } from '@/components/counter';
+import { platformStyle, staggerStep } from '@/lib/platform';
+import type { CSSProperties } from 'react';
 
 /**
  * Overview (spec 16).
@@ -17,21 +20,6 @@ import { SyncButton } from '@/components/sync-button';
  * hours *once PlayStation and Steam are added together*, and that a decade of
  * history moved between three platforms. Those lead now.
  */
-
-/**
- * A colour per platform, matching the achievements page.
- *
- * Each is the colour the platform is actually known by, so a reader who has
- * seen one screen can read the other without a legend.
- */
-const PROVIDER_STYLE: Record<string, { bar: string; text: string; ring: string }> = {
-  psn: { bar: 'bg-accent', text: 'text-accent', ring: 'ring-accent/40' },
-  xbox: { bar: 'bg-positive', text: 'text-positive', ring: 'ring-positive/40' },
-  steam: { bar: 'bg-violet', text: 'text-violet', ring: 'ring-violet/40' },
-};
-
-const styleFor = (provider: string) =>
-  PROVIDER_STYLE[provider] ?? { bar: 'bg-ink-500', text: 'text-ink-300', ring: 'ring-ink-600' };
 
 interface Overview {
   library: {
@@ -83,7 +71,7 @@ export default async function DashboardPage() {
           action={
             <Link
               href="/settings"
-              className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-ink-950 transition-colors hover:bg-accent-strong"
+              className="btn-primary"
             >
               Connect an account
             </Link>
@@ -117,6 +105,7 @@ export default async function DashboardPage() {
   return (
     <>
       <PageHeader
+        eyebrow="Overview"
         title={greeting()}
         subtitle={data.lastSyncAt ? `Last synced ${formatRelative(data.lastSyncAt)}` : 'Never synced'}
         action={<SyncButton />}
@@ -127,50 +116,101 @@ export default async function DashboardPage() {
           cross-platform history — it is precisely the number each storefront
           already refuses to give you, and it hides which platform the hours
           came from. */}
-      <section className="card overflow-hidden p-0">
+      <section className="card bloom anim-rise overflow-hidden p-0">
         <div className="grid gap-px bg-ink-850 sm:grid-cols-4">
-          {[
-            ['Hours played', formatHours(data.playtime.totalMinutes), `across ${platforms.length} platforms`],
-            ['Games', data.library.totalGames.toLocaleString(), `${data.library.gamesPlayed} played`],
-            ['Achievements', data.unlocks.unlocked.toLocaleString(), `${data.library.completed} games complete`],
-            ['Active days', activeDays.toLocaleString(), span],
-          ].map(([label, value, hint], index) => (
-            <div key={label} className="bg-ink-900 p-5">
-              <div className="text-[11px] uppercase tracking-wider text-ink-500">{label}</div>
+          {(
+            [
+              {
+                label: 'Hours played',
+                value: data.playtime.totalMinutes,
+                kind: 'hours' as const,
+                hint: `across ${platforms.length} platforms`,
+                lead: true,
+              },
+              {
+                label: 'Games',
+                value: data.library.totalGames,
+                kind: 'count' as const,
+                hint: `${data.library.gamesPlayed} played`,
+                lead: false,
+              },
+              {
+                label: 'Achievements',
+                value: data.unlocks.unlocked,
+                kind: 'count' as const,
+                hint: `${data.library.completed} games complete`,
+                lead: false,
+              },
+              {
+                label: 'Active days',
+                value: activeDays,
+                kind: 'count' as const,
+                hint: span,
+                lead: false,
+              },
+            ]
+          ).map((stat, index) => (
+            <div
+              key={stat.label}
+              className="anim-rise stagger group relative bg-ink-900 p-5 transition-colors hover:bg-ink-850/60"
+              style={{ '--i': index + 1 } as CSSProperties}
+            >
+              <div className="eyebrow text-ink-500">{stat.label}</div>
               <div
-                className={`stat-figure mt-1 text-3xl ${index === 0 ? 'text-accent' : 'text-ink-100'}`}
+                className={`stat-figure mt-1.5 text-3xl sm:text-[2rem] ${
+                  stat.lead ? 'text-accent' : 'text-ink-100'
+                }`}
               >
-                {value}
+                <Counter value={stat.value} kind={stat.kind} />
               </div>
-              <div className="mt-1 text-[11px] text-ink-600">{hint}</div>
+              <div className="mt-1 text-[11px] text-ink-600">{stat.hint}</div>
+              {/* A wick that fills across the card on hover — the only thing
+                  separating these four from a spreadsheet row. */}
+              <span
+                className="absolute inset-x-0 bottom-0 h-px origin-left scale-x-0 bg-accent/50 transition-transform duration-300 group-hover:scale-x-100"
+                aria-hidden
+              />
             </div>
           ))}
         </div>
 
         {/* One bar, segmented by platform. The split is the point. */}
         <div className="border-t border-ink-850 p-5">
-          <div className="flex h-3 overflow-hidden rounded-full bg-ink-850">
-            {platforms.map((platform) => (
+          <div className="flex h-3 gap-px overflow-hidden rounded-full bg-ink-850">
+            {platforms.map((platform, index) => (
               <div
                 key={platform.provider}
-                className={styleFor(platform.provider).bar}
-                style={{ width: `${(platform.minutes / totalMinutes) * 100}%` }}
+                className={`anim-grow stagger ${platformStyle(platform.provider).bar}`}
+                style={
+                  {
+                    width: `${(platform.minutes / totalMinutes) * 100}%`,
+                    '--i': index,
+                    '--stagger-step': '90ms',
+                  } as CSSProperties
+                }
                 title={`${providerLabel(platform.provider)} · ${formatHours(platform.minutes)}`}
               />
             ))}
           </div>
 
-          <div className="mt-3 flex flex-wrap gap-x-6 gap-y-2">
-            {platforms.map((platform) => {
-              const style = styleFor(platform.provider);
+          <div className="mt-3.5 flex flex-wrap gap-x-6 gap-y-2">
+            {platforms.map((platform, index) => {
+              const style = platformStyle(platform.provider);
+              const share = Math.round((platform.minutes / totalMinutes) * 100);
               return (
-                <div key={platform.provider} className="flex items-baseline gap-2">
+                <div
+                  key={platform.provider}
+                  className="anim-fade stagger flex items-baseline gap-2"
+                  style={{ '--i': index + 4 } as CSSProperties}
+                >
                   <span className={`size-2.5 rounded-sm ${style.bar}`} aria-hidden />
                   <span className="text-xs text-ink-300">{providerLabel(platform.provider)}</span>
-                  <span className="stat-figure text-xs text-ink-100">
+                  <span className={`stat-figure text-xs ${style.text}`}>
                     {formatHours(platform.minutes)}
                   </span>
-                  <span className="text-[11px] text-ink-600">{platform.games} games</span>
+                  <span className="text-[11px] text-ink-600">
+                    {share}% · {platform.games} games
+                  </span>
                 </div>
               );
             })}
@@ -179,7 +219,7 @@ export default async function DashboardPage() {
       </section>
 
       {data.crossPlatform.length > 0 ? (
-        <section className="mt-10">
+        <section className="anim-rise mt-10">
           <SectionHeading
             action={
               <Link
@@ -196,12 +236,16 @@ export default async function DashboardPage() {
           {/* The reason this app exists. Apex Legends is 633 hours only once
               two platforms are added together, and neither platform will ever
               show you that number. */}
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-            {data.crossPlatform.map((game) => (
+          <div
+            className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6"
+            style={{ '--stagger-step': staggerStep(data.crossPlatform.length) } as CSSProperties}
+          >
+            {data.crossPlatform.map((game, index) => (
               <Link
                 key={game.slug}
                 href={`/game/${game.slug}`}
-                className="group relative block overflow-hidden rounded-[var(--radius-card)] border border-ink-800 bg-ink-900 transition-transform hover:-translate-y-0.5"
+                style={{ '--i': index } as CSSProperties}
+                className="group anim-rise stagger lift relative block overflow-hidden rounded-[var(--radius-card)] border border-ink-800 bg-ink-900"
               >
                 <div className="aspect-[3/4] overflow-hidden bg-ink-850">
                   {game.coverImage ? (
@@ -210,7 +254,7 @@ export default async function DashboardPage() {
                       src={game.coverImage}
                       alt=""
                       loading="lazy"
-                      className="size-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      className="size-full object-cover transition-transform duration-500 group-hover:scale-[1.07]"
                     />
                   ) : null}
                 </div>
@@ -222,7 +266,7 @@ export default async function DashboardPage() {
                       {game.providers.map((provider) => (
                         <span
                           key={provider}
-                          className={`size-2 rounded-full ${styleFor(provider).bar}`}
+                          className={`size-2 rounded-full ${platformStyle(provider).bar}`}
                           title={providerLabel(provider)}
                         />
                       ))}
@@ -246,14 +290,18 @@ export default async function DashboardPage() {
       ) : null}
 
       {data.currentlyPlaying.length > 0 ? (
-        <section className="mt-10">
+        <section className="anim-rise mt-10">
           <SectionHeading>Currently playing</SectionHeading>
-          <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6">
-            {data.currentlyPlaying.map((game) => (
+          <div
+            className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6"
+            style={{ '--stagger-step': staggerStep(data.currentlyPlaying.length) } as CSSProperties}
+          >
+            {data.currentlyPlaying.map((game, index) => (
               <Link
                 key={game.slug}
                 href={`/game/${game.slug}`}
-                className="group overflow-hidden rounded-[var(--radius-card)] border border-ink-800 bg-ink-900 transition-colors hover:border-ink-600"
+                style={{ '--i': index } as CSSProperties}
+                className="group anim-rise stagger lift overflow-hidden rounded-[var(--radius-card)] border border-ink-800 bg-ink-900"
               >
                 <div className="aspect-[3/4] overflow-hidden bg-ink-850">
                   {game.coverImage ? (
@@ -274,7 +322,7 @@ export default async function DashboardPage() {
       ) : null}
 
       <div className="mt-10 grid gap-6 lg:grid-cols-[1fr_1.1fr]">
-        <section className="card p-6">
+        <section className="card anim-rise p-6">
           <SectionHeading
             action={
               <Link
@@ -295,9 +343,16 @@ export default async function DashboardPage() {
               {data.mostPlayed.map((game, index) => {
                 const top = data.mostPlayed[0]?.minutes || 1;
                 return (
-                  <li key={game.slug}>
-                    <Link href={`/game/${game.slug}`} className="group flex items-center gap-3">
-                      <span className="stat-figure w-4 shrink-0 text-xs text-ink-600">
+                  <li
+                    key={game.slug}
+                    className="anim-rise stagger"
+                    style={{ '--i': index } as CSSProperties}
+                  >
+                    <Link
+                      href={`/game/${game.slug}`}
+                      className="group -mx-2 flex items-center gap-3 rounded-lg px-2 py-1 transition-colors hover:bg-ink-850/60"
+                    >
+                      <span className="stat-figure w-4 shrink-0 text-xs text-ink-600 transition-colors group-hover:text-accent">
                         {index + 1}
                       </span>
                       {game.coverImage ? (
@@ -306,7 +361,7 @@ export default async function DashboardPage() {
                           src={game.coverImage}
                           alt=""
                           loading="lazy"
-                          className="h-11 w-8 shrink-0 rounded object-cover"
+                          className="h-11 w-8 shrink-0 rounded object-cover transition-transform duration-200 group-hover:scale-105"
                         />
                       ) : (
                         <span className="h-11 w-8 shrink-0 rounded bg-ink-850" />
@@ -322,8 +377,14 @@ export default async function DashboardPage() {
                         </div>
                         <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-ink-850">
                           <div
-                            className="h-full rounded-full bg-accent"
-                            style={{ width: `${Math.max(2, (game.minutes / top) * 100)}%` }}
+                            className="anim-grow stagger h-full rounded-full bg-gradient-to-r from-accent/60 to-accent"
+                            style={
+                              {
+                                width: `${Math.max(2, (game.minutes / top) * 100)}%`,
+                                '--i': index,
+                                '--stagger-step': '70ms',
+                              } as CSSProperties
+                            }
                           />
                         </div>
                       </div>
@@ -335,7 +396,7 @@ export default async function DashboardPage() {
           )}
         </section>
 
-        <section className="card p-6">
+        <section className="card anim-rise p-6">
           <SectionHeading
             action={
               <Link
@@ -361,13 +422,14 @@ export default async function DashboardPage() {
                   sideways underneath; laid out as rows the label, the bar and
                   the figure all sit on one line and the busy years are obvious
                   at a glance. */}
-              <ol className="space-y-1">
-                {[...years].reverse().map((entry) => {
+              <ol className="space-y-1" style={{ '--stagger-step': '40ms' } as CSSProperties}>
+                {[...years].reverse().map((entry, index) => {
                   const share = entry.activeDays / maxDays;
                   return (
                     <li
                       key={entry.year}
-                      className="group grid grid-cols-[2.5rem_1fr_2.75rem] items-center gap-3 rounded-md px-1 py-1 transition-colors hover:bg-ink-850/50"
+                      style={{ '--i': index } as CSSProperties}
+                      className="group anim-fade stagger grid grid-cols-[2.5rem_1fr_2.75rem] items-center gap-3 rounded-md px-1 py-1 transition-colors hover:bg-ink-850/50"
                       title={
                         `${entry.year}: ${entry.activeDays} active days` +
                         (entry.unlocks > 0 ? `, ${entry.unlocks} unlocks` : '') +
@@ -380,8 +442,14 @@ export default async function DashboardPage() {
 
                       <span className="relative block h-2.5 overflow-hidden rounded-full bg-ink-850">
                         <span
-                          className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-accent/50 to-accent transition-[width] duration-300"
-                          style={{ width: `${Math.max(3, share * 100)}%` }}
+                          className="anim-grow stagger absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-violet/70 via-accent/70 to-accent"
+                          style={
+                            {
+                              width: `${Math.max(3, share * 100)}%`,
+                              '--i': index,
+                              '--stagger-step': '55ms',
+                            } as CSSProperties
+                          }
                         />
                       </span>
 

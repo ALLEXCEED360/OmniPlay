@@ -1,5 +1,7 @@
 import { formatDate, formatHours, providerLabel } from '@/lib/format';
 import { PlatformBadge } from '@/components/ui';
+import { platformStyle } from '@/lib/platform';
+import type { CSSProperties } from 'react';
 
 /**
  * What each platform knows about one game.
@@ -152,7 +154,7 @@ export function PlatformReport({ rows }: { rows: PlatformReportRow[] }) {
 
   return (
     <div className="grid gap-4 sm:grid-cols-2">
-      {rows.map((row) => {
+      {rows.map((row, index) => {
         const cells: Array<[string, Cell]> = [
           ['Ownership', ownershipCell(row)],
           ['Playtime', playtimeCell(row)],
@@ -162,18 +164,26 @@ export function PlatformReport({ rows }: { rows: PlatformReportRow[] }) {
           [row.provider === 'psn' ? 'Trophies' : 'Achievements', achievementCell(row)],
         ];
 
+        const style = platformStyle(row.provider);
+
         return (
-          <div key={row.provider} className="card p-5">
+          <div
+            key={row.provider}
+            style={{ '--i': index, '--bloom': style.bloom, '--stagger-step': '90ms' } as CSSProperties}
+      className={`card bloom anim-rise stagger p-5 ring-1 ${style.ring}`}
+          >
             <div className="mb-3 flex items-center justify-between gap-3">
               <PlatformBadge provider={row.provider} small />
-              <span className="text-[11px] uppercase tracking-wider text-ink-600">
-                {providerLabel(row.provider)}
-              </span>
+              <span className="eyebrow text-ink-600">{providerLabel(row.provider)}</span>
             </div>
 
             <dl className="space-y-2.5">
-              {cells.map(([label, cell]) => (
-                <div key={label}>
+              {cells.map(([label, cell], cellIndex) => (
+                <div
+                  key={label}
+                  className="anim-fade stagger"
+                  style={{ '--i': index * 4 + cellIndex, '--stagger-step': '45ms' } as CSSProperties}
+                >
                   <div className="flex items-baseline justify-between gap-3">
                     <dt className="shrink-0 text-xs text-ink-500">{label}</dt>
                     <dd
@@ -185,7 +195,7 @@ export function PlatformReport({ rows }: { rows: PlatformReportRow[] }) {
                     </dd>
                   </div>
                   {cell.note ? (
-                    <p className="mt-0.5 text-right text-[11px] leading-snug text-ink-700">
+                    <p className="mt-0.5 text-right text-[11px] leading-snug text-ink-500">
                       {cell.note}
                     </p>
                   ) : null}

@@ -3,6 +3,8 @@ import { formatRelative } from '@/lib/format';
 import { PageHeader, SectionHeading } from '@/components/ui';
 import { ProviderCard } from '@/components/provider-card';
 import { ProfileSettings } from '@/components/profile-settings';
+import { platformStyle } from '@/lib/platform';
+import type { CSSProperties } from 'react';
 
 /**
  * Settings (spec 16, 23, 24).
@@ -67,6 +69,7 @@ export default async function SettingsPage({
   return (
     <>
       <PageHeader
+        eyebrow="Connections and control"
         title="Settings"
         subtitle="Manage connected accounts, see what has been imported, and control your data."
       />
@@ -75,7 +78,7 @@ export default async function SettingsPage({
       {error ? (
         <div
           role="alert"
-          className="mb-6 rounded-lg border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-ink-200"
+          className="anim-rise mb-6 rounded-lg border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-ink-200"
         >
           {error}
         </div>
@@ -83,13 +86,13 @@ export default async function SettingsPage({
       {connected ? (
         <div
           role="status"
-          className="mb-6 rounded-lg border border-positive/30 bg-positive/10 px-4 py-3 text-sm text-ink-200"
+          className="anim-rise mb-6 rounded-lg border border-positive/30 bg-positive/10 px-4 py-3 text-sm text-ink-200"
         >
           {connected} connected. Your first sync is running now.
         </div>
       ) : null}
 
-      <section>
+      <section className="anim-rise">
         <SectionHeading>Connected accounts</SectionHeading>
         {providers.length === 0 ? (
           <div className="card p-6 text-sm text-ink-400">
@@ -98,19 +101,25 @@ export default async function SettingsPage({
           </div>
         ) : (
           <div className="space-y-4">
-            {providers.map((provider) => (
-              <ProviderCard key={provider.id} provider={provider} />
+            {providers.map((provider, index) => (
+              <div
+                key={provider.id}
+                className="anim-rise stagger"
+                style={{ '--i': index, '--stagger-step': '80ms' } as CSSProperties}
+              >
+                <ProviderCard provider={provider} />
+              </div>
             ))}
           </div>
         )}
       </section>
 
-      <section className="mt-10">
+      <section className="anim-rise mt-10">
         <SectionHeading>Your public profile</SectionHeading>
         <ProfileSettings user={me.user} />
       </section>
 
-      <section className="mt-10">
+      <section className="anim-rise mt-10">
         <SectionHeading>What OMNIPLAY has imported</SectionHeading>
         <div className="card overflow-x-auto">
           <table className="w-full min-w-[36rem] text-sm">
@@ -128,10 +137,20 @@ export default async function SettingsPage({
               </tr>
             </thead>
             <tbody className="divide-y divide-ink-850">
-              {providers.map((provider) => (
-                <tr key={provider.id}>
+              {providers.map((provider, index) => (
+                <tr
+                  key={provider.id}
+                  style={{ '--i': index, '--stagger-step': '60ms' } as CSSProperties}
+                  className="anim-fade stagger transition-colors hover:bg-ink-850/40"
+                >
                   <th scope="row" className="px-4 py-3 text-left font-medium text-ink-200">
-                    {provider.displayName}
+                    <span className="flex items-center gap-2">
+                      <span
+                        className={`size-2 rounded-full ${platformStyle(provider.id).bar}`}
+                        aria-hidden
+                      />
+                      {provider.displayName}
+                    </span>
                   </th>
                   <Capability level={provider.capabilities?.library ?? null} />
                   <Capability level={provider.capabilities?.playtime ?? null} />
@@ -161,14 +180,23 @@ function Capability({ level }: { level: 'none' | 'partial' | 'full' | null }) {
   // Null means the adapter is not configured, so we genuinely do not know what
   // it would report — distinct from knowing it offers nothing.
   if (level === null) {
-    return <td className="px-4 py-3 text-ink-700">—</td>;
+    return <td className="px-4 py-3 text-ink-600">—</td>;
   }
 
   const display = {
-    full: { label: 'Yes', className: 'text-positive' },
-    partial: { label: 'Partial', className: 'text-warning' },
-    none: { label: 'Not available', className: 'text-ink-600' },
+    full: { label: 'Yes', className: 'text-positive', dot: 'bg-positive' },
+    partial: { label: 'Partial', className: 'text-warning', dot: 'bg-warning' },
+    none: { label: 'Not available', className: 'text-ink-600', dot: 'bg-ink-700' },
   }[level];
 
-  return <td className={`px-4 py-3 ${display.className}`}>{display.label}</td>;
+  return (
+    <td className={`px-4 py-3 ${display.className}`}>
+      <span className="flex items-center gap-1.5">
+        {/* The dot repeats what the colour says, so the column is still
+            readable to anyone who cannot separate green from amber. */}
+        <span className={`size-1.5 shrink-0 rounded-full ${display.dot}`} aria-hidden />
+        {display.label}
+      </span>
+    </td>
+  );
 }

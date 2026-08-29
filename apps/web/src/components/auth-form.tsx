@@ -96,9 +96,17 @@ export function AuthForm({ mode }: { mode: 'login' | 'register' }) {
       <button
         type="submit"
         disabled={busy}
-        className="w-full rounded-lg bg-accent px-4 py-2.5 text-sm font-medium text-ink-950 transition-colors hover:bg-accent-strong disabled:opacity-60"
+        className="btn-primary group relative w-full overflow-hidden py-2.5 disabled:cursor-wait"
       >
-        {busy ? 'Please wait…' : mode === 'register' ? 'Create account' : 'Sign in'}
+        {/* A sweep while the request is in flight. Dimming a button the reader
+            just pressed removes the only confirmation they have that it
+            registered; movement says "working" without taking anything away. */}
+        {busy ? (
+          <span className="shimmer absolute inset-0" aria-hidden />
+        ) : null}
+        <span className="relative">
+          {busy ? 'Please wait…' : mode === 'register' ? 'Create account' : 'Sign in'}
+        </span>
       </button>
 
       <p className="pt-2 text-center text-sm text-ink-500">
@@ -148,8 +156,10 @@ function Field({
         name={name}
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy || undefined}
-        className={`w-full rounded-lg border bg-ink-900 px-3 py-2.5 text-sm text-ink-100 placeholder:text-ink-600 focus:outline-none ${
-          error ? 'border-danger' : 'border-ink-800 focus:border-accent'
+        className={`w-full rounded-lg border bg-ink-900 px-3 py-2.5 text-sm text-ink-100 transition-[border-color,box-shadow] duration-200 placeholder:text-ink-600 focus:outline-none ${
+          error
+            ? 'border-danger focus:shadow-[0_0_0_3px] focus:shadow-danger/20'
+            : 'border-ink-800 focus:border-accent focus:shadow-[0_0_0_3px] focus:shadow-accent/15'
         }`}
         {...props}
       />
@@ -159,7 +169,7 @@ function Field({
         </p>
       ) : null}
       {error ? (
-        <p id={`${name}-error`} className="mt-1.5 text-xs text-danger">
+        <p id={`${name}-error`} className="anim-fade mt-1.5 text-xs text-danger">
           {error}
         </p>
       ) : null}

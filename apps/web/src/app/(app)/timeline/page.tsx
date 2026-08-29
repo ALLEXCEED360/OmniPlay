@@ -95,7 +95,7 @@ export default async function TimelinePage({
           action={
             <Link
               href="/settings"
-              className="rounded-lg border border-ink-700 px-4 py-2 text-sm text-ink-200 transition-colors hover:bg-ink-850"
+              className="btn-ghost"
             >
               Connect another account
             </Link>
@@ -135,6 +135,7 @@ export default async function TimelinePage({
   return (
     <>
       <PageHeader
+        eyebrow="Ten years, day by day"
         title="Timeline"
         subtitle={
           isFiltered
@@ -144,13 +145,14 @@ export default async function TimelinePage({
       />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard label="Active days" value={days.length.toLocaleString()} accent />
-        <StatCard label="Years" value={visible.length} hint={span} />
-        <StatCard label="Dated events" value={totalEvents.toLocaleString()} />
+        <StatCard label="Active days" value={days.length.toLocaleString()} accent index={0} />
+        <StatCard label="Years" value={visible.length} hint={span} index={1} />
+        <StatCard label="Dated events" value={totalEvents.toLocaleString()} index={2} />
         <StatCard
           label="Busiest day"
           value={busiestDay ? String(Math.max(busiestDay.achievements, busiestDay.games)) : '—'}
           hint={busiestDay ? formatDate(dayKeyToDate(busiestDay.key)) : undefined}
+          index={3}
         />
       </div>
 

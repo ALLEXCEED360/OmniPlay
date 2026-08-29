@@ -28,7 +28,7 @@ export default function NotFound() {
 
         <Link
           href="/dashboard"
-          className="mt-8 inline-block rounded-lg bg-accent px-4 py-2 text-sm font-medium text-ink-950 transition-colors hover:bg-accent-strong"
+          className="mt-8 btn-primary"
         >
           Back to your library
         </Link>

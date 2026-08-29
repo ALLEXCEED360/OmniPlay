@@ -1,5 +1,7 @@
 import Link from 'next/link';
 import { apiFetch } from '@/lib/api';
+import { platformStyle, staggerStep } from '@/lib/platform';
+import type { CSSProperties } from 'react';
 import { formatHours, providerLabel } from '@/lib/format';
 import {
   ConfidenceNote,
@@ -63,29 +65,34 @@ export default async function MostPlayedPage() {
   return (
     <>
       <PageHeader
+        eyebrow="Ranked by recorded hours"
         title="Most played"
-        subtitle={`Every game in your library, ranked by recorded hours`}
+        subtitle="Every game in your library, longest first."
       />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard label="Total" value={formatHours(data.totalMinutes)} accent />
+        <StatCard label="Total" value={formatHours(data.totalMinutes)} accent index={0} />
         <StatCard
           label="Games with hours"
           value={played.length}
           hint={`of ${data.games.length}`}
+          index={1}
         />
-        <StatCard label="Longest" value={formatHours(top)} hint={played[0]?.name} />
-        <StatCard label="Median" value={formatHours(median)} hint="of games with hours" />
+        <StatCard label="Longest" value={formatHours(top)} hint={played[0]?.name} index={2} />
+        <StatCard label="Median" value={formatHours(median)} hint="of games with hours" index={3} />
       </div>
 
-      <ol className="mt-8 card divide-y divide-ink-850">
+      <ol
+        className="card anim-rise mt-8 divide-y divide-ink-850"
+        style={{ '--stagger-step': staggerStep(played.length) } as CSSProperties}
+      >
         {played.map((game, index) => (
-          <li key={game.id}>
+          <li key={game.id} className="anim-fade stagger" style={{ '--i': index } as CSSProperties}>
             <Link
               href={`/game/${game.slug}`}
-              className="flex items-center gap-4 p-3 transition-colors hover:bg-ink-850/40"
+              className="group flex items-center gap-4 p-3 transition-colors hover:bg-ink-850/40"
             >
-              <span className="stat-figure w-8 shrink-0 text-right text-xs text-ink-600">
+              <span className="stat-figure w-8 shrink-0 text-right text-xs text-ink-600 transition-colors group-hover:text-accent">
                 {index + 1}
               </span>
 
@@ -95,7 +102,7 @@ export default async function MostPlayedPage() {
                   src={game.coverImage}
                   alt=""
                   loading="lazy"
-                  className="h-14 w-10 shrink-0 rounded object-cover"
+                  className="h-14 w-10 shrink-0 rounded object-cover transition-transform duration-200 group-hover:scale-105"
                 />
               ) : (
                 <span className="h-14 w-10 shrink-0 rounded bg-ink-850" />
@@ -103,7 +110,9 @@ export default async function MostPlayedPage() {
 
               <div className="min-w-0 flex-1">
                 <div className="flex items-baseline justify-between gap-3">
-                  <span className="truncate text-sm text-ink-100">{game.name}</span>
+                  <span className="truncate text-sm text-ink-100 transition-colors group-hover:text-accent">
+                    {game.name}
+                  </span>
                   <span className="stat-figure shrink-0 text-sm text-ink-200">
                     {formatHours(game.minutes)}
                   </span>
@@ -113,8 +122,12 @@ export default async function MostPlayedPage() {
                     is visible rather than every bar reading as full. */}
                 <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-ink-850">
                   <div
-                    className="h-full rounded-full bg-accent"
-                    style={{ width: `${Math.max(1, (game.minutes / top) * 100)}%` }}
+                    className={`anim-grow stagger h-full rounded-full ${
+                      game.providers[0] ? platformStyle(game.providers[0]).bar : 'bg-accent'
+                    }`}
+                    style={
+                      { width: `${Math.max(1, (game.minutes / top) * 100)}%`, '--i': index } as CSSProperties
+                    }
                   />
                 </div>
 
@@ -130,7 +143,7 @@ export default async function MostPlayedPage() {
       </ol>
 
       {unplayed.length > 0 ? (
-        <section className="mt-10">
+        <section className="anim-rise mt-10">
           <h2 className="mb-3 text-sm font-medium text-ink-300">
             {unplayed.length} {unplayed.length === 1 ? 'game' : 'games'} with no recorded hours
           </h2>
@@ -143,7 +156,7 @@ export default async function MostPlayedPage() {
                 className="truncate text-xs text-ink-500 transition-colors hover:text-accent"
               >
                 {game.name}
-                <span className="ml-1.5 text-ink-700">
+                <span className="ml-1.5 text-ink-600">
                   {game.providers.map((provider) => providerLabel(provider)).join(', ')}
                 </span>
               </Link>

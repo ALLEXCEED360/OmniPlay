@@ -93,7 +93,7 @@ export function ProfileSettings({
           <button
             type="submit"
             disabled={busy}
-            className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-ink-950 transition-colors hover:bg-accent-strong disabled:opacity-60"
+            className="btn-primary"
           >
             {busy ? 'Saving…' : 'Save'}
           </button>

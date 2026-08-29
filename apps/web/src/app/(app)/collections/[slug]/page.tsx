@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ApiError, apiFetch } from '@/lib/api';
 import { EmptyState, PageHeader } from '@/components/ui';
+import { staggerStep } from '@/lib/platform';
+import type { CSSProperties } from 'react';
 import { CollectionControls, RemoveFromCollection } from '@/components/collection-form';
 
 interface CollectionDetail {
@@ -61,20 +63,27 @@ export default async function CollectionPage({
           action={
             <Link
               href="/library"
-              className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-ink-950 hover:bg-accent-strong"
+              className="btn-primary"
             >
               Browse your library
             </Link>
           }
         />
       ) : (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6">
-          {collection.games.map((game) => (
-            <div key={game.id} className="group relative">
+        <div
+          className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6"
+          style={{ '--stagger-step': staggerStep(collection.games.length) } as CSSProperties}
+        >
+          {collection.games.map((game, index) => (
+            <div
+              key={game.id}
+              style={{ '--i': index } as CSSProperties}
+              className="group anim-rise stagger relative"
+            >
               <RemoveFromCollection slug={collection.slug} gameId={game.id} />
               <Link
                 href={`/game/${game.slug}`}
-                className="block overflow-hidden rounded-[var(--radius-card)] border border-ink-800 bg-ink-900 transition-colors hover:border-ink-600"
+                className="lift block overflow-hidden rounded-[var(--radius-card)] border border-ink-800 bg-ink-900"
               >
                 <div className="aspect-[3/4] overflow-hidden bg-ink-850">
                   {game.coverImage ? (
@@ -82,7 +91,7 @@ export default async function CollectionPage({
                     <img
                       src={game.coverImage}
                       alt=""
-                      className="size-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      className="size-full object-cover transition-transform duration-500 group-hover:scale-[1.07]"
                     />
                   ) : (
                     <div className="grid size-full place-items-center px-2 text-center text-xs text-ink-600">
