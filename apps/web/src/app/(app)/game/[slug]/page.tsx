@@ -3,6 +3,7 @@ import { ApiError, apiFetch } from '@/lib/api';
 import { formatDate, formatHours, STATUS_LABELS } from '@/lib/format';
 import { PlatformBadge, SectionHeading } from '@/components/ui';
 import { AddToCollection } from '@/components/add-to-collection';
+import { GameVerdict } from '@/components/game-verdict';
 import { PlatformReport, type PlatformReportRow } from '@/components/platform-report';
 import type { CSSProperties } from 'react';
 
@@ -23,10 +24,15 @@ interface GameDetail {
   heroImage: string | null;
   firstReleaseDate: string | null;
   rating: number | null;
+  /** IGDB's aggregate of external critic scores, as shown in the library. */
+  criticRating: number | null;
   genres: string[];
   developers: string[];
   publishers: string[];
   status: string;
+  /** False when the user set the status themselves rather than it being inferred. */
+  statusDerived: boolean;
+  userRating: number | null;
   totalMinutes: number;
   playtimeByProvider: Record<string, number>;
   /** Why each provider shows the figure it does. */
@@ -112,9 +118,38 @@ export default async function GamePage({ params }: { params: Promise<{ slug: str
                     <PlatformBadge provider={provider} />
                   </span>
                 ))}
-                <span className="rounded-full border border-ink-700 px-2.5 py-1 text-xs text-ink-400">
+                {/* A dashed edge marks an inference, a solid one the user's
+                    own word. The label alone cannot tell them apart, and the
+                    difference is the whole point of keeping both. */}
+                <span
+                  title={
+                    game.statusDerived
+                      ? 'Worked out from your playtime and achievements'
+                      : 'You set this yourself'
+                  }
+                  className={`rounded-full border px-2.5 py-1 text-xs ${
+                    game.statusDerived
+                      ? 'border-dashed border-ink-700 text-ink-400'
+                      : 'border-accent/50 bg-accent/10 text-accent'
+                  }`}
+                >
                   {STATUS_LABELS[game.status] ?? game.status}
                 </span>
+
+                {game.criticRating !== null ? (
+                  <span
+                    title={`Critic score ${Math.round(game.criticRating)} of 100`}
+                    className={`stat-figure inline-flex h-6 items-center rounded-md px-1.5 text-xs font-semibold shadow-md shadow-black/50 ${
+                      game.criticRating >= 75
+                        ? 'bg-positive text-ink-950'
+                        : game.criticRating >= 50
+                          ? 'bg-warning text-ink-950'
+                          : 'bg-danger text-ink-950'
+                    }`}
+                  >
+                    {Math.round(game.criticRating)}
+                  </span>
+                ) : null}
               </div>
             </div>
           </div>
@@ -156,6 +191,13 @@ export default async function GamePage({ params }: { params: Promise<{ slug: str
         </div>
 
         <aside className="anim-rise stagger space-y-6" style={{ '--i': 4 } as CSSProperties}>
+          <GameVerdict
+            slug={game.slug}
+            status={game.status}
+            derived={game.statusDerived}
+            rating={game.userRating}
+          />
+
           <AddToCollection gameId={game.id} />
 
           <div className="card divide-y divide-ink-850 text-sm">

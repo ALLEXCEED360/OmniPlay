@@ -404,12 +404,16 @@ model PlayActivity {
 
 /// The user's own verdict on a game. Never written by a sync job.
 model UserGameStatus {
-  id        String     @id @default(cuid())
+  id        String      @id @default(cuid())
   userId    String
-  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   gameId    String
-  game      Game       @relation(fields: [gameId], references: [id], onDelete: Cascade)
-  status    GameStatus @default(NOT_STARTED)
+  game      Game        @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  /// Null means "I have an opinion about this game, but not about whether I
+  /// finished it" - a score with no verdict. The row's existence is not the
+  /// declaration; this column is. Without the null, clearing a status would
+  /// have to delete the row and silently take the rating with it.
+  status    GameStatus?
   /// 0-10, half-steps allowed.
   rating    Float?
   startedAt DateTime?

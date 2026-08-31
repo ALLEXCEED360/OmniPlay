@@ -211,7 +211,12 @@ export interface OwnershipRecord {
 
 export interface StatusRecord {
   gameId: string;
-  status: GameStatus;
+  /**
+   * Null when the user holds a personal score for the game but has not said
+   * whether they finished it. Not a declaration, so callers must fall back to
+   * the derived status rather than treating it as one.
+   */
+  status: GameStatus | null;
 }
 
 export interface LibraryStats {
@@ -295,7 +300,11 @@ export function computeLibraryStats(input: {
     if (minutes > 0) played.add(gameId);
   }
   for (const [gameId, status] of statusByGame) {
-    if (status !== 'NOT_STARTED') played.add(gameId);
+    // `null` is a score with no verdict attached, and scoring a game is not
+    // evidence of having played it. Testing only against NOT_STARTED would
+    // let a bare rating through, inflating gamesPlayed and, through it,
+    // backlog and the completion rate.
+    if (status !== null && status !== 'NOT_STARTED') played.add(gameId);
   }
 
   const backlog = [...allGames].filter((gameId) => !played.has(gameId)).length;

@@ -138,7 +138,13 @@ export function sortByLastPlayed<T extends { id: string; name: string }>(
  * the page it opens can never come from two different definitions.
  */
 export function statusPredicate(userId: string, statuses: string[]): Prisma.GameWhereInput {
-  const undeclared: Prisma.GameWhereInput = { statuses: { none: { userId } } };
+  // "You have not told us" is two cases, not one: no row at all, and a row
+  // holding only a personal score with no verdict attached. Matching on the
+  // row's absence alone would have quietly excluded every game the user rated
+  // without also saying whether they finished it.
+  const undeclared: Prisma.GameWhereInput = {
+    OR: [{ statuses: { none: { userId } } }, { statuses: { some: { userId, status: null } } }],
+  };
 
   // Every achievement carries an unlocked row for this user. Stated as "no
   // achievement lacks one" so it stays a single query rather than a count
@@ -167,6 +173,8 @@ export function statusPredicate(userId: string, statuses: string[]): Prisma.Game
   const statusOr: Prisma.GameWhereInput[] = [];
   for (const status of statuses) {
     statusOr.push({ statuses: { some: { userId, status: status as never } } });
+    // A null status is never a declaration, so it can only ever contribute
+    // through `undeclared` above.
     const inferred = derived[status];
     if (inferred) statusOr.push(inferred);
   }
@@ -353,6 +361,10 @@ export class LibraryService {
       heroImage: game.heroImage,
       firstReleaseDate: game.firstReleaseDate,
       rating: game.rating,
+      // The critic aggregate, under the same name the library listing uses.
+      // The listing showed a score the game page did not, which invites the
+      // reader to wonder which of the two screens is wrong.
+      criticRating: game.aggregatedRating,
       genres: game.genres,
       franchises: game.franchises,
       developers: game.developers,
@@ -553,6 +565,54 @@ export class LibraryService {
   }
 
   /**
+   * Record — or withdraw — the user's own verdict on a game.
+   *
+   * This is the only writer of UserGameStatus, and no sync may ever touch it
+   * (see the model comment). It is what `resolveGameStatus` means by
+   * "declared", and until now nothing in the product could produce one: the
+   * table held zero rows, every status on every screen was inferred, and the
+   * library's "Abandoned" filter could never match because abandonment is
+   * never inferred and nothing could declare it.
+   *
+   * Deliberately does *not* stamp startedAt or finishedAt. Setting
+   * `finishedAt = now()` would record the moment the button was pressed and
+   * then present it as the date the game was finished — a fabricated event,
+   * and one the timeline would happily draw. Those columns stay for a future
+   * control that asks the user for the actual date.
+   */
+  async setVerdict(
+    userId: string,
+    slug: string,
+    verdict: { status?: string | null; rating?: number | null },
+  ) {
+    const game = await this.prisma.client.game.findUnique({
+      where: { slug },
+      select: { id: true },
+    });
+    if (!game) throw new NotFoundException('Game not found');
+
+    const status = (verdict.status ?? null) as never;
+    const rating = verdict.rating ?? null;
+
+    // No verdict at all means no row. Keeping an empty one would make
+    // "I have an opinion" and "I once had an opinion" indistinguishable.
+    if (status === null && rating === null) {
+      await this.prisma.client.userGameStatus.deleteMany({
+        where: { userId, gameId: game.id },
+      });
+      return { status: null, rating: null };
+    }
+
+    const saved = await this.prisma.client.userGameStatus.upsert({
+      where: { userId_gameId: { userId, gameId: game.id } },
+      create: { userId, gameId: game.id, status, rating },
+      update: { status, rating },
+      select: { status: true, rating: true },
+    });
+    return saved;
+  }
+
+  /**
    * How many games each filter would bring back.
    *
    * Counted against the whole library rather than the current result set, so
@@ -690,7 +750,7 @@ export class LibraryService {
     aggregatedRating: number | null;
     genres: string[];
     ownerships: Array<{ provider: string; removedAt: Date | null }>;
-    statuses: Array<{ status: string }>;
+    statuses: Array<{ status: string | null }>;
     activities: Array<Parameters<typeof toActivityRecord>[0]>;
   }, allAchievementsUnlocked: boolean) {
     const playtime = aggregatePlaytime(game.activities.map(toActivityRecord));

@@ -1,8 +1,8 @@
-import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Put, Query, UseGuards } from '@nestjs/common';
 import { z } from 'zod';
 import type { User } from '@omniplay/database';
 import { CurrentUser, SessionGuard } from '../auth/auth.guard.js';
-import { zodQuery } from '../common/validation.js';
+import { zodBody, zodQuery } from '../common/validation.js';
 import { LibraryService } from './library.service.js';
 
 /** Comma-separated query params: ?providers=steam,xbox */
@@ -22,6 +22,20 @@ const listQuerySchema = z.object({
   pageSize: z.coerce.number().int().min(1).max(100).default(48),
 });
 
+/**
+ * The user's own verdict. Both fields are nullable and both are optional: a
+ * status with no score, a score with no status, or neither, are all things a
+ * person can mean. Sending both as null withdraws the verdict entirely.
+ */
+const verdictSchema = z.object({
+  status: z
+    .enum(['NOT_STARTED', 'PLAYING', 'PAUSED', 'COMPLETED', 'ABANDONED', 'REPLAYING'])
+    .nullable()
+    .optional(),
+  // Half-steps, matching the column's documented 0-10 range.
+  rating: z.number().min(0).max(10).multipleOf(0.5).nullable().optional(),
+});
+
 @Controller('library')
 @UseGuards(SessionGuard)
 export class LibraryController {
@@ -35,5 +49,15 @@ export class LibraryController {
   @Get('game/:slug')
   detail(@CurrentUser() user: User, @Param('slug') slug: string) {
     return this.library.detail(user.id, slug);
+  }
+
+  /** The one route that writes a status; no sync job may ever touch it. */
+  @Put('game/:slug/verdict')
+  setVerdict(
+    @CurrentUser() user: User,
+    @Param('slug') slug: string,
+    @Body() body: unknown,
+  ) {
+    return this.library.setVerdict(user.id, slug, zodBody(verdictSchema, body));
   }
 }

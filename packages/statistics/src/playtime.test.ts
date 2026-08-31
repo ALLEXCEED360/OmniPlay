@@ -203,6 +203,40 @@ describe('playtimeByYear', () => {
 });
 
 describe('computeLibraryStats', () => {
+  describe('a score with no verdict', () => {
+    // UserGameStatus.status became nullable so a personal rating could exist
+    // without claiming you finished — or even started — the game. The played
+    // set tested `status !== 'NOT_STARTED'`, which is true of null, so a bare
+    // rating counted as evidence of play and moved gamesPlayed, backlog and
+    // the completion rate with it.
+    it('is not evidence that the game was played', () => {
+      const stats = computeLibraryStats({
+        ownerships: [{ gameId: 'a', provider: 'steam', removedAt: null }],
+        statuses: [{ gameId: 'a', status: null }],
+        playtimeByGame: {},
+        fullyUnlockedGames: [],
+      });
+
+      expect(stats.gamesPlayed).toBe(0);
+      expect(stats.backlog).toBe(1);
+    });
+
+    it('still leaves the status derived rather than declared', () => {
+      const stats = computeLibraryStats({
+        ownerships: [{ gameId: 'a', provider: 'steam', removedAt: null }],
+        statuses: [{ gameId: 'a', status: null }],
+        // Played for real, so the derived answer is PLAYING and the null
+        // must not override it with NOT_STARTED.
+        playtimeByGame: { a: 300 },
+        fullyUnlockedGames: [],
+      });
+
+      expect(stats.playing).toBe(1);
+      expect(stats.gamesPlayed).toBe(1);
+    });
+  });
+
+
   it('counts owned, previously owned and backlog separately', () => {
     const stats = computeLibraryStats({
       ownerships: [
