@@ -60,6 +60,120 @@ export function playtimeProvenanceFor(
   return typeof stamp === 'string' ? 'NOT_REPORTED' : 'PENDING';
 }
 
+/**
+ * When a game was last actually played, or null if no provider dated it.
+ *
+ * A session's end is the answer where one exists; a provider that reports only
+ * a start gives the start. Steam reports an undated lifetime total, so most of
+ * a Steam library legitimately has no answer here.
+ */
+function lastPlayedFrom(
+  activities: Array<{ startedAt: Date | null; endedAt: Date | null }>,
+): Date | null {
+  const times = activities
+    .map((activity) => activity.endedAt ?? activity.startedAt)
+    .filter((at): at is Date => at !== null)
+    .sort((a, b) => b.getTime() - a.getTime());
+  return times[0] ?? null;
+}
+
+/**
+ * How a sort is expressed to Postgres.
+ *
+ * Every descending sort states `nulls: 'last'`. Postgres orders NULLs *first*
+ * on DESC by default, so "highest rated" opened with the seventeen games that
+ * carry no rating at all, in whatever order the planner happened to return
+ * them — indistinguishable from no sorting having happened. Unrated titles
+ * belong at the end, where "we don't know" reads as an absence rather than a
+ * result.
+ *
+ * `rating` sorts on `aggregatedRating`, the critic-score aggregate, not on
+ * `rating`, which is IGDB's *user* score. Two different numbers were being
+ * offered to the reader under one label.
+ *
+ * Every sort ends with name, so equal keys have a stable order instead of
+ * whatever the planner returns — otherwise a page can repeat or drop a game
+ * as the reader pages through.
+ */
+export function libraryOrderBy(sort: string | undefined): Prisma.GameOrderByWithRelationInput[] {
+  switch (sort) {
+    case 'release':
+      return [{ firstReleaseDate: { sort: 'desc', nulls: 'last' } }, { name: 'asc' }];
+    case 'rating':
+      return [{ aggregatedRating: { sort: 'desc', nulls: 'last' } }, { name: 'asc' }];
+    case 'name':
+    default:
+      return [{ name: 'asc' }];
+  }
+}
+
+/**
+ * Games ordered by when they were last played, most recent first.
+ *
+ * Undated titles sort last rather than first, for the same reason the SQL
+ * sorts state `nulls: 'last'`: never having played something is not a
+ * recency. Ties, including the whole undated tail, fall back to name so the
+ * order is stable across pages.
+ */
+export function sortByLastPlayed<T extends { id: string; name: string }>(
+  games: T[],
+  lastPlayed: Map<string, number>,
+): T[] {
+  return [...games].sort((a, b) => {
+    const left = lastPlayed.get(a.id);
+    const right = lastPlayed.get(b.id);
+    if (left === undefined && right === undefined) return a.name.localeCompare(b.name);
+    if (left === undefined) return 1;
+    if (right === undefined) return -1;
+    return right - left || a.name.localeCompare(b.name);
+  });
+}
+
+/**
+ * "Show me games in these states", as a query.
+ *
+ * The same rules as resolveGameStatus, expressed for Postgres. Both must
+ * agree: a filter that disagrees with the label printed on the card is worse
+ * than no filter at all. Shared with the facet counts so a chip's number and
+ * the page it opens can never come from two different definitions.
+ */
+export function statusPredicate(userId: string, statuses: string[]): Prisma.GameWhereInput {
+  const undeclared: Prisma.GameWhereInput = { statuses: { none: { userId } } };
+
+  // Every achievement carries an unlocked row for this user. Stated as "no
+  // achievement lacks one" so it stays a single query rather than a count
+  // comparison, and requires at least one achievement so that a game we hold
+  // none for is not vacuously complete.
+  const allUnlocked: Prisma.GameWhereInput = {
+    AND: [
+      { achievements: { some: {} } },
+      { achievements: { none: { unlocks: { none: { userId, unlocked: true } } } } },
+    ],
+  };
+
+  const played: Prisma.GameWhereInput = {
+    activities: { some: { userId, minutesPlayed: { gt: 0 } } },
+  };
+
+  const derived: Record<string, Prisma.GameWhereInput | null> = {
+    COMPLETED: { AND: [undeclared, allUnlocked] },
+    PLAYING: { AND: [undeclared, played, { NOT: allUnlocked }] },
+    NOT_STARTED: { AND: [undeclared, { NOT: played }, { NOT: allUnlocked }] },
+    // Never inferred - see resolveGameStatus. Only your own verdict counts,
+    // which is why this filter matches nothing until you record one.
+    ABANDONED: null,
+  };
+
+  const statusOr: Prisma.GameWhereInput[] = [];
+  for (const status of statuses) {
+    statusOr.push({ statuses: { some: { userId, status: status as never } } });
+    const inferred = derived[status];
+    if (inferred) statusOr.push(inferred);
+  }
+
+  return { OR: statusOr };
+}
+
 export interface LibraryQuery {
   search?: string | undefined;
   providers?: string[] | undefined;
@@ -87,20 +201,24 @@ export class LibraryService {
 
   async list(userId: string, query: LibraryQuery) {
     const where = this.buildWhere(userId, query);
+    const include = {
+      ownerships: { where: { userId } },
+      statuses: { where: { userId } },
+      activities: { where: { userId } },
+    };
 
-    const [total, games] = await Promise.all([
+    const [total, facets, games] = await Promise.all([
       this.prisma.client.game.count({ where }),
-      this.prisma.client.game.findMany({
-        where,
-        include: {
-          ownerships: { where: { userId } },
-          statuses: { where: { userId } },
-          activities: { where: { userId } },
-        },
-        orderBy: this.buildOrderBy(query.sort),
-        skip: (query.page - 1) * query.pageSize,
-        take: query.pageSize,
-      }),
+      this.facets(userId),
+      query.sort === 'recent'
+        ? this.recentlyPlayedPage(userId, where, include, query)
+        : this.prisma.client.game.findMany({
+            where,
+            include,
+            orderBy: libraryOrderBy(query.sort),
+            skip: (query.page - 1) * query.pageSize,
+            take: query.pageSize,
+          }),
     ]);
 
     // Resolved for this page only. Loading every achievement to answer "is it
@@ -114,6 +232,7 @@ export class LibraryService {
 
     return {
       total,
+      facets,
       page: query.page,
       pageSize: query.pageSize,
       pageCount: Math.max(1, Math.ceil(total / query.pageSize)),
@@ -425,42 +544,7 @@ export class LibraryService {
     }
 
     if (query.statuses?.length) {
-      // The same rules as resolveGameStatus, expressed as a query. Both must
-      // agree: a filter that disagrees with the label on the card is worse
-      // than no filter at all.
-      const undeclared: Prisma.GameWhereInput = { statuses: { none: { userId } } };
-
-      // Every achievement carries an unlocked row for this user. Stated as
-      // "no achievement lacks one" so it stays a single query rather than a
-      // count comparison, and requires at least one achievement so that a game
-      // we hold none for is not vacuously complete.
-      const allUnlocked: Prisma.GameWhereInput = {
-        AND: [
-          { achievements: { some: {} } },
-          { achievements: { none: { unlocks: { none: { userId, unlocked: true } } } } },
-        ],
-      };
-
-      const played: Prisma.GameWhereInput = {
-        activities: { some: { userId, minutesPlayed: { gt: 0 } } },
-      };
-
-      const derived: Record<string, Prisma.GameWhereInput | null> = {
-        COMPLETED: { AND: [undeclared, allUnlocked] },
-        PLAYING: { AND: [undeclared, played, { NOT: allUnlocked }] },
-        NOT_STARTED: { AND: [undeclared, { NOT: played }, { NOT: allUnlocked }] },
-        // Never inferred - see resolveGameStatus.
-        ABANDONED: null,
-      };
-
-      const statusOr: Prisma.GameWhereInput[] = [];
-      for (const status of query.statuses) {
-        statusOr.push({ statuses: { some: { userId, status: status as never } } });
-        const inferred = derived[status];
-        if (inferred) statusOr.push(inferred);
-      }
-
-      conditions.push({ OR: statusOr });
+      conditions.push(statusPredicate(userId, query.statuses));
     }
 
     if (conditions.length > 0) where.AND = conditions;
@@ -468,18 +552,133 @@ export class LibraryService {
     return where;
   }
 
-  private buildOrderBy(sort: string | undefined): Prisma.GameOrderByWithRelationInput {
-    switch (sort) {
-      case 'release':
-        return { firstReleaseDate: 'desc' };
-      case 'rating':
-        return { rating: 'desc' };
-      case 'recent':
-        return { updatedAt: 'desc' };
-      case 'name':
-      default:
-        return { name: 'asc' };
+  /**
+   * How many games each filter would bring back.
+   *
+   * Counted against the whole library rather than the current result set, so
+   * a chip always states what it would show rather than what is already on
+   * screen — the same rule the timeline uses.
+   *
+   * This exists because two of the library's filters can never match
+   * anything. "Previously owned" needs a provider to have dropped a title
+   * from your entitlements, and "Abandoned" is never inferred (see
+   * resolveGameStatus) so it needs you to have said so yourself. Both
+   * currently return nothing, and a filter that silently empties the page is
+   * indistinguishable from a broken one. With a count attached, the frontend
+   * can label them or leave them out.
+   *
+   * Ten parallel counts, measured at ~56ms over a 233-game library, and they
+   * run on every listing including each page of it. That is the dominant cost
+   * of the request. The numbers only move when a sync does, so this is the
+   * obvious thing to cache per user if the library ever grows enough to feel
+   * it — deliberately not cached yet, because an unnecessary cache that can go
+   * stale is worse than 56ms.
+   */
+  async facets(userId: string) {
+    const mine: Prisma.GameWhereInput = {
+      mergedIntoId: null,
+      OR: [{ ownerships: { some: { userId } } }, { activities: { some: { userId } } }],
+    };
+    const count = (where: Prisma.GameWhereInput) =>
+      this.prisma.client.game.count({ where: { ...mine, ...where } });
+
+    const providers = ['steam', 'xbox', 'psn'] as const;
+    const statuses = ['PLAYING', 'COMPLETED', 'NOT_STARTED', 'ABANDONED'] as const;
+
+    const [providerCounts, statusCounts, owned, previouslyOwned, total] = await Promise.all([
+      Promise.all(
+        providers.map((provider) =>
+          this.prisma.client.game.count({
+            where: {
+              mergedIntoId: null,
+              OR: [
+                { ownerships: { some: { userId, provider } } },
+                { activities: { some: { userId, provider } } },
+              ],
+            },
+          }),
+        ),
+      ),
+      Promise.all(statuses.map((status) => count(statusPredicate(userId, [status])))),
+      this.prisma.client.game.count({
+        where: { mergedIntoId: null, ownerships: { some: { userId, removedAt: null } } },
+      }),
+      this.prisma.client.game.count({
+        where: { mergedIntoId: null, ownerships: { some: { userId, removedAt: { not: null } } } },
+      }),
+      count({}),
+    ]);
+
+    return {
+      total,
+      providers: Object.fromEntries(
+        providers.map((provider, index) => [provider, providerCounts[index] ?? 0]),
+      ),
+      statuses: Object.fromEntries(
+        statuses.map((status, index) => [status, statusCounts[index] ?? 0]),
+      ),
+      ownership: { owned, previouslyOwned },
+    };
+  }
+
+  /**
+   * One page of the library, most recently played first.
+   *
+   * This sort used to be "Recently updated" and ordered by `Game.updatedAt` —
+   * the moment *OMNIPLAY* last wrote the row. A sync rewrites hundreds of rows
+   * within the same second, so the order reflected the writer's loop and
+   * changed completely after every sync. It answered a question nobody asked.
+   *
+   * The honest key is the last time the player actually played, which is a
+   * MAX over a to-many relation. Prisma can order by a relation's `_count` but
+   * not by an aggregate of its fields, so the ordering is resolved in two
+   * indexed queries rather than by raw SQL that would have to restate the
+   * whole of `buildWhere` and then drift from it.
+   *
+   * Both queries are bounded by one user's library, and the id fetch selects
+   * only ids. For a personal collection — hundreds of titles, a few thousand
+   * at the extreme — that is a cheap way to buy a correct sort. A shared
+   * catalogue would need a denormalised `lastPlayedAt` instead.
+   */
+  private async recentlyPlayedPage(
+    userId: string,
+    where: Prisma.GameWhereInput,
+    include: Prisma.GameInclude,
+    query: LibraryQuery,
+  ) {
+    const [matching, played] = await Promise.all([
+      this.prisma.client.game.findMany({ where, select: { id: true, name: true } }),
+      this.prisma.client.playActivity.groupBy({
+        by: ['gameId'],
+        where: { userId },
+        _max: { endedAt: true, startedAt: true },
+      }),
+    ]);
+
+    // A session's end is when it was last played; where a provider reports
+    // only a start, that is the best it can say.
+    const lastPlayed = new Map<string, number>();
+    for (const row of played) {
+      const at = row._max.endedAt ?? row._max.startedAt;
+      if (at) lastPlayed.set(row.gameId, at.getTime());
     }
+
+    const ordered = sortByLastPlayed(matching, lastPlayed)
+      .slice((query.page - 1) * query.pageSize, query.page * query.pageSize)
+      .map((game) => game.id);
+
+    const page = await this.prisma.client.game.findMany({
+      where: { id: { in: ordered } },
+      include,
+    });
+
+    // `findMany` returns its own order, so the page is put back into the
+    // order that was just computed rather than trusting the round trip.
+    const byId = new Map(page.map((game) => [game.id, game]));
+    return ordered.flatMap((id) => {
+      const game = byId.get(id);
+      return game ? [game] : [];
+    });
   }
 
   private toSummary(game: {
@@ -488,6 +687,7 @@ export class LibraryService {
     slug: string;
     coverImage: string | null;
     firstReleaseDate: Date | null;
+    aggregatedRating: number | null;
     genres: string[];
     ownerships: Array<{ provider: string; removedAt: Date | null }>;
     statuses: Array<{ status: string }>;
@@ -500,6 +700,11 @@ export class LibraryService {
       slug: game.slug,
       coverImage: game.coverImage,
       firstReleaseDate: game.firstReleaseDate,
+      // The card has to be able to show whatever it was sorted by. A list
+      // ordered by a number the reader cannot see is indistinguishable from
+      // an unordered one, which is most of why these sorts read as broken.
+      criticRating: game.aggregatedRating,
+      lastPlayedAt: lastPlayedFrom(game.activities),
       genres: game.genres,
       // Ownership *and* activity: a game played on Xbox without an entitlement
       // record still belongs to the Xbox badge, or its card shows no platform

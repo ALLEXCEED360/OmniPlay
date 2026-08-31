@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import type { CSSProperties, ReactNode } from 'react';
 import { formatCount, providerLabel } from '@/lib/format';
 import { platformStyle } from '@/lib/platform';
@@ -170,96 +169,6 @@ export function EmptyState({
       <p className="mt-1.5 max-w-sm text-sm text-ink-500">{description}</p>
       {action ? <div className="mt-5">{action}</div> : null}
     </div>
-  );
-}
-
-/* ------------------------------------------------------------------ *
- * Game artwork
- * ------------------------------------------------------------------ */
-
-export function GameCard({
-  game,
-  index = 0,
-}: {
-  game: {
-    slug: string;
-    name: string;
-    coverImage: string | null;
-    providers: string[];
-    totalMinutes: number;
-    status: string;
-    owned: boolean;
-    /** Distinguishes a removed entitlement from one that never existed. */
-    ownershipState?: 'OWNED' | 'PREVIOUSLY_OWNED' | 'UNKNOWN';
-  };
-  index?: number;
-}) {
-  // The card is edged in the colour of the platform it came from, so a shelf
-  // of covers reads as a distribution before a single title is read.
-  const edge = game.providers[0] ? platformStyle(game.providers[0]) : null;
-  const hours = game.totalMinutes > 0 ? `${Math.round(game.totalMinutes / 60)}h` : null;
-
-  return (
-    <Link
-      href={`/game/${game.slug}`}
-      className={`group anim-rise stagger lift relative block overflow-hidden rounded-[var(--radius-card)] border bg-ink-900 ${
-        edge ? edge.border : 'border-ink-800'
-      }`}
-      style={{ '--i': index } as CSSProperties}
-    >
-      <div className="relative aspect-[3/4] overflow-hidden bg-ink-850">
-        {game.coverImage ? (
-          // Plain img: covers come from many CDN hosts and are already sized.
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={game.coverImage}
-            alt=""
-            loading="lazy"
-            className="size-full object-cover transition-transform duration-500 group-hover:scale-[1.07]"
-          />
-        ) : (
-          // A neutral mark, not the title: the label below already carries the
-          // name, and printing it twice reads as a duplicate entry.
-          <div className="grid size-full place-items-center text-ink-700" aria-hidden>
-            <svg viewBox="0 0 24 24" className="size-8" fill="none" stroke="currentColor" strokeWidth="1.25">
-              <rect x="2" y="6" width="20" height="12" rx="4" />
-              <path d="M7 12h3M8.5 10.5v3M15.5 11.5h.01M17.5 13.5h.01" strokeLinecap="round" />
-            </svg>
-          </div>
-        )}
-
-        {/* Gradient scrim so the title stays readable over any artwork. */}
-        <div className="absolute inset-x-0 bottom-0 h-2/5 bg-gradient-to-t from-ink-950 via-ink-950/80 to-transparent" />
-
-        {/* Hours are the one figure worth surfacing on artwork, and only on
-            hover — printed always, 200 covers turn into a spreadsheet. */}
-        {hours ? (
-          <span className="stat-figure absolute left-2 top-2 rounded-full bg-ink-950/85 px-2 py-0.5 text-[10px] text-ink-200 opacity-0 backdrop-blur transition-opacity duration-200 group-hover:opacity-100">
-            {hours}
-          </span>
-        ) : null}
-
-        {/* Only a removed entitlement earns "previously owned". A game known
-            solely from play history was never recorded as owned, so claiming
-            it used to be would invent a purchase that may never have happened. */}
-        {game.ownershipState && game.ownershipState !== 'OWNED' ? (
-          <span className="absolute right-2 top-2 rounded-full bg-ink-950/80 px-2 py-0.5 text-[10px] font-medium text-ink-400 backdrop-blur">
-            {game.ownershipState === 'PREVIOUSLY_OWNED' ? 'Previously owned' : 'Played'}
-          </span>
-        ) : null}
-
-        <div className="absolute inset-x-0 bottom-0 p-3">
-          <div className="line-clamp-2 text-sm font-medium leading-snug text-ink-100">
-            {game.name}
-          </div>
-          <div className="mt-1.5 flex items-center gap-1.5">
-            {game.providers.slice(0, 3).map((provider) => (
-              <PlatformBadge key={provider} provider={provider} small />
-            ))}
-          </div>
-        </div>
-      </div>
-    </Link>
   );
 }
 
