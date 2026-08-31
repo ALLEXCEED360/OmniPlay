@@ -161,7 +161,10 @@ export default async function GamePage({ params }: { params: Promise<{ slug: str
           {game.summary ? (
             <section className="anim-rise stagger" style={{ '--i': 2 } as CSSProperties}>
               <SectionHeading>About</SectionHeading>
-              <p className="text-sm leading-relaxed text-ink-300">{game.summary}</p>
+              {/* Held to a reading measure of its own. A summary set across
+                  the full width of a wide screen runs past the length an eye
+                  can track back from comfortably. */}
+              <p className="max-w-prose text-sm leading-relaxed text-ink-300">{game.summary}</p>
             </section>
           ) : null}
 

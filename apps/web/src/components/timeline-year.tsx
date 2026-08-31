@@ -70,7 +70,11 @@ export function TimelineYear({
           <h2 className="stat-figure text-4xl text-ink-100 sm:text-5xl">{year}</h2>
           <span className="rule-soft flex-1" aria-hidden />
         </div>
-        <dl className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-5">
+        {/* Held to a measure rather than spread edge to edge. Five figures
+            stretched across a wide screen put 240px between "Games" and
+            "Unlocks", which reads as five unrelated facts instead of one
+            year's summary. */}
+        <dl className="grid max-w-3xl grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-5">
           <YearFigure label="Active days" value={totals.activeDays} accent index={0} />
           <YearFigure label="Games" value={totals.games} index={1} />
           <YearFigure
@@ -83,15 +87,25 @@ export function TimelineYear({
         </dl>
       </div>
 
-      {/* Horizontal scroll rather than shrinking cells: a squashed year is
-          unreadable, and the page itself must never scroll sideways. */}
+      {/* The year fills the width it is given, down to a floor at which the
+          card scrolls sideways instead.
+
+          This used to be `min-w-max` around fixed 11px cells, which answered
+          the narrow case — a squashed year is unreadable — and ignored the
+          wide one. On a desktop the grid stopped at its natural 740px and left
+          a third of the card empty, so the densest thing on the page was also
+          the smallest. Cells now stretch to about 20px there.
+
+          The floor is 48rem because that is the width at which a cell is back
+          to the 11px it always was: a phone still scrolls, and scrolls through
+          exactly the calendar it had before rather than a smaller one. */}
       <div className="card overflow-x-auto p-4">
-        <div className="min-w-max">
+        <div className="min-w-[48rem]">
           <div className="mb-1 flex gap-[3px] pl-8 text-[10px] text-ink-600">
             {weeks.map((_, column) => {
               const month = months.find((entry) => entry.column === column);
               return (
-                <span key={column} className="w-[11px] shrink-0">
+                <span key={column} className="min-w-0 flex-1 whitespace-nowrap">
                   {month ? month.label : ''}
                 </span>
               );
@@ -99,9 +113,11 @@ export function TimelineYear({
           </div>
 
           <div className="flex gap-[3px]">
-            <div className="mr-1 flex w-7 shrink-0 flex-col gap-[3px] text-[10px] leading-[11px] text-ink-600">
+            {/* Each label takes an equal share of the column's height rather
+                than a fixed 11px, so the rows stay aligned once the cells grow. */}
+            <div className="mr-1 flex w-7 shrink-0 flex-col gap-[3px] text-[10px] text-ink-600">
               {WEEKDAY_LABELS.map((label, index) => (
-                <span key={index} className="h-[11px]">
+                <span key={index} className="flex flex-1 items-center leading-none">
                   {label}
                 </span>
               ))}
@@ -110,11 +126,11 @@ export function TimelineYear({
             {weeks.map((week, column) => (
               <div
                 key={column}
-                className="anim-fade stagger flex flex-col gap-[3px]"
+                className="anim-fade stagger flex min-w-0 flex-1 flex-col gap-[3px]"
                 style={{ '--i': column, '--stagger-step': '8ms' } as CSSProperties}
               >
                 {week.map((key, row) => {
-                  if (!key) return <span key={row} className="size-[11px]" aria-hidden />;
+                  if (!key) return <span key={row} className="aspect-square w-full" aria-hidden />;
 
                   const day = byKey.get(key);
                   const level = intensityOf(day, busiestOverall);
@@ -138,15 +154,15 @@ export function TimelineYear({
                       aria-label={
                         day ? `${formatDate(dayKeyToDate(key))}, ${summarise(day)}` : undefined
                       }
-                      className={`size-[11px] rounded-[2px] transition-[background-color,transform,box-shadow] duration-150 ${
+                      className={`aspect-square w-full rounded-[2px] transition-[background-color,transform,box-shadow] duration-150 ${
                         INTENSITY_CLASSES[level]
                       } ${
                         day
-                          ? 'cursor-pointer hover:scale-150 hover:ring-1 hover:ring-ink-300'
+                          ? 'cursor-pointer hover:scale-125 hover:ring-1 hover:ring-ink-300'
                           : ''
                       } ${
                         isSelected
-                          ? 'scale-150 ring-2 ring-accent ring-offset-1 ring-offset-ink-900'
+                          ? 'scale-125 ring-2 ring-accent ring-offset-1 ring-offset-ink-900'
                           : ''
                       }`}
                     />

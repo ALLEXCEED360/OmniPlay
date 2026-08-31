@@ -25,8 +25,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <div className="flex min-h-dvh flex-col lg:flex-row">
       <Sidebar user={me.user} />
+      {/* The densest things here — a 53-week calendar, a six-column library,
+          a decade table — were being squeezed into 1152px while a desktop had
+          half again as much to give. Prose is held to its own measure where it
+          appears, so widening the shell costs nothing in readability. */}
       <main className="min-w-0 flex-1 px-4 py-6 sm:px-8 sm:py-10">
-        <div className="mx-auto max-w-6xl">{children}</div>
+        <div className="mx-auto max-w-7xl">{children}</div>
       </main>
     </div>
   );
