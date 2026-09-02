@@ -42,6 +42,62 @@ const tokenSchema = z.object({
   access_token: z.string().min(1),
 });
 
+/**
+ * Which OMNIPLAY account a Google profile should get you into.
+ *
+ * Pulled out of the service and made pure because this is the security
+ * boundary of the whole flow — it decides who ends up signed in as whom — and
+ * it needs to be examinable without a database, a Google client, or a browser
+ * round trip.
+ *
+ * The rule that matters: an address Google will not vouch for is not used for
+ * anything. Not to link, not to create. `email_verified` is true for ordinary
+ * Google accounts, so refusing the rest costs almost nobody anything, and
+ * accepting them would mean a person who can set an unverified address on a
+ * Google account can walk into the OMNIPLAY account that already holds it.
+ */
+export type GoogleAccountDecision =
+  | { action: 'sign-in'; }
+  | { action: 'link' }
+  | { action: 'create'; email: string }
+  | { action: 'refuse'; reason: string };
+
+export function decideGoogleAccount(input: {
+  email: string | undefined;
+  emailVerified: boolean | undefined;
+  /** Whether a UserIdentity already exists for this Google `sub`. */
+  identityExists: boolean;
+  /** Whether some OMNIPLAY account already holds this email address. */
+  emailBelongsToExistingUser: boolean;
+}): GoogleAccountDecision {
+  // Seen this Google account before. The address is irrelevant here — the
+  // `sub` is the identity, and it does not change when an address does.
+  if (input.identityExists) return { action: 'sign-in' };
+
+  const email = input.email?.trim().toLowerCase();
+
+  if (!email) {
+    // Every account here is keyed by email, and Google withholds it when the
+    // scope is declined. Nothing sensible can be built from that.
+    return {
+      action: 'refuse',
+      reason:
+        'Google did not share an email address, which OMNIPLAY needs to identify your account.',
+    };
+  }
+
+  if (!input.emailVerified) {
+    return {
+      action: 'refuse',
+      reason:
+        'Google has not verified that email address, so it cannot be used to sign in here. ' +
+        'Verify it with Google, or sign in with your password.',
+    };
+  }
+
+  return input.emailBelongsToExistingUser ? { action: 'link' } : { action: 'create', email };
+}
+
 @Injectable()
 export class GoogleAuthService {
   constructor(
@@ -175,52 +231,72 @@ export class GoogleAuthService {
    *    precisely so an account can exist that has never had one.
    */
   private async findOrCreate(profile: z.infer<typeof userInfoSchema>): Promise<User> {
+    const email = profile.email?.trim().toLowerCase();
+
     const existing = await this.prisma.client.userIdentity.findUnique({
       where: { provider_subject: { provider: 'google', subject: profile.sub } },
       include: { user: true },
     });
-    if (existing) {
-      await this.prisma.client.userIdentity.update({
-        where: { id: existing.id },
-        data: { lastUsedAt: new Date(), email: profile.email ?? null },
-      });
-      return existing.user;
-    }
 
-    const email = profile.email?.trim().toLowerCase();
-    if (email && profile.email_verified) {
-      const byEmail = await this.prisma.client.user.findUnique({ where: { email } });
-      if (byEmail) {
-        await this.prisma.client.userIdentity.create({
-          data: { userId: byEmail.id, provider: 'google', subject: profile.sub, email },
-        });
-        return byEmail;
-      }
-    }
+    // Only looked up when it could matter, and the answer is handed to the
+    // decision rather than the decision being spread across the lookups.
+    const emailBelongsToExistingUser =
+      !existing && email
+        ? (await this.prisma.client.user.findUnique({
+            where: { email },
+            select: { id: true },
+          })) !== null
+        : false;
 
-    if (!email) {
-      // Every account here is keyed by email. Google can withhold it if the
-      // scope was declined, and there is nothing sensible to do with that.
-      throw new BadRequestException(
-        'Google did not share an email address, which OMNIPLAY needs to create an account.',
-      );
-    }
-
-    const user = await this.prisma.client.user.create({
-      data: {
-        email,
-        username: await this.availableUsername(profile.name ?? email.split('@')[0] ?? 'player'),
-        displayName: profile.name ?? null,
-        avatar: profile.picture ?? null,
-        // No password, and none is invented. The account signs in with Google
-        // until its owner sets one through the reset flow.
-        passwordHash: null,
-        identities: {
-          create: { provider: 'google', subject: profile.sub, email },
-        },
-      },
+    const decision = decideGoogleAccount({
+      email,
+      emailVerified: profile.email_verified,
+      identityExists: existing !== null,
+      emailBelongsToExistingUser,
     });
-    return user;
+
+    switch (decision.action) {
+      case 'refuse':
+        throw new BadRequestException(decision.reason);
+
+      case 'sign-in': {
+        // `existing` is non-null whenever the decision is sign-in; this keeps
+        // that obvious to the type checker rather than asserting it.
+        if (!existing) throw new BadRequestException('Google sign-in failed.');
+        await this.prisma.client.userIdentity.update({
+          where: { id: existing.id },
+          data: { lastUsedAt: new Date(), email: email ?? null },
+        });
+        return existing.user;
+      }
+
+      case 'link': {
+        const user = await this.prisma.client.user.findUnique({ where: { email: email! } });
+        if (!user) throw new BadRequestException('Google sign-in failed.');
+        await this.prisma.client.userIdentity.create({
+          data: { userId: user.id, provider: 'google', subject: profile.sub, email: email! },
+        });
+        return user;
+      }
+
+      case 'create':
+        return this.prisma.client.user.create({
+          data: {
+            email: decision.email,
+            username: await this.availableUsername(
+              profile.name ?? decision.email.split('@')[0] ?? 'player',
+            ),
+            displayName: profile.name ?? null,
+            avatar: profile.picture ?? null,
+            // No password, and none is invented. The account signs in with
+            // Google until its owner sets one through the reset flow.
+            passwordHash: null,
+            identities: {
+              create: { provider: 'google', subject: profile.sub, email: decision.email },
+            },
+          },
+        });
+    }
   }
 
   /**

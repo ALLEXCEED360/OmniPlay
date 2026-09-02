@@ -8,6 +8,7 @@
     "dev": "concurrently -k -n tsc,api -c blue,green \"tsc -p tsconfig.json --watch --preserveWatchOutput\" \"node --watch --env-file-if-exists=../../.env dist/main.js\"",
     "start": "node --env-file-if-exists=../../.env dist/main.js",
     "password": "tsx --env-file-if-exists=../../.env src/dev/password.ts",
+    "mail:test": "tsx --env-file-if-exists=../../.env src/dev/mail-test.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run --passWithNoTests"
   },

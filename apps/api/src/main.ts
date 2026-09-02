@@ -42,6 +42,19 @@ async function bootstrap(): Promise<void> {
 
   // No global ValidationPipe: every handler validates through zodBody/zodQuery,
   // and Nest's pipe would pull in class-validator for nothing.
+
+  // Mail configuration that is half-done is worse than mail that is off,
+  // because it works exactly once — for whoever owns the Resend account — and
+  // then silently fails for every real user. Said at boot rather than left to
+  // be discovered by someone who never received their reset link.
+  if (config.RESEND_API_KEY && /onboarding@resend\.dev/i.test(config.MAIL_FROM)) {
+    logger.warn(
+      "MAIL_FROM is Resend's shared sender, which only delivers to the address that " +
+        'owns the Resend account. Password resets will fail for everyone else. ' +
+        'Verify a domain at resend.com/domains and set MAIL_FROM to an address on it.',
+    );
+  }
+
   app.enableShutdownHooks();
 
   await app.listen(config.PORT, '0.0.0.0');
