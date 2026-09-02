@@ -337,6 +337,56 @@ async function checkXbox(): Promise<void> {
 
 const ICONS: Record<Status, string> = { ok: '  OK  ', warn: ' WARN ', fail: ' FAIL ' };
 
+/**
+ * Sign-in routes beyond a password, and whether email can leave the building.
+ *
+ * Both are optional, so neither is a failure — but a half-configured mailer is
+ * worth a warning, because it succeeds exactly once (for whoever owns the
+ * Resend account) and then silently fails for every other user.
+ */
+function checkAuthExtras(): void {
+  const googleId = process.env.GOOGLE_CLIENT_ID;
+  const googleSecret = process.env.GOOGLE_CLIENT_SECRET;
+
+  if (!googleId || !googleSecret) {
+    record({
+      name: 'Google sign-in',
+      status: 'warn',
+      detail: 'Not configured. Password sign-in still works; the Google button is hidden.',
+      fix: 'Create an OAuth client at console.cloud.google.com and set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET',
+    });
+  } else {
+    record({ name: 'Google sign-in', status: 'ok', detail: 'Configured.' });
+  }
+
+  const resend = process.env.RESEND_API_KEY;
+  const from = process.env.MAIL_FROM ?? 'OMNIPLAY <onboarding@resend.dev>';
+
+  if (!resend) {
+    record({
+      name: 'Email (Resend)',
+      status: 'warn',
+      detail: 'Not configured. Password-reset links are written to the API log instead of sent.',
+      fix: 'Create a key at resend.com and set RESEND_API_KEY',
+    });
+    return;
+  }
+
+  if (/onboarding@resend\.dev/i.test(from)) {
+    record({
+      name: 'Email (Resend)',
+      status: 'warn',
+      detail:
+        'Using the shared sender, which only delivers to the address that owns the Resend account. ' +
+        'Password resets will fail for everyone else.',
+      fix: 'Verify a domain at resend.com/domains and set MAIL_FROM to an address on it',
+    });
+    return;
+  }
+
+  record({ name: 'Email (Resend)', status: 'ok', detail: `Sending as ${from}.` });
+}
+
 async function main(): Promise<void> {
   console.log('\nOMNIPLAY setup check\n' + '='.repeat(60));
 
@@ -347,6 +397,7 @@ async function main(): Promise<void> {
   await checkXbox();
   await checkPsn();
   await checkIgdb();
+  checkAuthExtras();
 
   console.log();
   for (const check of checks) {

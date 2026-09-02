@@ -64,6 +64,11 @@ pnpm --filter @omniplay/web dev
 Open <http://localhost:3000>, create an account, and connect a provider from
 Settings.
 
+Everything else in `.env` is optional and named in `.env.example`: provider
+credentials, IGDB metadata, Google sign-in, and a Resend key for password-reset
+email. `pnpm doctor` reports which are set and what each missing one costs
+you.
+
 ### Seeing your real library
 
 **Nothing appears until you connect a real account.** Settings lists every
@@ -156,11 +161,79 @@ seen in practice:
   changes nothing until `pnpm --filter @omniplay/providers build` runs. The
   `dev` scripts watch their own app, not their dependencies.
 
+**A change to `.env` seems to be ignored.** The API reads that file once, when
+the process starts — `node --watch` restarts it for compiled-output changes,
+not for `.env`. Restart the API after editing it. `pnpm doctor` reads `.env`
+directly, so it can disagree with a running process, which is itself the
+clue.
+
+**A sync is stuck on "running" and never finishes.** A worker killed mid-sync
+cannot come back to the job, and the `SyncJob` row is our own bookkeeping
+rather than BullMQ's, so nothing else settles it. The worker reconciles those
+at startup: anything still marked running two hours on is failed with
+`INTERRUPTED` and an explanation. The threshold is deliberately generous —
+these rows have no heartbeat, so a live-but-slow sweep and a dead worker look
+identical, and only one of those mistakes is recoverable.
+
 **PlayStation stops working after a couple of months.** The npsso is a browser
 session token, not an API key, and Sony expires it. `pnpm doctor` says so
 plainly. Sign in at playstation.com, reopen
 <https://ca.account.sony.com/api/v1/ssocookie>, and replace `PSN_NPSSO` in
 `.env`.
+
+## Accounts
+
+Sign in with a password or with Google. Neither is required to boot: password
+sign-in always works, and the Google button renders only when the instance has
+credentials for it — the sign-in page asks the API what it supports rather than
+assuming, so an unconfigured instance shows no button instead of one that dead
+ends.
+
+| | What you need | Without it |
+|---|---|---|
+| **Password** | Nothing | — |
+| **Google** | OAuth client from [Google Cloud](https://console.cloud.google.com) → `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`, with `<API_URL>/auth/google/callback` as an authorised redirect URI | Button is hidden |
+| **Email** *(password reset)* | [Resend](https://resend.com) key → `RESEND_API_KEY`, and `MAIL_FROM` on a domain you have verified | Reset links go to the API log, and the reset screen says so |
+
+Google accounts are matched on Google's `sub`, never on the email address: an
+address can be reassigned, and treating it as identity would hand the new owner
+someone else's account. An address Google will not vouch for
+(`email_verified: false`) is used for nothing — neither linking to an existing
+account nor opening a new one.
+
+### Password reset
+
+Reset links are single use, expire in an hour, and destroy every other session
+when consumed — if the reset happened because someone else had the password,
+leaving their session alive defeats the point. The endpoint answers identically
+whether or not the address has an account, so it cannot be used to test which
+emails are registered.
+
+**Mail is the part that needs attention.** Resend's default sender,
+`onboarding@resend.dev`, only delivers to the address that owns the Resend
+account, so the first test always works and every later one silently does not.
+Both `pnpm doctor` and the API's startup log warn about exactly that. Verify a
+domain and point `MAIL_FROM` at it to reach anyone else.
+
+Check the whole path in one command, rather than by triggering a reset and
+hoping:
+
+```bash
+pnpm --filter @omniplay/api mail:test you@example.com
+```
+
+It reads the same configuration the API does and interprets the failure —
+unverified domain, wrong key, rejected recipient — instead of printing a status
+code.
+
+There is also a local escape hatch for a password nobody can recover. It never
+stores or echoes what you type:
+
+```bash
+pnpm --filter @omniplay/api password set you@example.com
+```
+
+---
 
 ## Provider credentials
 
@@ -206,9 +279,10 @@ apps/
 packages/
   database/       Prisma schema + credential encryption
   types/          Provider contract, domain vocabulary, queue contract
-  providers/      Steam, Xbox, IGDB adapters + rate limiting/retry/circuit breaker
+  providers/      Steam, Xbox, PlayStation, IGDB adapters + rate limiting/retry/circuit breaker
   game-matching/  Title normalisation + 5-level canonical resolution
   statistics/     Playtime and library aggregation
+  config/         Shared TypeScript configuration
 ```
 
 ### Three ideas the rest follows from
@@ -374,13 +448,14 @@ pnpm --filter @omniplay/worker demo:enrich
 
 Implemented: canonical model, provider abstraction, Steam (OpenID + library +
 playtime + achievements), Xbox (full token chain, title history, achievements),
-PlayStation and manual entry via file import, IGDB metadata, entity resolution,
-sync pipeline with rate limiting and circuit breaking, dashboard, library, game
-pages, timeline, statistics, collections, public profiles, settings.
+PlayStation (live API via npsso, with file import as the fallback), manual
+entry via file import, IGDB metadata, entity resolution, sync pipeline with
+rate limiting and circuit breaking, dashboard, library, game pages, timeline,
+statistics, collections, public profiles, settings.
 
 Also implemented: IGDB metadata enrichment, the admin mapping queue, canonical
-game merging, duplicate detection, an achievements screen, and Xbox through
-either OpenXBL or a direct Azure registration.
+game merging, duplicate detection, an achievements screen, Xbox through either
+OpenXBL or a direct Azure registration, and the accounts layer below.
 
 ### A note on Xbox
 
@@ -409,10 +484,16 @@ Run a sync a few times to fill a library in; each pass covers the next several
 games and a re-sync of covered ones costs almost nothing.
 
 Not yet: Gaming Wrapped, additional platforms (Epic, GOG), achievement detail
-pages.
+pages, per-game notes (the table exists and the API returns it, but nothing
+writes one yet), and sign-in by phone — which needs a paid SMS provider and
+is a poor fit for a product already anchored on email and platform accounts.
 
-See [docs/feasibility.md](docs/feasibility.md) for what each platform will
-actually tell you, and what that means for the product promise.
+Two documents go deeper than this one:
+
+- [docs/architecture.md](docs/architecture.md) — the decisions that are hard to
+  infer from the code, and the reasoning behind them.
+- [docs/feasibility.md](docs/feasibility.md) — what each platform will actually
+  tell you, and what that means for the product promise.
 
 ## Windows note
 

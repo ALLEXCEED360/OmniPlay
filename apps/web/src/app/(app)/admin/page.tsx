@@ -206,7 +206,16 @@ export default async function AdminPage() {
                 </div>
                 {failure.error ? (
                   <p className="mt-1 text-xs text-ink-500">{failure.error}</p>
-                ) : null}
+                ) : (
+                  /* A failure with no reason renders as nothing at all, which
+                     leaves a row saying only "xbox FAILED" and no way to tell
+                     whether the reason is missing or nobody wrote one. Saying
+                     so is not much, but it is the difference between a gap you
+                     can see and a gap you cannot. */
+                  <p className="mt-1 text-xs italic text-ink-600">
+                    No reason was recorded for this failure.
+                  </p>
+                )}
                 <p className="mt-1 text-xs text-ink-600">{formatRelative(failure.createdAt)}</p>
               </div>
             ))}

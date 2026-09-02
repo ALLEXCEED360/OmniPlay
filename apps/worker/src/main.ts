@@ -13,6 +13,7 @@ import {
 } from '@omniplay/types';
 import { SyncRunner } from './ingest/sync-runner.js';
 import { enrichProvisionalGames } from './ingest/metadata-enrichment.js';
+import { reconcileInterruptedJobs } from './ingest/interrupted-jobs.js';
 
 /**
  * The sync worker.
@@ -192,6 +193,23 @@ worker.on('ready', () => {
   console.log(
     `OMNIPLAY worker ready. Providers: ${registry.ids.join(', ') || 'none configured'}`,
   );
+
+  // Anything left mid-flight by a previous process is settled here. A worker
+  // that died holding a job cannot come back to it, and the row saying
+  // otherwise is a claim the dashboard repeats.
+  void reconcileInterruptedJobs(prisma)
+    .then(({ reconciled }) => {
+      if (reconciled > 0) {
+        console.log(
+          `[sync] marked ${reconciled} interrupted job(s) as failed — ` +
+            'they were still recorded as running when this worker started.',
+        );
+      }
+    })
+    .catch((error: unknown) => {
+      // Startup housekeeping must never stop the worker from starting.
+      console.error('[sync] could not reconcile interrupted jobs:', error);
+    });
 });
 
 /** Drain in-flight jobs before exiting so a deploy does not lose work. */
