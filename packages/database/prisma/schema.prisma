@@ -266,6 +266,52 @@ model User {
   auditLogs   AuditLog[]
   imports     ImportBatch[]
   achievementSummaries GameAchievementSummary[]
+  passwordResets PasswordResetToken[]
+  identities  UserIdentity[]
+}
+
+/// A one-time link that lets someone who has lost their password set a new one.
+///
+/// Only the hash is stored, for the same reason sessions store only a hash: a
+/// database leak must not hand out live credentials. The row is kept after use
+/// rather than deleted, so a second click on the same link can be told apart
+/// from a link that never existed.
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// SHA-256 of the value in the emailed link. The raw token is never stored.
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  requestedIp String?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+/// A way of signing in that is not a password — currently Google.
+///
+/// Deliberately not ConnectedAccount, which answers "what do you play on".
+/// Conflating the two would mean disconnecting Steam could take your ability
+/// to sign in with it, and that linking Google would imply a games library.
+model UserIdentity {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// 'google' for now.
+  provider   String
+  /// The provider's stable identifier for the person. Google calls it `sub`,
+  /// and it is the only field that may be used for matching: an email address
+  /// can be reassigned, and a display name is not identity at all.
+  subject    String
+  email      String?
+  createdAt  DateTime @default(now())
+  lastUsedAt DateTime @default(now())
+
+  @@unique([provider, subject])
+  @@index([userId])
 }
 
 model Session {
@@ -330,7 +376,9 @@ model ProviderCredential {
 model OAuthState {
   id          String   @id @default(cuid())
   state       String   @unique
-  userId      String
+  /// Null for a sign-in, where there is no session yet to attach the result
+  /// to. Set when an existing user is connecting a gaming platform.
+  userId      String?
   provider    String
   verifier    String?
   redirectUri String

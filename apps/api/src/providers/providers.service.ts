@@ -131,6 +131,13 @@ export class ProvidersService {
       throw error;
     }
 
+    // OAuthState.userId is nullable because a *sign-in* has no session to
+    // attach to yet. Connecting a gaming platform always does, so a state row
+    // reaching here without one is not a flow that exists.
+    if (!stateRow.userId) {
+      throw new BadRequestException('This link is not a platform connection.');
+    }
+
     const account = await this.persistConnection(stateRow.userId, providerId, result);
 
     return { account, returnTo: stateRow.returnTo, userId: stateRow.userId };

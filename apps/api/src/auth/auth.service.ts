@@ -1,13 +1,38 @@
-import { ConflictException, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Inject,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { generateToken, hashToken } from '@omniplay/database';
 import type { User } from '@omniplay/database';
 import { slugify } from '@omniplay/game-matching';
 import { PrismaService } from '../common/prisma.service.js';
 import { CONFIG, type AppConfig } from '../common/config.js';
 import { hashPassword, verifyPassword } from './password.js';
+import { Mailer } from './mailer.js';
 
 /** How long a session cookie stays valid without re-authentication. */
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+
+/**
+ * How long a reset link works. Short, because it is a bearer credential
+ * sitting in an inbox, and anyone who can request one can request another.
+ */
+const RESET_TTL_MS = 60 * 60 * 1000;
+
+/**
+ * The shortest gap between reset emails for one address.
+ *
+ * The endpoint is unauthenticated and anyone can name any address, so without
+ * this an attacker can use it to flood someone's inbox. In memory, and so
+ * per-process: a multi-instance deployment should move this to Redis, which
+ * the stack already runs. Token guessing is not what this defends against —
+ * a 32-byte token is not guessable.
+ */
+const RESET_COOLDOWN_MS = 60 * 1000;
+const lastResetRequest = new Map<string, number>();
 
 export interface SessionContext {
   ip?: string | undefined;
@@ -19,6 +44,7 @@ export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     @Inject(CONFIG) private readonly config: AppConfig,
+    private readonly mailer: Mailer,
   ) {}
 
   async register(
@@ -83,6 +109,96 @@ export class AuthService {
     return { user, ...session };
   }
 
+  /**
+   * Begin a password reset.
+   *
+   * Answers the same way whether or not the address belongs to an account.
+   * The caller learns nothing: no status code, no timing worth measuring, no
+   * message. That is the whole design of this endpoint — a "no such user"
+   * response turns the reset form into a way to test which email addresses
+   * are registered here.
+   */
+  async requestPasswordReset(email: string, context: SessionContext = {}): Promise<void> {
+    const address = email.trim().toLowerCase();
+
+    const previous = lastResetRequest.get(address);
+    if (previous && Date.now() - previous < RESET_COOLDOWN_MS) return;
+    lastResetRequest.set(address, Date.now());
+
+    const user = await this.prisma.client.user.findUnique({
+      where: { email: address },
+      select: { id: true, email: true },
+    });
+    if (!user) return;
+
+    // Any link already outstanding stops working. Asking for a new one is the
+    // action of someone who does not have the old one.
+    await this.prisma.client.passwordResetToken.updateMany({
+      where: { userId: user.id, usedAt: null },
+      data: { usedAt: new Date() },
+    });
+
+    const token = generateToken(32);
+    const expiresAt = new Date(Date.now() + RESET_TTL_MS);
+
+    await this.prisma.client.passwordResetToken.create({
+      data: {
+        userId: user.id,
+        tokenHash: hashToken(token),
+        expiresAt,
+        requestedIp: context.ip ?? null,
+      },
+    });
+
+    await this.audit(user.id, 'user.password_reset_requested', context);
+    await this.mailer.sendPasswordReset(
+      user.email,
+      `${this.config.WEB_URL}/reset-password?token=${encodeURIComponent(token)}`,
+      expiresAt,
+    );
+  }
+
+  /**
+   * Finish a password reset.
+   *
+   * Every other session is destroyed on success. If the reset happened
+   * because someone else had the password, leaving their session alive would
+   * make the whole exercise pointless.
+   */
+  async resetPassword(
+    token: string,
+    password: string,
+    context: SessionContext = {},
+  ): Promise<{ user: User; token: string; expiresAt: Date }> {
+    const row = await this.prisma.client.passwordResetToken.findUnique({
+      where: { tokenHash: hashToken(token) },
+      include: { user: true },
+    });
+
+    // One message for every failure. Distinguishing "expired" from "already
+    // used" from "never existed" tells an attacker which tokens once existed.
+    const invalid = new BadRequestException(
+      'This reset link is no longer valid. Request a new one and try again.',
+    );
+    if (!row || row.usedAt !== null || row.expiresAt <= new Date()) throw invalid;
+
+    await this.prisma.client.$transaction([
+      this.prisma.client.passwordResetToken.update({
+        where: { id: row.id },
+        data: { usedAt: new Date() },
+      }),
+      this.prisma.client.user.update({
+        where: { id: row.userId },
+        data: { passwordHash: await hashPassword(password) },
+      }),
+      this.prisma.client.session.deleteMany({ where: { userId: row.userId } }),
+    ]);
+
+    await this.audit(row.userId, 'user.password_reset', context);
+    const session = await this.createSession(row.userId, context);
+    return { user: row.user, ...session };
+  }
+
   /** Resolves a cookie value to its user, or null if invalid/expired. */
   async resolveSession(token: string): Promise<User | null> {
     const session = await this.prisma.client.session.findUnique({
@@ -104,6 +220,28 @@ export class AuthService {
       .catch(() => {
         // Already gone: logging out twice is not an error worth surfacing.
       });
+  }
+
+  /**
+   * Start a session for a user who has already proved who they are by some
+   * route other than a password — currently Google.
+   */
+  async startSessionFor(
+    userId: string,
+    context: SessionContext = {},
+  ): Promise<{ token: string; expiresAt: Date }> {
+    await this.audit(userId, 'user.login.google', context);
+    return this.createSession(userId, context);
+  }
+
+  /** Whether a reset link can actually reach an inbox from this instance. */
+  get emailDelivery(): boolean {
+    return this.mailer.canDeliver;
+  }
+
+  /** Where the browser lives, for redirects out of API-side callbacks. */
+  webUrl(): string {
+    return this.config.WEB_URL;
   }
 
   private async createSession(

@@ -2,6 +2,8 @@ import { Global, Module } from '@nestjs/common';
 import { AuthService } from './auth.service.js';
 import { AuthController } from './auth.controller.js';
 import { SessionGuard } from './auth.guard.js';
+import { Mailer } from './mailer.js';
+import { GoogleAuthService } from './google.service.js';
 
 /**
  * Global, because SessionGuard is applied by controllers in every feature
@@ -12,7 +14,7 @@ import { SessionGuard } from './auth.guard.js';
 @Global()
 @Module({
   controllers: [AuthController],
-  providers: [AuthService, SessionGuard],
+  providers: [AuthService, SessionGuard, Mailer, GoogleAuthService],
   exports: [AuthService, SessionGuard],
 })
 export class AuthModule {}

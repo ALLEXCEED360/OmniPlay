@@ -44,6 +44,32 @@ const schema = z.object({
 
   IGDB_CLIENT_ID: z.string().optional(),
   IGDB_CLIENT_SECRET: z.string().optional(),
+
+  /**
+   * Google sign-in. Optional like every provider credential: absent, the
+   * button simply does not render and password sign-in is unaffected.
+   *
+   * Create these at console.cloud.google.com under APIs & Services →
+   * Credentials → OAuth client ID (type: Web application), with
+   * `<API_URL>/auth/google/callback` as an authorised redirect URI.
+   */
+  GOOGLE_CLIENT_ID: z.string().optional(),
+  GOOGLE_CLIENT_SECRET: z.string().optional(),
+
+  /**
+   * Outbound email, via Resend. Optional: without it the password-reset link
+   * is written to this log instead of sent, and the reset screen says so
+   * rather than promising an inbox.
+   */
+  RESEND_API_KEY: z.string().optional(),
+  /**
+   * The From address. Resend will only accept a domain you have verified,
+   * with one exception: `onboarding@resend.dev` is their shared sender and
+   * can only deliver to the address that owns the Resend account. That makes
+   * it fine for trying this out and useless for real users, which is why it
+   * is the default rather than something that looks production-ready.
+   */
+  MAIL_FROM: z.string().default('OMNIPLAY <onboarding@resend.dev>'),
 });
 
 export type AppConfig = z.infer<typeof schema> & {

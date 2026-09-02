@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Wordmark } from '@/components/wordmark';
+import { SignOut } from '@/components/sign-out';
 import type { CSSProperties } from 'react';
 import { useState } from 'react';
 
@@ -103,7 +104,22 @@ export function Sidebar({
       </div>
 
       {mobileOpen ? (
-        <div className="glass anim-rise border-t-0 px-4 py-3 lg:hidden">{nav}</div>
+        <div className="glass anim-rise border-t-0 px-4 py-3 lg:hidden">
+          {nav}
+          <div className="mt-2 border-t border-ink-850 pt-2">
+            <Link
+              href={`/u/${user.username}`}
+              onClick={() => setMobileOpen(false)}
+              className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-ink-400 transition-colors hover:bg-ink-850 hover:text-ink-200"
+            >
+              <span className="grid size-6 shrink-0 place-items-center rounded-full bg-gradient-to-br from-accent via-violet to-positive text-[10px] font-semibold text-ink-950">
+                {(user.displayName ?? user.username).slice(0, 2).toUpperCase()}
+              </span>
+              <span className="truncate">{user.displayName ?? user.username}</span>
+            </Link>
+            <SignOut />
+          </div>
+        </div>
       ) : null}
 
       {/* Desktop rail */}
@@ -114,15 +130,18 @@ export function Sidebar({
 
         <div className="mt-8 flex-1">{nav}</div>
 
-        <Link
-          href={`/u/${user.username}`}
-          className="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-ink-400 transition-colors hover:bg-ink-850 hover:text-ink-200"
-        >
-          <span className="grid size-8 shrink-0 place-items-center rounded-full bg-gradient-to-br from-accent via-violet to-positive text-xs font-semibold text-ink-950 transition-transform duration-200 group-hover:scale-105">
-            {(user.displayName ?? user.username).slice(0, 2).toUpperCase()}
-          </span>
-          <span className="truncate">{user.displayName ?? user.username}</span>
-        </Link>
+        <div className="border-t border-ink-850 pt-3">
+          <Link
+            href={`/u/${user.username}`}
+            className="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-ink-400 transition-colors hover:bg-ink-850 hover:text-ink-200"
+          >
+            <span className="grid size-8 shrink-0 place-items-center rounded-full bg-gradient-to-br from-accent via-violet to-positive text-xs font-semibold text-ink-950 transition-transform duration-200 group-hover:scale-105">
+              {(user.displayName ?? user.username).slice(0, 2).toUpperCase()}
+            </span>
+            <span className="truncate">{user.displayName ?? user.username}</span>
+          </Link>
+          <SignOut />
+        </div>
       </aside>
     </>
   );
