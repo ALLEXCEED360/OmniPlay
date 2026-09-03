@@ -40,12 +40,20 @@ export const igdbGameSchema = z.object({
   slug: z.string().optional(),
   /** See GAME_TYPES: 0 is a main game, 1 is DLC, 8/9 are remake/remaster. */
   game_type: z.number().optional(),
+  /**
+   * The entry this one derives from, for ports, remasters and the like.
+   *
+   * IGDB attaches critic scores to the parent, so a port carries none of its
+   * own — which is why famous games can arrive unrated. See PORT.
+   */
+  parent_game: z.number().optional(),
   summary: z.string().optional(),
   storyline: z.string().optional(),
   /** Unix seconds. */
   first_release_date: z.number().optional(),
   rating: z.number().optional(),
   aggregated_rating: z.number().optional(),
+  aggregated_rating_count: z.number().optional(),
   cover: z.object({ image_id: z.string() }).optional(),
   artworks: z.array(z.object({ image_id: z.string() })).optional(),
   genres: z.array(z.object({ name: z.string() })).optional(),
@@ -120,6 +128,32 @@ export const IGDB_EXTERNAL_CATEGORY = {
  * ReMIX. IGDB has all of them, every one typed 3.
  */
 export const LIBRARY_GAME_TYPES = [0, 3, 4, 8, 9, 10, 11] as const;
+
+/**
+ * A release of the same game on another platform.
+ *
+ * The only derived type whose parent's critic reception may be read as its
+ * own. A remaster (9) and an expanded game (10) are reviewed separately and
+ * often score differently — Metro 2033 and Metro 2033 Redux are not the same
+ * product — so those keep the blank they honestly have.
+ */
+export const PORT = 11;
+
+/**
+ * Entry types a storefront never sells you as the product.
+ *
+ * A mod and a fork are community derivatives, not releases. IGDB nonetheless
+ * carries store-id mappings that land on them, and one did: Battlefield 3
+ * resolved to a mod entry sharing the exact title, which has no critic score
+ * and no release of its own, while the real game sat one entry away with 85
+ * from ten reviews.
+ *
+ * Excluded at the store-id step specifically, because that step records its
+ * result as VERIFIED — the strongest confidence this system issues — and
+ * "IGDB said so" is not enough to justify that when what IGDB said is that
+ * your copy of Battlefield 3 is a mod.
+ */
+export const NON_RELEASE_GAME_TYPES = new Set([5, 12]);
 
 /**
  * Types an exact-name lookup will accept.
@@ -249,11 +283,13 @@ export class IgdbClient {
     'name',
     'slug',
     'game_type',
+    'parent_game',
     'summary',
     'storyline',
     'first_release_date',
     'rating',
     'aggregated_rating',
+    'aggregated_rating_count',
     'cover.image_id',
     'artworks.image_id',
     'genres.name',
@@ -358,4 +394,60 @@ export class IgdbClient {
     }
     return parsed.data;
   }
+}
+
+/**
+ * The critic score to record for a game, following one link if it has to.
+ *
+ * IGDB attaches critic reception to the parent entry, so a *port* carries none
+ * of its own. Left alone, that is why BioShock, Bayonetta and Batman: Arkham
+ * Origins all arrived looking unreviewed while their parents held 93, 91 and
+ * 71 — the score was never missing, it was one hop away.
+ *
+ * Ports only, and the restriction is the point. A remaster or an expanded game
+ * is reviewed on its own terms and often scores differently from the original;
+ * lending it the parent's number would state something false about how it was
+ * received. Those keep the blank they honestly have.
+ *
+ * Costs one extra request per port, and only when the port has no score of its
+ * own — so a re-run over an already-enriched library adds nothing.
+ */
+export interface CriticRating {
+  rating: number;
+  /** How many reviews stand behind it. Zero is possible and meaningful. */
+  count: number;
+}
+
+/**
+ * The critic score to record for a game, following one link if it has to.
+ *
+ * IGDB attaches critic reception to the parent entry, so a *port* carries none
+ * of its own. Left alone, that is why BioShock, Bayonetta and Batman: Arkham
+ * Origins all arrived looking unreviewed while their parents held 93, 91 and
+ * 71 — the score was never missing, it was one hop away.
+ *
+ * Ports only, and the restriction is the point. A remaster or an expanded game
+ * is reviewed on its own terms and often scores differently from the original;
+ * lending it the parent's number would state something false about how it was
+ * received. Those keep the blank they honestly have.
+ *
+ * The count travels with the rating because the rating alone is not enough to
+ * judge it by. IGDB will publish an aggregate of a single review, and a single
+ * review is an opinion rather than a consensus.
+ */
+export async function criticRatingFor(
+  client: Pick<IgdbClient, 'getGamesByIds'>,
+  game: IgdbGame,
+): Promise<CriticRating | undefined> {
+  if (game.aggregated_rating !== undefined) {
+    return { rating: game.aggregated_rating, count: game.aggregated_rating_count ?? 0 };
+  }
+  if (game.game_type !== PORT || game.parent_game === undefined) return undefined;
+
+  const [parent] = await client.getGamesByIds([game.parent_game]).catch(() => []);
+  if (parent?.aggregated_rating === undefined) return undefined;
+
+  // The parent's count, not the port's — the port has none, which is the
+  // whole reason we followed the link.
+  return { rating: parent.aggregated_rating, count: parent.aggregated_rating_count ?? 0 };
 }

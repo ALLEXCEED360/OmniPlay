@@ -38,7 +38,7 @@ export function StatCard({
 
   return (
     <div
-   className="card bloom anim-rise stagger group relative p-5"
+      className="card bloom anim-rise stagger group relative p-5"
       style={{ '--i': index, ...(bloom ? { '--bloom': bloom } : {}) } as CSSProperties}
     >
       {/* A hairline that lights up on hover. The card is not interactive, so

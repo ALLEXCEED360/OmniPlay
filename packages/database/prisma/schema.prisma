@@ -119,6 +119,13 @@ model Game {
   /// IGDB user rating, 0-100.
   rating           Float?
   aggregatedRating Float?
+  /// How many critics that aggregate rests on.
+  ///
+  /// IGDB publishes an "aggregate" from any number of reviews, including one.
+  /// Metro Exodus: Enhanced Edition scored 91.5 from two of them while the
+  /// broader critical consensus put it at 83 — so the number alone cannot be
+  /// shown without knowing what stands behind it.
+  criticRatingCount Int?
   genres           String[]  @default([])
   franchises       String[]  @default([])
   developers       String[]  @default([])

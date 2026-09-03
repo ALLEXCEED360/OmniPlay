@@ -268,7 +268,7 @@ function Stat({
   return (
     <div
       style={{ '--i': index } as CSSProperties}
-   className="card bloom anim-rise stagger p-5"
+      className="card bloom anim-rise stagger p-5"
     >
       <div className="eyebrow text-ink-500">{label}</div>
       <div className={`stat-figure mt-2 text-3xl ${accent ? 'text-accent' : 'text-ink-100'}`}>

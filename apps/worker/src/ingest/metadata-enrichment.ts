@@ -110,7 +110,7 @@ export async function enrichGame(
   });
 
   if (existing && existing.id !== gameId) {
-    await upsertCanonicalGameFromIgdb(prisma, best.game);
+    await upsertCanonicalGameFromIgdb(prisma, best.game, igdb);
     await mergeGames(prisma, { loserId: gameId, winnerId: existing.id });
     return {
       gameId,
@@ -121,7 +121,7 @@ export async function enrichGame(
     };
   }
 
-  await applyMetadata(prisma, gameId, best.game);
+  await applyMetadata(prisma, gameId, best.game, igdb);
   return { gameId, outcome: 'enriched', igdbId: best.game.id, score: best.score };
 }
 
@@ -218,11 +218,12 @@ async function applyMetadata(
   prisma: PrismaClient,
   gameId: string,
   igdbGame: IgdbGame,
+  igdb: IgdbClient,
 ): Promise<void> {
   // Updated in place rather than created-and-merged. The caller has already
   // established that no row holds this igdbId, and this row owns the slug that
   // existing links point at.
-  await applyIgdbMetadataToGame(prisma, gameId, igdbGame);
+  await applyIgdbMetadataToGame(prisma, gameId, igdbGame, igdb);
 }
 
 /** Records the attempt so a retry sweep does not keep re-querying the same misses. */

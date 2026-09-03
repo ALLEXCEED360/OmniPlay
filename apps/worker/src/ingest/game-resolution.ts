@@ -6,6 +6,9 @@ import {
   IGDB_EXTERNAL_CATEGORY,
   externalGameSource,
   igdbImageUrl,
+  criticRatingFor,
+  type CriticRating,
+  NON_RELEASE_GAME_TYPES,
   type IgdbClient,
   type IgdbGame,
 } from '@omniplay/providers';
@@ -72,9 +75,14 @@ export async function resolveExternalGame(
       .getGamesByExternalIds(category, [game.externalId])
       .catch(() => [] as IgdbGame[]);
 
-    const igdbGame = matches[0];
+    // A store id that maps to a mod or a fork is not evidence of what you
+    // own. Falling through to name matching is better than recording a
+    // community derivative as a VERIFIED identity.
+    const igdbGame = matches.find(
+      (match) => !NON_RELEASE_GAME_TYPES.has(match.game_type ?? 0),
+    );
     if (igdbGame) {
-      const gameId = await upsertCanonicalGameFromIgdb(deps.prisma, igdbGame);
+      const gameId = await upsertCanonicalGameFromIgdb(deps.prisma, igdbGame, deps.igdb);
       await ensureIdentity(deps.prisma, provider, game, gameId, 'igdb_external_id');
       return { gameId, confident: true, method: 'igdb_external_id' };
     }
@@ -112,8 +120,22 @@ async function ensureIdentity(
   });
 }
 
-/** The canonical column values IGDB supplies for a game. */
-function buildGameData(igdbGame: IgdbGame) {
+/**
+ * The canonical column values IGDB supplies for a game.
+ *
+ * `inheritedCriticRating` covers the case where the matched entry is a port.
+ * IGDB attaches critic scores to the parent entry, so a port carries none of
+ * its own and famous games arrive looking unreviewed — BioShock, Bayonetta and
+ * Batman: Arkham Origins were all showing no score while their parents held
+ * 93, 91 and 71.
+ *
+ * Only ports. A remaster or an expanded game is reviewed on its own terms and
+ * frequently scores differently from the original, so lending it the parent's
+ * number would state something false about how it was received. Those keep the
+ * blank they honestly have, which the library already renders as "Unrated"
+ * rather than as a zero.
+ */
+function buildGameData(igdbGame: IgdbGame, critic?: CriticRating | undefined) {
   const normalized = normalizeTitle(igdbGame.name);
   const developers =
     igdbGame.involved_companies?.filter((c) => c.developer).map((c) => c.company.name) ?? [];
@@ -133,7 +155,8 @@ function buildGameData(igdbGame: IgdbGame) {
       ? igdbImageUrl(igdbGame.artworks[0].image_id, '1080p')
       : null,
     rating: igdbGame.rating ?? null,
-    aggregatedRating: igdbGame.aggregated_rating ?? null,
+    aggregatedRating: critic?.rating ?? igdbGame.aggregated_rating ?? null,
+    criticRatingCount: critic?.count ?? igdbGame.aggregated_rating_count ?? null,
     genres: igdbGame.genres?.map((g) => g.name) ?? [],
     franchises: igdbGame.franchises?.map((f) => f.name) ?? [],
     developers,
@@ -148,8 +171,9 @@ function buildGameData(igdbGame: IgdbGame) {
 export async function upsertCanonicalGameFromIgdb(
   prisma: PrismaClient,
   igdbGame: IgdbGame,
+  igdb?: IgdbClient | undefined,
 ): Promise<string> {
-  const data = buildGameData(igdbGame);
+  const data = buildGameData(igdbGame, igdb ? await criticRatingFor(igdb, igdbGame) : undefined);
 
   const game = await prisma.game.upsert({
     where: { igdbId: igdbGame.id },
@@ -178,10 +202,12 @@ export async function applyIgdbMetadataToGame(
   prisma: PrismaClient,
   gameId: string,
   igdbGame: IgdbGame,
+  igdb?: IgdbClient | undefined,
 ): Promise<void> {
+  const inherited = igdb ? await criticRatingFor(igdb, igdbGame) : undefined;
   await prisma.game.update({
     where: { id: gameId },
-    data: { igdbId: igdbGame.id, ...buildGameData(igdbGame) },
+    data: { igdbId: igdbGame.id, ...buildGameData(igdbGame, inherited) },
   });
 
   await linkGameMetadata(prisma, gameId, igdbGame);

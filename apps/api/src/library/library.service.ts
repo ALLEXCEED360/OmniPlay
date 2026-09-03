@@ -365,6 +365,7 @@ export class LibraryService {
       // The listing showed a score the game page did not, which invites the
       // reader to wonder which of the two screens is wrong.
       criticRating: game.aggregatedRating,
+      criticRatingCount: game.criticRatingCount,
       genres: game.genres,
       franchises: game.franchises,
       developers: game.developers,
@@ -373,7 +374,14 @@ export class LibraryService {
       /** False when the user set the status themselves. */
       statusDerived: detailStatus.derived,
       userRating: game.statuses[0]?.rating ?? null,
-      notes: game.notes,
+      // Only what the page renders: userId and gameId are already implied by
+      // the request, and echoing them back is noise.
+      notes: game.notes.map((note) => ({
+        id: note.id,
+        body: note.body,
+        createdAt: note.createdAt,
+        updatedAt: note.updatedAt,
+      })),
       totalMinutes: playtime.byGame[game.id] ?? 0,
       playtimeByProvider: playtime.byProvider,
       /** What each platform can report about this game, and what we hold. */
@@ -613,6 +621,58 @@ export class LibraryService {
   }
 
   /**
+   * Notes are a journal, not a field.
+   *
+   * The model has no unique constraint on (user, game) and carries both
+   * createdAt and updatedAt, which is the shape of a log rather than a single
+   * text box — and a log is the right shape here. What you thought of a game
+   * in 2019 and what you think now are two facts, and flattening them into one
+   * editable string would lose the earlier one. It is also the only thing in
+   * this product that no platform can ever supply.
+   *
+   * Every write is scoped by userId as well as note id. A cuid is not
+   * guessable, but "not guessable" is not an authorisation check, and
+   * `updateMany`/`deleteMany` against both columns cannot be made to touch
+   * someone else's row even if one were guessed — and reports zero rather than
+   * revealing that the note exists.
+   */
+  async addNote(userId: string, slug: string, body: string) {
+    const game = await this.prisma.client.game.findUnique({
+      where: { slug },
+      select: { id: true },
+    });
+    if (!game) throw new NotFoundException('Game not found');
+
+    return this.prisma.client.userGameNote.create({
+      data: { userId, gameId: game.id, body: body.trim() },
+      select: { id: true, body: true, createdAt: true, updatedAt: true },
+    });
+  }
+
+  async editNote(userId: string, noteId: string, body: string) {
+    const { count } = await this.prisma.client.userGameNote.updateMany({
+      where: { id: noteId, userId },
+      data: { body: body.trim() },
+    });
+    // Not found and not yours are answered identically: the second must not be
+    // distinguishable, or the endpoint becomes a way to probe for note ids.
+    if (count === 0) throw new NotFoundException('Note not found');
+
+    return this.prisma.client.userGameNote.findUnique({
+      where: { id: noteId },
+      select: { id: true, body: true, createdAt: true, updatedAt: true },
+    });
+  }
+
+  async deleteNote(userId: string, noteId: string) {
+    const { count } = await this.prisma.client.userGameNote.deleteMany({
+      where: { id: noteId, userId },
+    });
+    if (count === 0) throw new NotFoundException('Note not found');
+    return { deleted: true };
+  }
+
+  /**
    * How many games each filter would bring back.
    *
    * Counted against the whole library rather than the current result set, so
@@ -748,6 +808,7 @@ export class LibraryService {
     coverImage: string | null;
     firstReleaseDate: Date | null;
     aggregatedRating: number | null;
+    criticRatingCount: number | null;
     genres: string[];
     ownerships: Array<{ provider: string; removedAt: Date | null }>;
     statuses: Array<{ status: string | null }>;
@@ -764,6 +825,9 @@ export class LibraryService {
       // ordered by a number the reader cannot see is indistinguishable from
       // an unordered one, which is most of why these sorts read as broken.
       criticRating: game.aggregatedRating,
+      // How many critics it rests on. IGDB publishes an aggregate of a single
+      // review, so the number alone cannot be judged without this.
+      criticRatingCount: game.criticRatingCount,
       lastPlayedAt: lastPlayedFrom(game.activities),
       genres: game.genres,
       // Ownership *and* activity: a game played on Xbox without an entitlement

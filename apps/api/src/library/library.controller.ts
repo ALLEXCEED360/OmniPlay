@@ -1,4 +1,15 @@
-import { Body, Controller, Get, Param, Put, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Put,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { z } from 'zod';
 import type { User } from '@omniplay/database';
 import { CurrentUser, SessionGuard } from '../auth/auth.guard.js';
@@ -36,6 +47,18 @@ const verdictSchema = z.object({
   rating: z.number().min(0).max(10).multipleOf(0.5).nullable().optional(),
 });
 
+/**
+ * A note's whole content. Capped because it is stored and re-rendered on every
+ * game page load, not because anyone has written 4,000 words about Bloodborne.
+ */
+const noteSchema = z.object({
+  body: z
+    .string()
+    .trim()
+    .min(1, 'Write something first.')
+    .max(4000, 'Notes are limited to 4000 characters.'),
+});
+
 @Controller('library')
 @UseGuards(SessionGuard)
 export class LibraryController {
@@ -49,6 +72,22 @@ export class LibraryController {
   @Get('game/:slug')
   detail(@CurrentUser() user: User, @Param('slug') slug: string) {
     return this.library.detail(user.id, slug);
+  }
+
+  @Post('game/:slug/notes')
+  addNote(@CurrentUser() user: User, @Param('slug') slug: string, @Body() body: unknown) {
+    return this.library.addNote(user.id, slug, zodBody(noteSchema, body).body);
+  }
+
+  /** Scoped by user in the query itself, not by a check the caller could skip. */
+  @Patch('notes/:id')
+  editNote(@CurrentUser() user: User, @Param('id') id: string, @Body() body: unknown) {
+    return this.library.editNote(user.id, id, zodBody(noteSchema, body).body);
+  }
+
+  @Delete('notes/:id')
+  deleteNote(@CurrentUser() user: User, @Param('id') id: string) {
+    return this.library.deleteNote(user.id, id);
   }
 
   /** The one route that writes a status; no sync job may ever touch it. */

@@ -4,6 +4,8 @@ import { formatDate, formatHours, STATUS_LABELS } from '@/lib/format';
 import { PlatformBadge, SectionHeading } from '@/components/ui';
 import { AddToCollection } from '@/components/add-to-collection';
 import { GameVerdict } from '@/components/game-verdict';
+import { GameNotes, type GameNote } from '@/components/game-notes';
+import { criticProvenance, isThinlyReviewed } from '@/lib/critic';
 import { PlatformReport, type PlatformReportRow } from '@/components/platform-report';
 import type { CSSProperties } from 'react';
 
@@ -26,6 +28,7 @@ interface GameDetail {
   rating: number | null;
   /** IGDB's aggregate of external critic scores, as shown in the library. */
   criticRating: number | null;
+  criticRatingCount: number | null;
   genres: string[];
   developers: string[];
   publishers: string[];
@@ -33,6 +36,7 @@ interface GameDetail {
   /** False when the user set the status themselves rather than it being inferred. */
   statusDerived: boolean;
   userRating: number | null;
+  notes: GameNote[];
   totalMinutes: number;
   playtimeByProvider: Record<string, number>;
   /** Why each provider shows the figure it does. */
@@ -136,18 +140,31 @@ export default async function GamePage({ params }: { params: Promise<{ slug: str
                   {STATUS_LABELS[game.status] ?? game.status}
                 </span>
 
+                {/* Shown here even when thinly reviewed, unlike in the
+                    library. One game has room to say what the number rests
+                    on; a shelf of two hundred covers does not. */}
                 {game.criticRating !== null ? (
                   <span
-                    title={`Critic score ${Math.round(game.criticRating)} of 100`}
-                    className={`stat-figure inline-flex h-6 items-center rounded-md px-1.5 text-xs font-semibold shadow-md shadow-black/50 ${
-                      game.criticRating >= 75
-                        ? 'bg-positive text-ink-950'
-                        : game.criticRating >= 50
-                          ? 'bg-warning text-ink-950'
-                          : 'bg-danger text-ink-950'
+                    title={criticProvenance(game.criticRating, game.criticRatingCount) ?? undefined}
+                    className={`stat-figure inline-flex h-6 items-center gap-1 rounded-md px-1.5 text-xs font-semibold shadow-md shadow-black/50 ${
+                      isThinlyReviewed(game.criticRating, game.criticRatingCount)
+                        ? 'bg-ink-800 text-ink-300 ring-1 ring-ink-700'
+                        : game.criticRating >= 75
+                          ? 'bg-positive text-ink-950'
+                          : game.criticRating >= 50
+                            ? 'bg-warning text-ink-950'
+                            : 'bg-danger text-ink-950'
                     }`}
                   >
                     {Math.round(game.criticRating)}
+                    {game.criticRatingCount !== null ? (
+                      <span className="font-normal opacity-70">
+                        ·{' '}
+                        {game.criticRatingCount === 1
+                          ? '1 review'
+                          : `${game.criticRatingCount} reviews`}
+                      </span>
+                    ) : null}
                   </span>
                 ) : null}
               </div>
@@ -199,7 +216,10 @@ export default async function GamePage({ params }: { params: Promise<{ slug: str
             status={game.status}
             derived={game.statusDerived}
             rating={game.userRating}
+            criticRating={game.criticRating}
           />
+
+          <GameNotes slug={game.slug} notes={game.notes ?? []} />
 
           <AddToCollection gameId={game.id} />
 
@@ -215,29 +235,47 @@ export default async function GamePage({ params }: { params: Promise<{ slug: str
             ) : null}
           </div>
 
-          {game.genres.length > 0 ? (
-            <div className="card p-5">
-              <SectionHeading>Genres</SectionHeading>
-              <div className="flex flex-wrap gap-2">
-                {game.genres.map((genre, index) => (
-                  <span
-                    key={genre}
-                    style={{ '--i': index, '--stagger-step': '55ms' } as CSSProperties}
-                    className="anim-pop stagger rounded-full border border-ink-800 px-2.5 py-1 text-xs text-ink-400 transition-colors hover:border-accent/40 hover:text-accent"
-                  >
-                    {genre}
-                  </span>
-                ))}
-              </div>
+          {/* One card, two lists. As separate boxes these were two panels
+              answering the same question — what kind of thing is this game —
+              and the second used a run-on string where the first used pills. */}
+          {game.genres.length > 0 || game.platforms.length > 0 ? (
+            <div className="card space-y-4 p-5">
+              {game.genres.length > 0 ? (
+                <div>
+                  <SectionHeading>Genres</SectionHeading>
+                  <div className="flex flex-wrap gap-2">
+                    {game.genres.map((genre, index) => (
+                      <span
+                        key={genre}
+                        style={{ '--i': index, '--stagger-step': '55ms' } as CSSProperties}
+                        className="anim-pop stagger rounded-full border border-ink-800 px-2.5 py-1 text-xs text-ink-400 transition-colors hover:border-accent/40 hover:text-accent"
+                      >
+                        {genre}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              {game.platforms.length > 0 ? (
+                <div>
+                  <SectionHeading>Available on</SectionHeading>
+                  <div className="flex flex-wrap gap-2">
+                    {game.platforms.map((platform, index) => (
+                      <span
+                        key={platform}
+                        style={{ '--i': index, '--stagger-step': '45ms' } as CSSProperties}
+                        className="anim-pop stagger rounded-full bg-ink-850 px-2.5 py-1 text-xs text-ink-400"
+                      >
+                        {platform}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
             </div>
           ) : null}
 
-          {game.platforms.length > 0 ? (
-            <div className="card p-5">
-              <SectionHeading>Available on</SectionHeading>
-              <p className="text-xs leading-relaxed text-ink-500">{game.platforms.join(' · ')}</p>
-            </div>
-          ) : null}
         </aside>
       </div>
     </article>

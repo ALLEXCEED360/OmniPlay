@@ -3,6 +3,7 @@ import type { CSSProperties } from 'react';
 import { formatHours, formatRelative } from '@/lib/format';
 import { PlatformBadge } from '@/components/ui';
 import { platformStyle, staggerStep } from '@/lib/platform';
+import { criticProvenance, isThinlyReviewed } from '@/lib/critic';
 
 /**
  * The library, as a poster wall or as a table.
@@ -32,6 +33,8 @@ export interface LibraryGame {
   status: string;
   totalMinutes: number;
   criticRating: number | null;
+  /** How many critics the score rests on; below four it is marked provisional. */
+  criticRatingCount: number | null;
   firstReleaseDate: string | null;
   lastPlayedAt: string | null;
   ownershipState?: 'OWNED' | 'PREVIOUSLY_OWNED' | 'UNKNOWN';
@@ -84,15 +87,47 @@ const MISSING: Record<LibrarySort, string> = {
   recent: 'Never dated',
 };
 
-function ScoreBadge({ score, large }: { score: number; large?: boolean }) {
+/**
+ * The colour a thinly-reviewed score wears.
+ *
+ * Dark ground with the band colour as text, rather than the solid fill a
+ * well-reviewed score gets. Still legible over any cover — that is why it
+ * carries its own background — but visibly a different kind of claim, which
+ * is the whole point: 92 from two reviews and 83 from twelve must not look
+ * alike, and hiding the first one outright turned out to be too blunt. Most of
+ * these numbers are close to right; a few are badly wrong; nothing about the
+ * number itself says which.
+ */
+function provisionalTone(score: number): string {
+  if (score >= 75) return 'text-positive ring-positive/40';
+  if (score >= 50) return 'text-warning ring-warning/40';
+  return 'text-danger ring-danger/40';
+}
+
+function ScoreBadge({
+  score,
+  count,
+  large,
+  provisional,
+}: {
+  score: number;
+  count: number | null;
+  large?: boolean;
+  provisional?: boolean;
+}) {
   return (
     <span
-      className={`stat-figure inline-flex items-center justify-center rounded-md font-semibold shadow-md shadow-black/50 ${scoreTone(score)} ${
-        large ? 'h-7 min-w-8 px-1.5 text-sm' : 'h-6 min-w-7 px-1.5 text-xs'
-      }`}
-      title={`Critic score ${Math.round(score)} of 100`}
+      className={`stat-figure inline-flex items-center justify-center rounded-md font-semibold shadow-md shadow-black/50 ${
+        provisional
+          ? `bg-ink-950/85 ring-1 backdrop-blur-sm ${provisionalTone(score)}`
+          : scoreTone(score)
+      } ${large ? 'h-7 min-w-8 px-1.5 text-sm' : 'h-6 min-w-7 px-1.5 text-xs'}`}
+      title={criticProvenance(score, count) ?? undefined}
     >
       {Math.round(score)}
+      {/* A dot rather than a word: the tooltip carries the explanation, and
+          the badge only has to say "treat this differently". */}
+      {provisional ? <span className="ml-0.5 opacity-60">·</span> : null}
     </span>
   );
 }
@@ -163,9 +198,20 @@ export function LibraryGrid({ games, sort }: { games: LibraryGame[]; sort: Libra
 
               {/* The critic score sits on the artwork permanently rather than
                   on hover: it is the one number people scan a shelf for. */}
+              {/* Only a score with enough reviews behind it. A badge has no
+                  room to say "but only two critics", and an unqualified 92
+                  sitting beside a well-reviewed 83 is worse than no badge. */}
+              {/* Every score we hold is shown; a thin one is marked rather
+                  than withheld. Withholding answered the "92 looks as solid as
+                  83" problem by removing information the reader wanted, and
+                  most of these numbers are roughly right. */}
               {game.criticRating !== null ? (
                 <span className="absolute left-2 top-2">
-                  <ScoreBadge score={game.criticRating} />
+                  <ScoreBadge
+                    score={game.criticRating}
+                    count={game.criticRatingCount}
+                    provisional={isThinlyReviewed(game.criticRating, game.criticRatingCount)}
+                  />
                 </span>
               ) : null}
 
@@ -320,7 +366,12 @@ export function LibraryList({ games, sort }: { games: LibraryGame[]; sort: Libra
 
               <td className="px-3 py-2 text-right">
                 {game.criticRating !== null ? (
-                  <ScoreBadge score={game.criticRating} large={sort === 'rating'} />
+                  <ScoreBadge
+                    score={game.criticRating}
+                    count={game.criticRatingCount}
+                    large={sort === 'rating'}
+                    provisional={isThinlyReviewed(game.criticRating, game.criticRatingCount)}
+                  />
                 ) : (
                   <span className="text-[11px] text-ink-600">—</span>
                 )}

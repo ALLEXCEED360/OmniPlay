@@ -16,6 +16,8 @@
     "connect:psn": "tsx --env-file-if-exists=../../.env src/dev/connect-psn.ts",
     "link:steam": "tsx --env-file-if-exists=../../.env src/dev/link-steam.ts",
     "sync": "tsx --env-file-if-exists=../../.env src/dev/sync-now.ts",
+    "remap:igdb": "tsx --env-file-if-exists=../../.env src/dev/remap-igdb.ts",
+    "backfill:critic": "tsx --env-file-if-exists=../../.env src/dev/backfill-critic.ts",
     "enrich": "tsx --env-file-if-exists=../../.env src/dev/enrich-now.ts",
     "sweep": "tsx --env-file-if-exists=../../.env src/dev/sweep-queue.ts",
     "probe:psn": "tsx --env-file-if-exists=../../.env src/dev/probe-psn.ts",

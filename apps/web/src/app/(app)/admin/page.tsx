@@ -46,7 +46,8 @@ interface ProvisionalGame {
 }
 
 interface DuplicateGroup {
-  normalizedName: string;
+  key: string;
+  evidence: string;
   games: Array<{ id: string; name: string }>;
 }
 

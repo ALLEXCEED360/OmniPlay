@@ -28,21 +28,33 @@ const STATUSES = ['PLAYING', 'COMPLETED', 'PAUSED', 'ABANDONED', 'REPLAYING', 'N
 /** Half-steps, matching the column's documented 0-10 range. */
 const SCORES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
+/** Your score bands the same way a critic score does, so the two read alike. */
+function scoreTone(value: number): string {
+  if (value >= 8) return 'bg-positive text-ink-950';
+  if (value >= 5) return 'bg-warning text-ink-950';
+  return 'bg-danger text-ink-950';
+}
+
 export function GameVerdict({
   slug,
   status,
   /** False when the user set this themselves rather than it being inferred. */
   derived,
   rating,
+  /** The critic aggregate, so your score can be shown against it. */
+  criticRating,
 }: {
   slug: string;
   status: string;
   derived: boolean;
   rating: number | null;
+  criticRating: number | null;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Preview on hover, so the bar answers before you commit to a number.
+  const [preview, setPreview] = useState<number | null>(null);
 
   // Held locally so the buttons answer immediately; the server's copy arrives
   // with the refresh. A control that waits for a round trip before showing
@@ -158,31 +170,57 @@ export function GameVerdict({
       </div>
 
       {/* Ten buttons rather than a slider: a slider invents precision it does
-          not have, and is hard to hit exactly on a phone. */}
-      <div className="mt-2 flex gap-1">
-        {SCORES.map((value) => (
-          <button
-            key={value}
-            type="button"
-            disabled={busy}
-            aria-pressed={score === value}
-            aria-label={`${value} out of 10`}
-            onClick={() => void save({ rating: score === value ? null : value })}
-            className={`stat-figure h-7 flex-1 rounded text-[11px] transition-all duration-150 disabled:opacity-60 ${
-              score !== null && value <= score
-                ? 'bg-accent text-ink-950'
-                : 'bg-ink-850 text-ink-500 hover:bg-ink-800 hover:text-ink-200'
-            }`}
-          >
-            {value}
-          </button>
-        ))}
+          not have, and is hard to hit exactly on a phone. The fill follows the
+          pointer before the click so the scale is legible without committing. */}
+      <div className="mt-2 flex gap-1" onMouseLeave={() => setPreview(null)}>
+        {SCORES.map((value) => {
+          // Named `pending` rather than `shown`: the outer `shown` is a status
+          // string, and having a number by the same name two scopes in is how
+          // a later edit reaches for the wrong one.
+          const pending = preview ?? score;
+          const filled = pending !== null && value <= pending;
+          const uncommitted = preview !== null && preview !== score;
+
+          return (
+            <button
+              key={value}
+              type="button"
+              disabled={busy}
+              aria-pressed={score === value}
+              aria-label={`${value} out of 10`}
+              onMouseEnter={() => setPreview(value)}
+              onFocus={() => setPreview(value)}
+              onBlur={() => setPreview(null)}
+              onClick={() => void save({ rating: score === value ? null : value })}
+              className={`stat-figure h-8 flex-1 rounded text-[11px] transition-all duration-150 disabled:opacity-60 ${
+                filled
+                  ? `${scoreTone(pending)} ${uncommitted ? 'opacity-70' : ''}`
+                  : 'bg-ink-850 text-ink-500 hover:bg-ink-800'
+              }`}
+            >
+              {value}
+            </button>
+          );
+        })}
       </div>
 
-      <p className="mt-2 text-[11px] text-ink-500">
-        {score !== null
-          ? `You rated this ${score} out of 10.`
-          : 'Yours alone — never mixed into the critic score.'}
+      {/* Your score beside theirs, never averaged into it. Two people can
+          disagree about a game and both be right, which is the reason for
+          keeping a personal score at all. */}
+      <p className="mt-2 text-[11px] leading-snug text-ink-500">
+        {score === null ? (
+          'Yours alone — never mixed into the critic score.'
+        ) : criticRating === null ? (
+          `You rated this ${score} out of 10.`
+        ) : (
+          <>
+            You rated this <span className="stat-figure text-ink-300">{score}/10</span>. Critics
+            said <span className="stat-figure text-ink-300">{Math.round(criticRating / 10)}/10</span>
+            {Math.abs(score - criticRating / 10) >= 2
+              ? ' — you disagree with them.'
+              : ' — close to your call.'}
+          </>
+        )}
       </p>
 
       {error ? <p className="anim-fade mt-3 text-xs text-danger">{error}</p> : null}

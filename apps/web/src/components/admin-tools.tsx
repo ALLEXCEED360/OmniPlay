@@ -223,7 +223,9 @@ export function EnrichButton({ gameId, label }: { gameId?: string; label?: strin
  * ------------------------------------------------------------------ */
 
 interface DuplicateGroup {
-  normalizedName: string;
+  key: string;
+  /** Why these were put in front of you — the reviewer's whole basis. */
+  evidence: string;
   games: Array<{ id: string; name: string }>;
 }
 
@@ -240,7 +242,7 @@ export function MergeDuplicates({ groups }: { groups: DuplicateGroup[] }) {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   async function merge(group: DuplicateGroup) {
-    const key = group.normalizedName;
+    const key = group.key;
     const winnerId = winner[key] ?? group.games[0]?.id;
     if (!winnerId) return;
 
@@ -274,11 +276,16 @@ export function MergeDuplicates({ groups }: { groups: DuplicateGroup[] }) {
   return (
     <div className="space-y-4">
       {groups.map((group) => {
-        const key = group.normalizedName;
+        const key = group.key;
         const selected = winner[key] ?? group.games[0]?.id;
 
         return (
           <div key={key} className="card p-5">
+            {/* The evidence leads, because the two kinds of candidate carry
+                very different confidence: an identical normalised title is
+                near-certain, while a shared achievement list is strong but
+                has WWE 2K16 and 2K17 in its tail. */}
+            <p className="mb-1 text-xs font-medium text-ink-300">{group.evidence}</p>
             <p className="mb-3 text-xs text-ink-500">
               Keep which one? The others are merged into it.
             </p>

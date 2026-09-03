@@ -207,6 +207,22 @@ export class AdminService {
    * original.
    */
   async duplicateGames() {
+    const [byTitle, byAchievements] = await Promise.all([
+      this.duplicatesByTitle(),
+      this.duplicatesByAchievements(),
+    ]);
+
+    // A pair already offered on its title is not offered twice.
+    const seen = new Set(byTitle.flatMap((group) => group.games.map((game) => game.id)));
+    const extra = byAchievements.filter(
+      (group) => !group.games.every((game) => seen.has(game.id)),
+    );
+
+    return [...byTitle, ...extra];
+  }
+
+  /** Rows whose normalised titles are identical. */
+  private async duplicatesByTitle() {
     const rows = await this.prisma.client.$queryRaw<
       Array<{ normalizedName: string; ids: string[]; names: string[] }>
     >`
@@ -222,8 +238,73 @@ export class AdminService {
     `;
 
     return rows.map((row) => ({
-      normalizedName: row.normalizedName,
+      key: `title:${row.normalizedName}`,
+      evidence: 'Identical normalised title',
       games: row.ids.map((id, index) => ({ id, name: row.names[index] ?? '' })),
+    }));
+  }
+
+  /**
+   * Rows that share most of their achievement names.
+   *
+   * Two different games do not ship the same trophy list. This catches what
+   * title matching cannot: "Devil May Cry 5" and "Devil May Cry 5 Series" —
+   * the same PS4 game under two SKUs — shared 52 of 54 trophies while their
+   * normalised titles differed by a word, so nothing grouped them and the
+   * duplicate sat in the library indefinitely.
+   *
+   * Every title-based heuristic tried on that pair was worse. Trigram
+   * similarity ranked "Mafia II: Definitive Edition" against "Mafia:
+   * Definitive Edition" higher than the real duplicate, because sequel
+   * numbering dominates the score. A prefix rule flagged "God of War" against
+   * "God of War Ragnarök". Achievement overlap has neither problem, because it
+   * looks at what the games *are* rather than what they are called.
+   *
+   * Ratio, never raw count: generic names like "Platinum" and "Welcome"
+   * recur across unrelated titles, and five shared names means nothing between
+   * two games with a hundred each.
+   *
+   * Still only a candidate list. WWE 2K16 and WWE 2K17 reuse 69% of their
+   * achievement names and are plainly different games, which is exactly why
+   * this proposes and never merges.
+   */
+  private async duplicatesByAchievements() {
+    const rows = await this.prisma.client.$queryRaw<
+      Array<{ ga: string; gb: string; na: string; nb: string; pct: number; shared: number }>
+    >`
+      WITH pair AS (
+        SELECT a."gameId" AS ga, b."gameId" AS gb, count(*)::int AS shared
+        FROM "Achievement" a
+        JOIN "Achievement" b
+          ON lower(btrim(a.name)) = lower(btrim(b.name)) AND a."gameId" < b."gameId"
+        GROUP BY a."gameId", b."gameId"
+      ),
+      sized AS (
+        SELECT p.*, ca.n AS na, cb.n AS nb
+        FROM pair p
+        JOIN (SELECT "gameId", count(*)::int n FROM "Achievement" GROUP BY "gameId") ca
+          ON ca."gameId" = p.ga
+        JOIN (SELECT "gameId", count(*)::int n FROM "Achievement" GROUP BY "gameId") cb
+          ON cb."gameId" = p.gb
+      )
+      SELECT s.ga, s.gb, ga_g.name AS na, gb_g.name AS nb, s.shared,
+             round((s.shared::numeric / least(s.na, s.nb)) * 100)::int AS pct
+      FROM sized s
+      JOIN "Game" ga_g ON ga_g.id = s.ga AND ga_g."mergedIntoId" IS NULL
+      JOIN "Game" gb_g ON gb_g.id = s.gb AND gb_g."mergedIntoId" IS NULL
+      WHERE (s.shared::numeric / least(s.na, s.nb)) >= 0.6
+        AND least(s.na, s.nb) >= 5
+      ORDER BY pct DESC
+      LIMIT 25
+    `;
+
+    return rows.map((row) => ({
+      key: `ach:${row.ga}:${row.gb}`,
+      evidence: `Share ${row.pct}% of their achievement names (${row.shared} in common)`,
+      games: [
+        { id: row.ga, name: row.na },
+        { id: row.gb, name: row.nb },
+      ],
     }));
   }
 
