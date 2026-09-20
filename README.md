@@ -315,6 +315,14 @@ Unsplash licence, in `public/backdrop/menu/`, named for the entry they belong
 to. Every page's rail has a "Main menu" link back. Opening the app in a tab
 that is already signed in goes to the menu directly.
 
+Leaving the title or the menu plays the curtain (`components/curtain.tsx`, in
+the root layout): three slanted slabs — paper, gold, ink — tear across the
+screen, the name of where you are going slams in while the ink holds, and the
+slabs leave the other way once the next screen has mounted and painted. It is
+the transition Metaphor: ReFantazio uses between its screens, and it is slow on
+purpose; a page that takes a moment to load arrives behind it rather than
+popping in half-built.
+
 Arrival animations (the wipe, headlines, sections revealing on scroll) are CSS,
 so they start the moment the HTML paints; `motion` is used only for what CSS
 cannot do — springs on hover, the menu cursor sliding between rows, the mobile

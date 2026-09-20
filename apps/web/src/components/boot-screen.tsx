@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { motion, useReducedMotion } from 'motion/react';
 import { useEffect, useState } from 'react';
 import { Backdrop } from '@/components/backdrop';
+import { CURTAIN_UP_MS, raiseCurtain } from '@/components/curtain';
 
 /**
  * The title screen.
@@ -68,9 +69,10 @@ export function BootScreen({
 
     const begin = () => {
       setLeaving(true);
-      // Fade to black, then go: the menu arrives out of the dark, which is
-      // the cut a game makes between title and menu.
-      window.setTimeout(() => router.push(next), reduced ? 0 : 380);
+      // The curtain comes down and stays down until the menu has mounted
+      // and painted, which is the cut a game makes between title and menu.
+      raiseCurtain('Menu');
+      window.setTimeout(() => router.push(next), reduced ? 0 : CURTAIN_UP_MS);
     };
     const onKey = (event: KeyboardEvent) => {
       if (event.metaKey || event.ctrlKey || event.altKey) return;
@@ -98,18 +100,12 @@ export function BootScreen({
       <Backdrop strength={1} veil={false} />
       <div className="pointer-events-none absolute inset-0 bg-ink-950/45" aria-hidden />
 
-      {/* Veil in, veil out. One element, driven by `leaving`, so the fade to
-          black on the way out is the exact reverse of the fade from black
-          on the way in. */}
+      {/* In from black; out is the curtain's job. */}
       <motion.div
         className="pointer-events-none absolute inset-0 z-30 bg-ink-950"
         initial={{ opacity: 1 }}
-        animate={{ opacity: leaving ? 1 : 0 }}
-        transition={
-          leaving
-            ? { duration: d(0.36), ease: 'easeIn' }
-            : { duration: d(1.1), delay: d(0.2), ease: 'easeOut' }
-        }
+        animate={{ opacity: 0 }}
+        transition={{ duration: d(1.1), delay: d(0.2), ease: 'easeOut' }}
       />
 
       {/* A dark pool behind the name so it reads over whatever the footage

@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Backdrop } from '@/components/backdrop';
 import { Wordmark } from '@/components/wordmark';
 import { requestSignOut } from '@/components/sign-out';
+import { CURTAIN_UP_MS, raiseCurtain } from '@/components/curtain';
 
 /**
  * The main menu: a hand of cards.
@@ -75,12 +76,15 @@ export function MainMenu({ entries, name }: { entries: MenuEntry[]; name: string
   }, [entries, router]);
 
   const leave = useCallback(
-    (go: () => void) => {
+    (go: () => void, word = '') => {
       if (leaving) return;
       setLeaving(true);
-      // Fold to black first, so the page arrives out of the dark rather
-      // than over a menu still on screen.
-      window.setTimeout(go, reduced ? 0 : 300);
+      // The curtain comes down over the menu carrying the name of where we
+      // are going, and stays down until the next screen has mounted and
+      // painted (see curtain.tsx); the chosen card dives forward under it
+      // while the rest fall away.
+      raiseCurtain(word);
+      window.setTimeout(go, reduced ? 0 : CURTAIN_UP_MS);
     },
     [leaving, reduced],
   );
@@ -90,7 +94,7 @@ export function MainMenu({ entries, name }: { entries: MenuEntry[]; name: string
       const entry = entries[index];
       if (!entry) return;
       setActive(index);
-      leave(() => router.push(entry.href));
+      leave(() => router.push(entry.href), entry.label);
     },
     [entries, leave, router],
   );
@@ -133,7 +137,7 @@ export function MainMenu({ entries, name }: { entries: MenuEntry[]; name: string
         case 'Escape':
         case 'Backspace':
           event.preventDefault();
-          leave(() => router.push('/boot'));
+          leave(() => router.push('/boot'), 'Title');
           break;
         case 'Home':
           setActive(0);
@@ -188,16 +192,12 @@ export function MainMenu({ entries, name }: { entries: MenuEntry[]; name: string
       />
       <div className="pointer-events-none absolute inset-0 halftone opacity-40" aria-hidden />
 
-      {/* In from black, out to black. */}
+      {/* In from black. Out is the curtain's job. */}
       <motion.div
         className="pointer-events-none absolute inset-0 z-40 bg-ink-950"
         initial={{ opacity: 1 }}
-        animate={{ opacity: leaving ? 1 : 0 }}
-        transition={
-          leaving
-            ? { duration: d(0.3), ease: 'easeIn' }
-            : { duration: d(0.7), delay: d(0.1), ease: 'easeOut' }
-        }
+        animate={{ opacity: 0 }}
+        transition={{ duration: d(0.7), delay: d(0.1), ease: 'easeOut' }}
       />
 
       <div className="relative z-10 flex h-full flex-col px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-5 sm:px-8 sm:pt-6 lg:px-12">
@@ -276,12 +276,24 @@ export function MainMenu({ entries, name }: { entries: MenuEntry[]; name: string
                 layout
                 transition={reduced ? { duration: 0 } : spring}
                 initial={reduced ? false : stacked ? { opacity: 0, x: -24 } : { opacity: 0, y: 48 }}
-                animate={{
-                  opacity: 1,
-                  x: 0,
-                  // The chosen card lifts; the others stay on the table.
-                  y: !stacked && isActive ? -14 : 0,
-                }}
+                animate={
+                  leaving
+                    ? // The dive: the chosen card comes forward, the rest
+                      // sink and fade, all under the falling curtain.
+                      {
+                        opacity: isActive ? 1 : 0,
+                        x: 0,
+                        y: isActive ? -40 : 24,
+                        scale: isActive ? 1.08 : 0.96,
+                      }
+                    : {
+                        opacity: 1,
+                        x: 0,
+                        // The chosen card lifts; the others stay on the table.
+                        y: !stacked && isActive ? -14 : 0,
+                        scale: 1,
+                      }
+                }
                 style={
                   stacked
                     ? { flex: '0 0 auto', height: isActive ? '13rem' : '3.25rem' }
