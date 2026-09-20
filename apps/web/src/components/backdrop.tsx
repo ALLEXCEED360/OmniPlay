@@ -28,12 +28,25 @@ export function Backdrop({
    * shell dims for panels of text, which those screens do not have.
    */
   veil = true,
+  /**
+   * Whether to grade the footage to one intensity. Art chosen per game
+   * arrives at every saturation and brightness there is — a neon key art
+   * and a night scene cannot both sit behind the same panels untouched.
+   * Grading pulls colour and light down to a band the panels were
+   * designed against, so every game's page reads as the same room.
+   */
+  grade = false,
 }: {
   src?: string;
   strength?: number;
   veil?: boolean;
+  grade?: boolean;
 }) {
   const isVideo = /\.(mp4|webm|mov)(\?|$)/i.test(src);
+  const style = {
+    opacity: strength,
+    filter: grade ? 'saturate(0.55) brightness(0.72) contrast(0.95)' : undefined,
+  };
 
   return (
     <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden" aria-hidden>
@@ -45,7 +58,7 @@ export function Backdrop({
           loop
           playsInline
           className="size-full object-cover"
-          style={{ opacity: strength }}
+          style={style}
         />
       ) : (
         // eslint-disable-next-line @next/next/no-img-element
@@ -53,7 +66,7 @@ export function Backdrop({
           src={src}
           alt=""
           className="size-full object-cover"
-          style={{ opacity: strength }}
+          style={style}
         />
       )}
 
@@ -63,9 +76,9 @@ export function Backdrop({
         <>
           <div className="absolute inset-0 bg-gradient-to-r from-ink-950 via-ink-950/55 to-ink-950/25" />
           <div className="absolute inset-0 bg-gradient-to-t from-ink-950/90 via-transparent to-ink-950/40" />
+          <div className="absolute inset-0 halftone opacity-50" />
         </>
       ) : null}
-      <div className="absolute inset-0 halftone opacity-50" />
     </div>
   );
 }

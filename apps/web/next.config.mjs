@@ -1,6 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // The dev-tools badge sat in the corner the page's own controls use.
+  devIndicators: false,
   images: {
     // Game artwork comes from provider and IGDB CDNs.
     remotePatterns: [

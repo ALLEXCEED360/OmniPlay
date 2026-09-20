@@ -28,6 +28,8 @@ export interface PlatformStyle {
   border: string;
   /** Value for `--bloom`, feeding the `bloom` surface utility. */
   bloom: string;
+  /** Solid border colour, for the hard edge of a panel that is this platform's. */
+  edge: string;
 }
 
 const STYLES: Record<string, PlatformStyle> = {
@@ -37,6 +39,7 @@ const STYLES: Record<string, PlatformStyle> = {
     ring: 'ring-psn/35',
     border: 'border-psn/30',
     bloom: 'var(--color-psn)',
+    edge: 'border-psn',
   },
   xbox: {
     bar: 'bg-xbox',
@@ -44,6 +47,7 @@ const STYLES: Record<string, PlatformStyle> = {
     ring: 'ring-xbox/35',
     border: 'border-xbox/30',
     bloom: 'var(--color-xbox)',
+    edge: 'border-xbox',
   },
   steam: {
     bar: 'bg-steam',
@@ -51,6 +55,7 @@ const STYLES: Record<string, PlatformStyle> = {
     ring: 'ring-steam/35',
     border: 'border-steam/30',
     bloom: 'var(--color-steam)',
+    edge: 'border-steam',
   },
 };
 
@@ -60,6 +65,7 @@ const NEUTRAL: PlatformStyle = {
   ring: 'ring-ink-700',
   border: 'border-ink-700',
   bloom: 'var(--color-ink-500)',
+  edge: 'border-ink-500',
 };
 
 /** The style for a provider id, falling back to neutral for anything new. */

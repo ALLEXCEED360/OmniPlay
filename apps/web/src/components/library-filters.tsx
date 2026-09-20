@@ -1,6 +1,7 @@
 'use client';
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { LIBRARY_RETURN_KEY } from './back-to-library';
 import { useCallback, useEffect, useRef, useState, useTransition } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { platformStyle } from '@/lib/platform';
@@ -101,6 +102,17 @@ export function LibraryFilters({ facets }: { facets: LibraryFacets }) {
     const timer = setTimeout(() => update('search', search || null), 300);
     return () => clearTimeout(timer);
   }, [search, searchParams, update]);
+
+  // Remember the shelf as it stands, so a game page's "Library" button can
+  // bring you back to the same filters, sort and page. See LIBRARY_RETURN_KEY.
+  useEffect(() => {
+    const query = searchParams.toString();
+    try {
+      sessionStorage.setItem(LIBRARY_RETURN_KEY, query ? `${pathname}?${query}` : pathname);
+    } catch {
+      // Storage may be blocked; the button then goes to the shelf fresh.
+    }
+  }, [pathname, searchParams]);
 
   // "/" jumps to the search box from anywhere on the page, the way it does
   // on every site a player already uses.
