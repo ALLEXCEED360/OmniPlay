@@ -1,5 +1,6 @@
-import { formatDate, formatHours, providerLabel } from '@/lib/format';
+import { formatDate, formatHours } from '@/lib/format';
 import { platformStyle } from '@/lib/platform';
+import { PlatformPanel } from '@/components/platform-panel';
 import type { CSSProperties } from 'react';
 
 /**
@@ -175,74 +176,53 @@ export function PlatformReport({ rows }: { rows: PlatformReportRow[] }) {
         ];
 
         const style = platformStyle(row.provider);
-        const label = providerLabel(row.provider);
 
-        /* Each card is unmistakably its platform's: a hard edge and a
-           header band in the platform's colour, the platform's name
-           ghosted huge across the card in outline, and the hours — the
-           figure a player looks for first — set large in that colour. */
+        /* Each card is unmistakably its platform's (see PlatformPanel),
+           with the hours — the figure a player looks for first — set large
+           in that colour. */
         return (
-          <div
+          <PlatformPanel
             key={row.provider}
-            style={{ '--i': index, '--bloom': style.bloom, '--stagger-step': '90ms' } as CSSProperties}
-            className={`card anim-rise stagger relative overflow-hidden border-l-4 [container-type:inline-size] ${style.edge}`}
+            provider={row.provider}
+            index={index}
+            aside={row.ownership?.removed ? 'Formerly' : undefined}
           >
-            {/* Behind the empty air beside the hours, never behind a row
-                it would have to be read through. */}
-            <div
-              className="display pointer-events-none absolute right-2 top-[3.1rem] select-none whitespace-nowrap text-[min(3.6rem,10cqw)] leading-none text-transparent opacity-35 [-webkit-text-stroke:1.5px_var(--bloom)]"
-              aria-hidden
-            >
-              {label}
-            </div>
-
-            <div className={`flex items-center justify-between gap-3 px-5 py-2.5 ${style.bar} text-ink-950`}>
-              <span className="font-display text-sm font-extrabold uppercase italic tracking-wider">{label}</span>
-              {row.ownership?.removed ? (
-                <span className="font-display text-[11px] font-semibold uppercase tracking-wider opacity-70">
-                  Formerly
-                </span>
+            <div className="mb-4 flex items-end justify-between gap-4">
+              <div>
+                <div className="eyebrow text-ink-500">Playtime</div>
+                <div className={`display mt-1 text-[2.4rem] leading-none ${hours.known ? style.text : 'text-ink-600'}`}>
+                  {hours.value}
+                </div>
+              </div>
+              {hours.note ? (
+                <p className="relative max-w-[16ch] text-right text-[11px] leading-snug text-ink-400">{hours.note}</p>
               ) : null}
             </div>
 
-            <div className="relative px-5 pb-5 pt-4">
-              <div className="mb-4 flex items-end justify-between gap-4">
-                <div>
-                  <div className="eyebrow text-ink-500">Playtime</div>
-                  <div className={`display mt-1 text-[2.4rem] leading-none ${hours.known ? style.text : 'text-ink-600'}`}>
-                    {hours.value}
+            <dl className="space-y-2.5 border-t border-ink-800 pt-3">
+              {cells.map(([cellLabel, cell], cellIndex) => (
+                <div
+                  key={cellLabel}
+                  className="anim-fade stagger"
+                  style={{ '--i': index * 3 + cellIndex, '--stagger-step': '45ms' } as CSSProperties}
+                >
+                  <div className="flex items-baseline justify-between gap-3">
+                    <dt className="shrink-0 text-xs text-ink-500">{cellLabel}</dt>
+                    <dd
+                      className={`stat-figure truncate text-right text-sm ${
+                        cell.known ? 'text-ink-100' : 'text-ink-600'
+                      }`}
+                    >
+                      {cell.value}
+                    </dd>
                   </div>
+                  {cell.note ? (
+                    <p className="mt-0.5 text-right text-[11px] leading-snug text-ink-500">{cell.note}</p>
+                  ) : null}
                 </div>
-                {hours.note ? (
-                  <p className="relative max-w-[16ch] text-right text-[11px] leading-snug text-ink-400">{hours.note}</p>
-                ) : null}
-              </div>
-
-              <dl className="space-y-2.5 border-t border-ink-800 pt-3">
-                {cells.map(([cellLabel, cell], cellIndex) => (
-                  <div
-                    key={cellLabel}
-                    className="anim-fade stagger"
-                    style={{ '--i': index * 3 + cellIndex, '--stagger-step': '45ms' } as CSSProperties}
-                  >
-                    <div className="flex items-baseline justify-between gap-3">
-                      <dt className="shrink-0 text-xs text-ink-500">{cellLabel}</dt>
-                      <dd
-                        className={`stat-figure truncate text-right text-sm ${
-                          cell.known ? 'text-ink-100' : 'text-ink-600'
-                        }`}
-                      >
-                        {cell.value}
-                      </dd>
-                    </div>
-                    {cell.note ? (
-                      <p className="mt-0.5 text-right text-[11px] leading-snug text-ink-500">{cell.note}</p>
-                    ) : null}
-                  </div>
-                ))}
-              </dl>
-            </div>
-          </div>
+              ))}
+            </dl>
+          </PlatformPanel>
         );
       })}
     </div>

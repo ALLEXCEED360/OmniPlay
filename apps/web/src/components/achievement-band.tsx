@@ -52,10 +52,14 @@ export function AchievementBand({
 
   return (
     <div>
-      <div className="mb-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <h3 className="text-sm font-medium text-ink-200">{label}</h3>
-        <span className="stat-figure text-xs text-ink-600">{games.length}</span>
-        <span className="text-xs text-ink-600">{hint}</span>
+      {/* The band's name as a paper tag, its count on it in gold, the way a
+          menu heading in a game sits on a slanted plate. */}
+      <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+        <h3 className="paper slant inline-flex items-baseline gap-2 px-4 py-1 font-display text-sm font-extrabold uppercase italic tracking-wider text-ink-950">
+          {label}
+          <span className="text-accent-strong">{games.length}</span>
+        </h3>
+        <span className="text-xs text-ink-500">{hint}</span>
 
         <span className="ml-auto flex items-center gap-3">
           {tallies.map((tally) => (
