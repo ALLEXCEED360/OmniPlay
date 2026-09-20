@@ -306,15 +306,14 @@ artwork for as long as it is open.
 
 The app opens the way a game does. Signing in — by password, Google, or a
 password reset — lands on a title screen (`/boot`): the name and "press any
-key". That leads to the main menu (`/menu`): a shelf of game cases, spines
-out with the titles running vertically, the chosen one pulled forward into a
-window on the art with its title and a line about what it opens. Arrow keys,
-number keys `1`–`9`, mouse or touch move along the shelf; `Esc` returns to the
-title; sign out is in the corner. Each case carries its own art — nine
-Unsplash photographs under the Unsplash licence, in `public/backdrop/menu/`,
-named for the entry they belong to. Every page's rail has a "Main menu" link
-back. Opening the app in a tab that is already signed in goes to the menu
-directly.
+key". That leads to the main menu (`/menu`): a hand of nine tall cards across
+the screen, each with its own art and name, the one in focus grown to twice
+the width with a gold frame, its line and an Open button. Arrow keys, `1`–`9`,
+mouse or touch move the focus; `Esc` returns to the title; sign out is in the
+corner. Each mode has its own art — nine Unsplash photographs under the
+Unsplash licence, in `public/backdrop/menu/`, named for the entry they belong
+to. Every page's rail has a "Main menu" link back. Opening the app in a tab
+that is already signed in goes to the menu directly.
 
 Arrival animations (the wipe, headlines, sections revealing on scroll) are CSS,
 so they start the moment the HTML paints; `motion` is used only for what CSS

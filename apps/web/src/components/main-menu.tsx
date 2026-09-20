@@ -8,26 +8,29 @@ import { Wordmark } from '@/components/wordmark';
 import { requestSignOut } from '@/components/sign-out';
 
 /**
- * The main menu: a shelf of game cases.
+ * The main menu: a hand of cards.
  *
- * The one object every player already reads by reflex is a row of cases
- * on a shelf — spines out, titles running vertically, and the one you are
- * interested in pulled forward to face you. That is this menu. Nine spines
- * fill the width of the screen, each with its own art showing dimly
- * through; the chosen one opens to show that art in full, with its title
- * and a line about what it is. Move along the shelf and the cases slide to
- * make room.
+ * Nine tall cards in a row, each carrying its own art and its name, the
+ * whole hand filling the width of the screen. The card in focus grows to
+ * about twice the width of the others and lifts, takes a gold frame, its
+ * art comes up to full colour, and it shows what it opens and the way in. The rest stay
+ * readable — name at the foot, number at the head — so the whole menu is
+ * legible at a glance and the chosen card is simply the biggest thing on
+ * the screen.
  *
- * It is a shelf because this is a product about a library. The title
- * screen is the game's title; this is its shelf; the pages are the cases.
+ * It replaced a shelf of spines. Spines had to be read sideways and went
+ * to slivers when one was pulled; cards keep every name upright and every
+ * picture visible whatever is chosen, which is what made the shelf feel
+ * busy and this feel calm. No lean on the cards either: the system's slant
+ * is in the type and the cut corners, and nine leaning pictures side by
+ * side were one slant too many.
  *
- * Keys: ←/→ (or ↑/↓, A/D, W/S) move along the shelf, 1–9 jump, Enter opens,
- * Esc returns to the title. A mouse moving over a spine pulls that case;
- * on touch, the first tap pulls it and a second opens it. Everything is
+ * Keys: ←/→ (or A/D) move along the hand, 1–9 jump, Enter opens, Esc
+ * returns to the title. A mouse moving over a card focuses it and a click
+ * opens it; on touch a first tap focuses and a second opens. Everything is
  * prefetched on mount so opening is a cut, not a wait.
  *
- * On a phone the shelf turns upright — spines become rows, the chosen row
- * opens downward — and reads as the same object.
+ * On a phone the hand stacks: cards become rows, the chosen row opens.
  */
 
 export interface MenuEntry {
@@ -36,12 +39,12 @@ export interface MenuEntry {
   /** One line, in the voice of the page it opens. */
   description: string;
   href: string;
-  /** The case art: a portrait crop, shown dim on the spine and full on the face. */
+  /** The card's art, a portrait crop. */
   image: string;
 }
 
 const ease = [0.16, 1, 0.3, 1] as const;
-const spring = { type: 'spring', stiffness: 380, damping: 40, mass: 0.9 } as const;
+const spring = { type: 'spring', stiffness: 360, damping: 38, mass: 0.9 } as const;
 
 function useMedia(query: string): boolean {
   const [matches, setMatches] = useState(false);
@@ -58,13 +61,14 @@ function useMedia(query: string): boolean {
 export function MainMenu({ entries, name }: { entries: MenuEntry[]; name: string }) {
   const router = useRouter();
   const reduced = useReducedMotion();
-  const upright = useMedia('(max-width: 760px)');
+  const stacked = useMedia('(max-width: 760px)');
   const isTouch = useMedia('(pointer: coarse)');
 
   const [active, setActive] = useState(0);
   const [leaving, setLeaving] = useState(false);
 
   const d = (seconds: number) => (reduced ? 0 : seconds);
+  const count = entries.length;
 
   useEffect(() => {
     for (const entry of entries) router.prefetch(entry.href);
@@ -75,7 +79,7 @@ export function MainMenu({ entries, name }: { entries: MenuEntry[]; name: string
       if (leaving) return;
       setLeaving(true);
       // Fold to black first, so the page arrives out of the dark rather
-      // than over a shelf still on screen.
+      // than over a menu still on screen.
       window.setTimeout(go, reduced ? 0 : 300);
     },
     [leaving, reduced],
@@ -102,7 +106,6 @@ export function MainMenu({ entries, name }: { entries: MenuEntry[]; name: string
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.metaKey || event.ctrlKey || event.altKey || leaving) return;
-      const count = entries.length;
       switch (event.key) {
         case 'ArrowRight':
         case 'ArrowDown':
@@ -147,19 +150,43 @@ export function MainMenu({ entries, name }: { entries: MenuEntry[]; name: string
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [active, entries.length, leave, leaving, open, router]);
+  }, [active, count, leave, leaving, open, router]);
 
   const current = entries[active] ?? entries[0]!;
 
   return (
     <div className="fixed inset-0 select-none overflow-hidden">
       <Backdrop strength={1} veil={false} />
-      {/* Dimmed at the top and foot for the chrome; the middle band, where
-          the shelf is, is left to the cases. */}
+      {/* The room takes the colour of the chosen card: its art, blown up
+          and blurred to a wash, cross-fades over the city as the focus
+          moves. This is what makes a choice feel like it reaches past the
+          card — the screen answers, not just the frame. */}
+      <AnimatePresence initial={false}>
+        <motion.div
+          key={current.id}
+          className="pointer-events-none absolute -inset-[10%]"
+          initial={reduced ? false : { opacity: 0 }}
+          animate={{ opacity: 0.55 }}
+          exit={{ opacity: 0, transition: { duration: d(0.6) } }}
+          transition={{ duration: d(0.8), ease }}
+          aria-hidden
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={current.image}
+            alt=""
+            draggable={false}
+            className="size-full object-cover blur-3xl saturate-150"
+          />
+        </motion.div>
+      </AnimatePresence>
+      {/* Dimmed enough that the cards carry the colour, and hard at the
+          head and foot for the chrome. */}
       <div
-        className="pointer-events-none absolute inset-0 bg-gradient-to-b from-ink-950/90 via-ink-950/20 to-ink-950/95"
+        className="pointer-events-none absolute inset-0 bg-gradient-to-b from-ink-950/95 via-ink-950/60 to-ink-950/95"
         aria-hidden
       />
+      <div className="pointer-events-none absolute inset-0 halftone opacity-40" aria-hidden />
 
       {/* In from black, out to black. */}
       <motion.div
@@ -173,7 +200,7 @@ export function MainMenu({ entries, name }: { entries: MenuEntry[]; name: string
         }
       />
 
-      <div className="relative z-10 flex h-full flex-col px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-5 sm:px-8 sm:pt-6">
+      <div className="relative z-10 flex h-full flex-col px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-5 sm:px-8 sm:pt-6 lg:px-12">
         <header className="flex items-center justify-between">
           <motion.div
             initial={reduced ? false : { opacity: 0, x: -12 }}
@@ -182,149 +209,211 @@ export function MainMenu({ entries, name }: { entries: MenuEntry[]; name: string
           >
             <Wordmark asLink={false} />
           </motion.div>
-          <motion.p
-            className="stat-figure text-[11px] text-ink-500"
-            initial={reduced ? false : { opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: d(0.5), delay: d(0.5) }}
+          <motion.div
+            className="flex items-center gap-3"
+            initial={reduced ? false : { opacity: 0, x: 12 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: d(0.5), delay: d(0.3), ease }}
           >
-            Signed in as <span className="text-ink-300">{name}</span>
-          </motion.p>
+            <span className="hidden font-display text-sm font-semibold uppercase tracking-wider text-ink-300 sm:block">
+              {name}
+            </span>
+            <span className="slant grid size-9 place-items-center bg-accent font-display text-sm font-bold italic text-ink-950">
+              {name.slice(0, 2).toUpperCase()}
+            </span>
+          </motion.div>
         </header>
 
-        {/* ── The shelf ─────────────────────────────────────────── */}
+        {/* ── The screen's own title, so the hand is dealt to someone ── */}
+        {!stacked ? (
+          <motion.div
+            className="mt-6 flex items-end justify-between gap-6 lg:mt-8"
+            initial={reduced ? false : { opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: d(0.5), delay: d(0.35), ease }}
+          >
+            <div>
+              <p className="eyebrow flex items-center gap-2.5 text-accent">
+                <span className="slash" aria-hidden />
+                Main menu
+              </p>
+              <h1 className="display mt-2 text-[clamp(2rem,3.6vw,3.5rem)] text-ink-100">
+                Welcome back, {name}
+              </h1>
+            </div>
+            {/* Where you are along the hand, in the same figures the
+                cards wear, so the two read as one system. */}
+            <AnimatePresence mode="popLayout" initial={false}>
+              <motion.p
+                key={current.id}
+                className="display text-[clamp(2.5rem,5vw,5rem)] leading-none text-ink-100/15"
+                initial={reduced ? false : { opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, transition: { duration: d(0.1) } }}
+                transition={{ duration: d(0.25), ease }}
+                aria-hidden
+              >
+                {String(active + 1).padStart(2, '0')}
+                <span className="text-[0.5em]"> / {String(count).padStart(2, '0')}</span>
+              </motion.p>
+            </AnimatePresence>
+          </motion.div>
+        ) : null}
+
+        {/* ── The hand ───────────────────────────────────────────── */}
         <nav
           aria-label="Main menu"
-          className={`flex min-h-0 flex-1 py-4 sm:py-6 ${
-            upright ? 'flex-col gap-1.5' : 'flex-row items-stretch gap-2'
+          className={`flex min-h-0 flex-1 ${
+            stacked ? 'flex-col gap-1.5 overflow-y-auto py-4' : 'flex-row items-end gap-2.5 py-6 lg:gap-3'
           }`}
-          // Cases lean the way everything in this system leans. The inner
-          // faces are un-leaned so the type stays upright.
-          style={upright ? undefined : { transform: 'skewX(-6deg)' }}
         >
           {entries.map((entry, index) => {
             const isActive = index === active;
             const number = String(index + 1).padStart(2, '0');
             return (
-              <motion.button
+              <motion.div
                 key={entry.id}
-                type="button"
                 layout
                 transition={reduced ? { duration: 0 } : spring}
-                initial={
-                  reduced ? false : upright ? { opacity: 0, x: -24 } : { opacity: 0, y: 40 }
+                initial={reduced ? false : stacked ? { opacity: 0, x: -24 } : { opacity: 0, y: 48 }}
+                animate={{
+                  opacity: 1,
+                  x: 0,
+                  // The chosen card lifts; the others stay on the table.
+                  y: !stacked && isActive ? -14 : 0,
+                }}
+                style={
+                  stacked
+                    ? { flex: '0 0 auto', height: isActive ? '13rem' : '3.25rem' }
+                    : { flex: isActive ? '2.8 1 0%' : '1 1 0%', height: isActive ? '100%' : '88%' }
                 }
-                animate={{ opacity: 1, x: 0, y: 0 }}
-                // Move, not enter: when the keyboard shifts the shelf, cases
-                // slide under a resting pointer and would "enter" it, handing
-                // the choice straight back to the mouse. A pointer that has
-                // not moved has not chosen anything.
-                onPointerMove={(event) => {
-                  if (event.pointerType === 'mouse' && !isActive) setActive(index);
-                }}
-                onFocus={() => setActive(index)}
-                onClick={() => {
-                  if (isTouch && !isActive) {
-                    setActive(index);
-                    return;
-                  }
-                  open(index);
-                }}
-                aria-current={isActive ? 'true' : undefined}
-                aria-label={`${entry.label}. ${entry.description}`}
-                style={{ flex: isActive ? (upright ? '0 0 auto' : '6 1 0%') : '1 1 0%' }}
-                className={`group relative min-h-0 min-w-0 overflow-hidden text-left outline-none transition-colors duration-200 ${
-                  isActive
-                    ? 'bg-ink-950/35 shadow-[inset_0_0_0_2px_var(--color-accent)]'
-                    : 'bg-ink-950/50 shadow-[inset_0_0_0_1px_var(--color-ink-800)] focus-visible:shadow-[inset_0_0_0_2px_var(--color-accent)]'
-                }`}
+                // The hard shadow lives on this wrapper: a filter on the
+                // clipped card itself would be clipped away with the corners.
+                className={`min-h-0 min-w-0 ${isActive && !stacked ? 'hard-shadow' : ''}`}
               >
-                {/* The case art. Counter-leaned and over-scaled so the
-                    lean of the case never shows the art's edge. Never fully
-                    opaque, and the case behind it translucent, so the city
-                    stays visible through the whole shelf — the cases sit on
-                    the backdrop, they do not replace it. */}
-                <span
-                  className="pointer-events-none absolute inset-0 overflow-hidden"
-                  aria-hidden
+                <button
+                  type="button"
+                  // Move, not enter: cards sliding under a resting pointer
+                  // must not steal a keyboard choice.
+                  onPointerMove={(event) => {
+                    if (event.pointerType === 'mouse' && !isActive) setActive(index);
+                  }}
+                  onFocus={() => setActive(index)}
+                  onClick={() => {
+                    if (isTouch && !isActive) {
+                      setActive(index);
+                      return;
+                    }
+                    open(index);
+                  }}
+                  aria-current={isActive ? 'true' : undefined}
+                  aria-label={`${entry.label}. ${entry.description}`}
+                  className={`group relative block size-full overflow-hidden text-left outline-none ${
+                    isActive
+                      ? 'cut'
+                      : 'cut-sm shadow-[inset_0_0_0_1px_var(--color-ink-700)] focus-visible:shadow-[inset_0_0_0_2px_var(--color-accent)]'
+                  }`}
                 >
+                  {/* The art. */}
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={entry.image}
                     alt=""
                     draggable={false}
-                    className={`size-full object-cover transition-[opacity,filter] duration-500 ${
+                    className={`absolute inset-0 size-full object-cover transition-[opacity,filter,transform] duration-500 ${
                       isActive
-                        ? 'opacity-70'
-                        : 'opacity-25 saturate-50 group-hover:opacity-40 group-hover:saturate-100'
+                        ? 'opacity-100'
+                        : 'opacity-55 saturate-50 group-hover:scale-105 group-hover:opacity-80 group-hover:saturate-100'
                     }`}
-                    style={upright ? undefined : { transform: 'skewX(6deg) scale(1.2)' }}
                   />
-                </span>
+                  {/* Ink from the foot up, so the name reads on any art. */}
+                  <span
+                    className={`pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink-950 via-ink-950/75 to-transparent ${
+                      isActive ? 'h-4/5' : 'h-3/5'
+                    }`}
+                    aria-hidden
+                  />
+                  {/* The gold frame on the chosen card, with a slow light
+                      sweeping across it: the one thing on the screen that
+                      keeps moving while you decide. */}
+                  {isActive ? (
+                    <span
+                      className="shimmer pointer-events-none absolute! inset-0 shadow-[inset_0_0_0_3px_var(--color-accent)]"
+                      aria-hidden
+                    />
+                  ) : null}
 
-                {/* The spine: number at the head, the title running down. */}
-                <AnimatePresence initial={false} mode="popLayout">
-                  {!isActive ? (
-                    <motion.span
-                      key="spine"
-                      className={`absolute inset-0 flex items-center gap-3 bg-gradient-to-b from-ink-950/85 via-ink-950/40 to-ink-950/85 p-3 ${
-                        upright ? 'flex-row' : 'flex-col justify-start pt-4'
+                  {/* The number, at the head. A stacked row is too short for
+                      a badge; there the number sits inline before the name. */}
+                  {!stacked || isActive ? (
+                    <span
+                      className={`stat-figure absolute left-3 top-3 px-1.5 text-[11px] leading-5 ${
+                        isActive ? 'bg-accent text-ink-950' : 'bg-ink-950/80 text-ink-300'
                       }`}
-                      style={upright ? undefined : { transform: 'skewX(6deg)' }}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0, transition: { duration: d(0.1) } }}
-                      transition={{ duration: d(0.25), delay: d(0.15) }}
+                      aria-hidden
                     >
-                      <span className="stat-figure text-xs text-accent">{number}</span>
-                      <span
-                        className={`display whitespace-nowrap text-ink-300 transition-colors group-hover:text-ink-100 ${
-                          upright
-                            ? 'text-[clamp(1.5rem,6vw,2rem)]'
-                            : 'text-[clamp(1.5rem,2.6vw,2.6rem)] [writing-mode:vertical-rl]'
-                        }`}
-                      >
-                        {entry.label}
-                      </span>
-                    </motion.span>
-                  ) : (
-                    /* The case, pulled forward: art through the window, the
-                       title and its line at the foot. */
-                    <motion.span
-                      key="face"
-                      className={`flex flex-col justify-between p-5 sm:p-7 ${
-                        upright ? 'relative min-h-[14rem]' : 'absolute inset-0'
-                      }`}
-                      style={upright ? undefined : { transform: 'skewX(6deg)' }}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0, transition: { duration: d(0.1) } }}
-                      transition={{ duration: d(0.3), delay: d(0.12) }}
-                    >
-                      <span className="pointer-events-none absolute inset-x-0 bottom-0 h-3/4 bg-gradient-to-t from-ink-950 via-ink-950/70 to-transparent" />
-                      <span className="eyebrow relative flex items-center gap-2.5 text-accent">
-                        <span className="slash" aria-hidden />
+                      {number}
+                    </span>
+                  ) : null}
+
+                  {/* The face: name at the foot, and on the chosen card, the
+                      line and the way in. */}
+                  <span
+                    className={`absolute inset-x-0 bottom-0 flex ${
+                      stacked && !isActive
+                        ? 'inset-y-0 flex-row items-center gap-3 px-4'
+                        : stacked
+                          ? 'flex-col p-4'
+                          : isActive
+                            ? 'flex-col p-5 lg:p-7'
+                            : 'flex-col p-3'
+                    }`}
+                  >
+                    {stacked && !isActive ? (
+                      <span className="stat-figure text-[11px] text-accent" aria-hidden>
                         {number}
                       </span>
-                      <span className="relative">
-                        <span className="display block text-[clamp(2.25rem,6.5vw,6.5rem)] leading-[0.85] text-ink-100">
-                          {entry.label}
-                        </span>
-                        <span className="mt-3 block max-w-md text-[15px] leading-snug text-ink-300 sm:text-base">
-                          {entry.description}
-                        </span>
-                        <span className="btn-primary btn-sm mt-5 inline-flex">
-                          {isTouch ? 'Tap to open' : 'Open'}
-                          <span aria-hidden>&rarr;</span>
-                        </span>
-                      </span>
-                    </motion.span>
-                  )}
-                </AnimatePresence>
-              </motion.button>
+                    ) : null}
+                    <span
+                      className={`display block leading-[0.9] text-ink-100 ${
+                        stacked
+                          ? 'text-[clamp(1.4rem,6vw,1.9rem)]'
+                          : isActive
+                            ? 'text-[clamp(1.75rem,2.9vw,3.5rem)] [overflow-wrap:anywhere]'
+                            : 'text-[clamp(0.8rem,1.05vw,1.15rem)]'
+                      }`}
+                    >
+                      {entry.label}
+                    </span>
+                    <AnimatePresence initial={false}>
+                      {isActive ? (
+                        <motion.span
+                          key="detail"
+                          className="block"
+                          initial={{ opacity: 0, y: 6 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, transition: { duration: d(0.1) } }}
+                          transition={{ duration: d(0.3), delay: d(0.15), ease }}
+                        >
+                          <span className="mt-2 block max-w-sm text-[13px] leading-snug text-ink-300 sm:mt-3 sm:text-[15px]">
+                            {entry.description}
+                          </span>
+                          <span className="btn-primary btn-sm mt-4 inline-flex">
+                            {isTouch ? 'Tap to open' : 'Open'}
+                            <span aria-hidden>&rarr;</span>
+                          </span>
+                        </motion.span>
+                      ) : null}
+                    </AnimatePresence>
+                  </span>
+                </button>
+              </motion.div>
             );
           })}
         </nav>
+
+        {/* The table the hand is dealt on. */}
+        {!stacked ? <div className="rule-soft mb-5" aria-hidden /> : null}
 
         <motion.footer
           className="flex items-center justify-between gap-4"
@@ -340,7 +429,7 @@ export function MainMenu({ entries, name }: { entries: MenuEntry[]; name: string
               <Key>←</Key> <Key>→</Key> Browse
             </span>
             <span>
-              <Key>1</Key>–<Key>{entries.length}</Key> Jump
+              <Key>1</Key>–<Key>{count}</Key> Jump
             </span>
             <span>
               <Key>↵</Key> Open
