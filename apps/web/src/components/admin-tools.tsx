@@ -78,7 +78,7 @@ export function UnresolvedQueue({ records }: { records: UnresolvedRecord[] }) {
                 {providerLabel(record.provider)} · id{' '}
                 <code className="text-ink-400">{record.externalId}</code>
                 {record.hitCount > 1 ? (
-                  <span className="ml-2 rounded-full bg-warning/15 px-2 py-0.5 text-warning">
+                  <span className="ml-2 -skew-x-[14deg] bg-warning px-2 py-0.5 font-display font-bold uppercase text-ink-950">
                     seen {record.hitCount}×
                   </span>
                 ) : null}
@@ -90,7 +90,7 @@ export function UnresolvedQueue({ records }: { records: UnresolvedRecord[] }) {
                 type="button"
                 disabled={busy === record.id}
                 onClick={() => void act(record.id, 'create')}
-                className="rounded-lg border border-ink-700 px-3 py-1.5 text-xs text-ink-200 transition-colors hover:bg-ink-850 disabled:opacity-60"
+                className="btn-ghost btn-sm"
               >
                 Create new game
               </button>
@@ -98,7 +98,7 @@ export function UnresolvedQueue({ records }: { records: UnresolvedRecord[] }) {
                 type="button"
                 disabled={busy === record.id}
                 onClick={() => void act(record.id, 'ignore')}
-                className="rounded-lg px-3 py-1.5 text-xs text-ink-500 transition-colors hover:text-ink-300 disabled:opacity-60"
+                className="px-3 py-1.5 font-display text-xs font-semibold uppercase tracking-wider text-ink-500 transition-colors hover:text-ink-300 disabled:opacity-60"
               >
                 Ignore
               </button>
@@ -117,7 +117,7 @@ export function UnresolvedQueue({ records }: { records: UnresolvedRecord[] }) {
                     type="button"
                     disabled={busy === record.id}
                     onClick={() => void act(record.id, 'map', { gameId: candidate.gameId })}
-                    className="flex w-full items-center gap-3 rounded-lg border border-ink-800 px-3 py-2 text-left transition-colors hover:border-accent/40 hover:bg-accent/5 disabled:opacity-60"
+                    className="flex w-full items-center gap-3 cut-sm px-3 py-2 shadow-[inset_0_0_0_1px_var(--color-ink-800)] text-left transition-colors hover:border-accent/40 hover:bg-accent/5 disabled:opacity-60"
                   >
                     {candidate.coverImage ? (
                       // eslint-disable-next-line @next/next/no-img-element
@@ -207,7 +207,7 @@ export function EnrichButton({ gameId, label }: { gameId?: string; label?: strin
         disabled={busy}
         className={
           gameId
-            ? 'rounded-lg border border-ink-700 px-3 py-1.5 text-xs text-ink-300 transition-colors hover:bg-ink-850 disabled:opacity-60'
+            ? 'btn-ghost btn-sm'
             : 'btn-primary'
         }
       >
@@ -294,7 +294,7 @@ export function MergeDuplicates({ groups }: { groups: DuplicateGroup[] }) {
               {group.games.map((game) => (
                 <label
                   key={game.id}
-                  className="flex items-center gap-3 rounded-lg border border-ink-800 px-3 py-2 text-sm"
+                  className="flex items-center gap-3 cut-sm px-3 py-2 shadow-[inset_0_0_0_1px_var(--color-ink-800)] text-sm"
                 >
                   <input
                     type="radio"
@@ -313,7 +313,7 @@ export function MergeDuplicates({ groups }: { groups: DuplicateGroup[] }) {
               type="button"
               disabled={busy === key}
               onClick={() => void merge(group)}
-              className="mt-3 rounded-lg bg-danger px-3 py-1.5 text-xs font-medium text-ink-100 disabled:opacity-60"
+              className="mt-3 btn-primary btn-sm bg-danger!"
             >
               {busy === key ? 'Merging…' : `Merge ${group.games.length - 1} into selected`}
             </button>
@@ -379,7 +379,7 @@ export function SweepQueueButton() {
           type="button"
           onClick={() => void call(true)}
           disabled={busy}
-          className="rounded-lg border border-ink-700 px-3 py-1.5 text-xs text-ink-300 transition-colors hover:bg-ink-850 disabled:opacity-60"
+          className="btn-ghost btn-sm"
         >
           {busy ? 'Checking…' : 'Check for already-answered entries'}
         </button>
@@ -405,7 +405,7 @@ export function SweepQueueButton() {
             <button
               type="button"
               onClick={() => setPreview(null)}
-              className="rounded-lg px-3 py-1.5 text-xs text-ink-400 hover:text-ink-200"
+              className="px-3 py-1.5 font-display text-xs font-semibold uppercase tracking-wider text-ink-500 hover:text-ink-200"
             >
               Cancel
             </button>

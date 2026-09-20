@@ -60,7 +60,7 @@ export function AchievementBand({
         <span className="ml-auto flex items-center gap-3">
           {tallies.map((tally) => (
             <span key={tally.provider} className="flex items-center gap-1 text-[11px] text-ink-600">
-              <span className={`size-2 rounded-full ${tally.bar}`} aria-hidden />
+              <span className={`size-2 -skew-x-[20deg] ${tally.bar}`} aria-hidden />
               {tally.count}
             </span>
           ))}
@@ -70,7 +70,7 @@ export function AchievementBand({
               type="button"
               onClick={() => setOpen((value) => !value)}
               aria-expanded={open}
-              className="rounded-full border border-ink-700 px-2.5 py-0.5 text-[11px] text-ink-400 transition-all duration-200 hover:-translate-y-px hover:border-accent/50 hover:text-accent active:scale-95"
+              className="-skew-x-[14deg] border border-ink-700 px-2.5 py-0.5 font-display text-[11px] font-semibold uppercase tracking-wider text-ink-400 transition-all duration-200 hover:-translate-y-px hover:border-accent/50 hover:text-accent active:scale-95"
             >
               {open ? 'Show less' : `See all ${games.length}`}
             </button>
@@ -93,7 +93,7 @@ export function AchievementBand({
               href={`/game/${game.slug}`}
               title={`${game.name} — ${label}`}
               style={{ '--i': index } as CSSProperties}
-              className="group anim-rise stagger lift relative block overflow-hidden rounded-[var(--radius-card)] border border-ink-800 bg-ink-900"
+              className="group anim-rise stagger lift relative block cut-sm overflow-hidden bg-ink-900"
             >
               <div className="aspect-[3/4] overflow-hidden bg-ink-850">
                 {game.coverImage ? (
@@ -114,16 +114,16 @@ export function AchievementBand({
                     {game.totalKnown ? `${game.unlocked}/${game.total}` : game.unlocked}
                   </span>
                 </div>
-                <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-ink-850">
+                <div className="mt-1.5 h-1 -skew-x-[20deg] overflow-hidden bg-ink-850">
                   <div
-                    className={`anim-grow stagger h-full rounded-full ${game.bar}`}
+                    className={`anim-grow stagger h-full ${game.bar}`}
                     style={{ width: `${Math.max(2, game.percent)}%`, '--i': index } as CSSProperties}
                   />
                 </div>
               </div>
 
               {game.percent >= 100 ? (
-                <span className="anim-pop absolute right-1.5 top-1.5 rounded-full bg-ink-950/85 px-1.5 py-0.5 text-[10px] font-medium text-positive backdrop-blur">
+                <span className="anim-pop absolute right-1.5 top-1.5 -skew-x-[14deg] bg-ink-950/85 px-1.5 py-0.5 font-display text-[10px] font-bold uppercase text-positive backdrop-blur">
                   100%
                 </span>
               ) : null}
@@ -136,7 +136,7 @@ export function AchievementBand({
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="mt-3 w-full rounded-[var(--radius-card)] border border-dashed border-ink-800 py-2 text-xs text-ink-500 transition-all duration-200 hover:border-accent/40 hover:bg-ink-900/60 hover:text-ink-200"
+          className="mt-3 w-full cut-sm border border-dashed border-ink-700 py-2 text-xs text-ink-500 transition-all duration-200 hover:border-accent/40 hover:bg-ink-900/60 hover:text-ink-200"
         >
           {overflow} more
         </button>

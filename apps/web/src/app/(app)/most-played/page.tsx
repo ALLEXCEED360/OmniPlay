@@ -120,9 +120,9 @@ export default async function MostPlayedPage() {
 
                 {/* Scaled against the longest game, so the shape of the tail
                     is visible rather than every bar reading as full. */}
-                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-ink-850">
+                <div className="mt-2 h-1.5 -skew-x-[20deg] overflow-hidden bg-ink-850">
                   <div
-                    className={`anim-grow stagger h-full rounded-full ${
+                    className={`anim-grow stagger h-full ${
                       game.providers[0] ? platformStyle(game.providers[0]).bar : 'bg-accent'
                     }`}
                     style={

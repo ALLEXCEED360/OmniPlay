@@ -1,6 +1,7 @@
 import type { CSSProperties, ReactNode } from 'react';
 import { formatCount, providerLabel } from '@/lib/format';
 import { platformStyle } from '@/lib/platform';
+import { Headline } from '@/components/motion';
 
 /**
  * The shared visual vocabulary (spec 22).
@@ -35,18 +36,18 @@ export function StatCard({
   const style = provider ? platformStyle(provider) : null;
   const bloom = style ? style.bloom : accent ? 'var(--color-accent)' : undefined;
   const figure = style ? style.text : accent ? 'text-accent' : 'text-ink-100';
+  const tab = style ? style.bar : accent ? 'bg-accent' : 'bg-ink-700';
 
   return (
     <div
       className="card bloom anim-rise stagger group relative p-5"
       style={{ '--i': index, ...(bloom ? { '--bloom': bloom } : {}) } as CSSProperties}
     >
-      {/* A hairline that lights up on hover. The card is not interactive, so
-          this acknowledges the pointer without pretending to be a button. */}
+      {/* A slanted tab in the top-left corner, in the figure's colour. It is
+          the one piece of decoration a panel gets, and it says whose number
+          this is before the label does. */}
       <span
-        className={`absolute inset-x-0 top-0 h-px transition-opacity ${
-          accent || provider ? 'opacity-70' : 'bg-ink-700 opacity-0 group-hover:opacity-100'
-        } ${style ? style.bar : accent ? 'bg-accent' : ''}`}
+        className={`absolute left-0 top-0 h-1.5 w-10 origin-left -skew-x-[20deg] transition-transform duration-300 group-hover:scale-x-150 ${tab}`}
         aria-hidden
       />
       <div className="eyebrow text-ink-500">{label}</div>
@@ -63,20 +64,21 @@ export function StatCard({
  * ------------------------------------------------------------------ */
 
 const PROVIDER_STYLES: Record<string, string> = {
-  steam: 'bg-steam/15 text-steam border-steam/30',
-  xbox: 'bg-xbox/15 text-xbox border-xbox/30',
-  psn: 'bg-psn/15 text-psn border-psn/30',
+  steam: 'bg-steam text-ink-950',
+  xbox: 'bg-xbox text-ink-950',
+  psn: 'bg-psn text-ink-950',
 };
 
+/** A slanted tag in the platform's own colour. */
 export function PlatformBadge({ provider, small }: { provider: string; small?: boolean }) {
-  const style = PROVIDER_STYLES[provider] ?? 'bg-ink-800 text-ink-400 border-ink-700';
+  const style = PROVIDER_STYLES[provider] ?? 'bg-ink-700 text-ink-100';
   return (
     <span
-      className={`inline-flex items-center rounded-full border font-medium ${style} ${
-        small ? 'px-2 py-0.5 text-[10px]' : 'px-2.5 py-1 text-xs'
+      className={`inline-flex -skew-x-[14deg] items-center font-display font-bold uppercase tracking-wider ${style} ${
+        small ? 'px-1.5 py-px text-[10px]' : 'px-2.5 py-0.5 text-xs'
       }`}
     >
-      {providerLabel(provider)}
+      <span className="skew-x-[14deg]">{providerLabel(provider)}</span>
     </span>
   );
 }
@@ -87,11 +89,9 @@ export function PlatformBadge({ provider, small }: { provider: string; small?: b
  */
 export function ConfidenceNote({ children }: { children: ReactNode }) {
   return (
-    <span className="inline-flex items-center gap-1 text-xs text-ink-500">
-      <svg viewBox="0 0 16 16" className="size-3.5 shrink-0" fill="currentColor" aria-hidden>
-        <path d="M8 1a7 7 0 100 14A7 7 0 008 1zm0 3a.9.9 0 110 1.8A.9.9 0 018 4zm1 8H7V7h2v5z" />
-      </svg>
-      {children}
+    <span className="inline-flex items-start gap-2 text-xs text-ink-500">
+      <span className="slash mt-px h-3.5! w-1! shrink-0 opacity-70" aria-hidden />
+      <span>{children}</span>
     </span>
   );
 }
@@ -113,23 +113,36 @@ export function PageHeader({
   eyebrow?: string;
 }) {
   return (
-    <header className="anim-rise mb-8">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
+    <header className="relative mb-10">
+      <div className="flex flex-wrap items-end justify-between gap-6">
+        <div className="min-w-0">
           {eyebrow ? (
-            <div className="eyebrow mb-2 flex items-center gap-2 text-accent">
-              <span className="h-px w-6 bg-accent/60" aria-hidden />
+            <div className="eyebrow anim-rise mb-3 flex items-center gap-2.5 text-accent">
+              <span className="slash" aria-hidden />
               {eyebrow}
             </div>
           ) : null}
-          <h1 className="text-3xl font-semibold tracking-tight text-ink-100 sm:text-[2.125rem]">
-            {title}
+          {/* The title is the loudest thing on the page and is allowed to
+              be: condensed, leaning, and arriving one word at a time. */}
+          <h1 className="display text-[3rem] text-ink-100 sm:text-[4.25rem]">
+            <Headline text={title} />
           </h1>
-          {subtitle ? <p className="mt-2 max-w-2xl text-sm text-ink-400">{subtitle}</p> : null}
+          {subtitle ? (
+            <p className="anim-rise stagger mt-4 max-w-2xl text-[15px] text-ink-400" style={{ '--i': 4 } as CSSProperties}>
+              {subtitle}
+            </p>
+          ) : null}
         </div>
-        {action}
+        {action ? <div className="anim-rise stagger" style={{ '--i': 5 } as CSSProperties}>{action}</div> : null}
       </div>
-      <div className="rule-soft mt-6" aria-hidden />
+
+      {/* A red bar rather than a hairline: the page's own underline, short
+          and slanted so it reads as a stroke and not a table border. */}
+      <div className="mt-6 flex items-center gap-2" aria-hidden>
+        <span className="anim-grow h-1 w-24 -skew-x-[20deg] bg-accent" />
+        <span className="anim-grow stagger h-1 w-3 -skew-x-[20deg] bg-accent/60" style={{ '--i': 2 } as CSSProperties} />
+        <span className="rule-soft flex-1" />
+      </div>
     </header>
   );
 }
@@ -137,8 +150,8 @@ export function PageHeader({
 export function SectionHeading({ children, action }: { children: ReactNode; action?: ReactNode }) {
   return (
     <div className="mb-4 flex items-center justify-between gap-4">
-      <h2 className="eyebrow flex items-center gap-2 text-ink-400">
-        <span className="h-3 w-0.5 rounded-full bg-accent/70" aria-hidden />
+      <h2 className="display flex items-center gap-2.5 text-[1.35rem] text-ink-100">
+        <span className="slash" aria-hidden />
         {children}
       </h2>
       {action}
@@ -159,15 +172,18 @@ export function EmptyState({
   action?: ReactNode;
 }) {
   return (
-    <div className="card flex flex-col items-center justify-center px-6 py-16 text-center">
-      <div className="mb-4 grid size-12 place-items-center rounded-full bg-ink-850 text-ink-500">
-        <svg viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth="1.5">
-          <path d="M4 6h16M4 12h16M4 18h10" strokeLinecap="round" />
-        </svg>
-      </div>
-      <h3 className="text-base font-medium text-ink-200">{title}</h3>
-      <p className="mt-1.5 max-w-sm text-sm text-ink-500">{description}</p>
-      {action ? <div className="mt-5">{action}</div> : null}
+    <div className="card relative flex flex-col items-center justify-center overflow-hidden px-6 py-16 text-center">
+      {/* A red stripe across the corner, so an empty panel is still a
+          designed panel and not a missing one. */}
+      <span
+        className="pointer-events-none absolute -right-16 top-6 w-64 rotate-[28deg] bg-accent py-1 text-center font-display text-[11px] font-bold uppercase tracking-[0.3em] text-ink-950 hatch"
+        aria-hidden
+      >
+        Nothing here
+      </span>
+      <h3 className="display text-2xl text-ink-100">{title}</h3>
+      <p className="mt-2 max-w-sm text-sm text-ink-500">{description}</p>
+      {action ? <div className="mt-6">{action}</div> : null}
     </div>
   );
 }
@@ -206,15 +222,14 @@ export function ProportionBar({
   return (
     <div className="group/bar">
       <div className="mb-1.5 flex items-baseline justify-between gap-3 text-sm">
-        <span className="text-ink-300 transition-colors group-hover/bar:text-ink-100">{label}</span>
+        <span className="font-display text-[15px] font-semibold uppercase tracking-wide text-ink-300 transition-colors group-hover/bar:text-ink-100">
+          {label}
+        </span>
         <span className="stat-figure text-ink-400">{caption}</span>
       </div>
-      <div className="h-1.5 overflow-hidden rounded-full bg-ink-850">
-        {/* The bar grows along its own axis rather than being handed a width,
-            so the number and the length arrive together. `both` fill means a
-            tab that never animates still shows the full bar. */}
+      <div className="h-2 -skew-x-[20deg] overflow-hidden bg-ink-850">
         <div
-          className={`anim-grow stagger h-full rounded-full ${color}`}
+          className={`anim-grow stagger h-full ${color}`}
           style={{ width: `${percent}%`, '--i': index } as CSSProperties}
         />
       </div>

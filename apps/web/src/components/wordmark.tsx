@@ -3,19 +3,14 @@ import Link from 'next/link';
 /**
  * The mark, in one place.
  *
- * Three stacked bars of decreasing length: the shape a cross-platform library
- * actually makes when it is split by platform, in the three platform colours,
- * largest share first. It is the mark this product has earned rather than a
- * generic glyph — and because it is built from the same colours the rest of
- * the app assigns to PlayStation, Steam and Xbox, it teaches the legend before
- * the reader ever reaches a chart.
- *
- * Previously the sidebar drew the bars and the sign-in screen drew a gradient
- * "OMNI|PLAY" instead, so the product introduced itself as one thing and then
- * appeared as another the moment you logged in.
+ * Three slanted bars of decreasing length in the three platform colours —
+ * the shape a cross-platform library makes when split by platform, largest
+ * share first — beside the name in the display cut with the second half in
+ * red. The bars teach the platform legend before the reader reaches a
+ * chart; the red teaches which colour the interface speaks in.
  */
 export function Wordmark({
-  /** Larger treatment for the signed-out screens. */
+  /** Larger treatment for the rail and the signed-out screens. */
   large,
   href = '/dashboard',
   /** Rendered as plain content rather than a link. */
@@ -27,38 +22,27 @@ export function Wordmark({
 }) {
   const mark = (
     <>
-      <span
-        className={`flex flex-col ${large ? 'gap-[4px]' : 'gap-[3px]'}`}
-        aria-hidden
-      >
-        <span
-          className={`rounded-full bg-accent ${large ? 'h-1 w-7' : 'h-[3px] w-5'}`}
-        />
-        <span
-          className={`rounded-full bg-violet ${large ? 'h-1 w-5' : 'h-[3px] w-3.5'}`}
-        />
-        <span
-          className={`rounded-full bg-positive ${large ? 'h-1 w-3' : 'h-[3px] w-2'}`}
-        />
+      <span className={`flex flex-col ${large ? 'gap-[4px]' : 'gap-[3px]'}`} aria-hidden>
+        <span className={`-skew-x-[20deg] bg-psn ${large ? 'h-1.5 w-8' : 'h-1 w-5'}`} />
+        <span className={`-skew-x-[20deg] bg-steam ${large ? 'h-1.5 w-6' : 'h-1 w-3.5'}`} />
+        <span className={`-skew-x-[20deg] bg-xbox ${large ? 'h-1.5 w-4' : 'h-1 w-2'}`} />
       </span>
       <span
-        className={`font-bold uppercase text-ink-100 ${
-          large ? 'text-xl tracking-[0.16em]' : 'text-[15px] tracking-[0.14em]'
-        }`}
+        className={`display text-ink-100 ${large ? 'text-[1.75rem]' : 'text-[1.2rem]'}`}
       >
-        Omniplay
+        Omni<span className="text-accent">play</span>
       </span>
     </>
   );
 
   if (!asLink) {
-    return <span className="inline-flex items-center gap-2">{mark}</span>;
+    return <span className="inline-flex items-center gap-2.5">{mark}</span>;
   }
 
   return (
     <Link
       href={href}
-      className="group inline-flex items-center gap-2"
+      className="group inline-flex items-center gap-2.5"
       aria-label="OMNIPLAY, go to overview"
     >
       {mark}

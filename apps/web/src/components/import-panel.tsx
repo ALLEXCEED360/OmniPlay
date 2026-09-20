@@ -74,7 +74,7 @@ export function ImportPanel({
   }
 
   return (
-    <div className="mt-4 rounded-lg border border-ink-800 bg-ink-950/40 p-4">
+    <div className="mt-4 cut-sm bg-ink-950/50 p-4 shadow-[inset_0_0_0_1px_var(--color-ink-800)]">
       <p className="text-sm text-ink-200">Import a library file</p>
       <p className="mt-1 text-xs leading-relaxed text-ink-500">
         {displayName} does not offer a sign-in for third-party apps, so OMNIPLAY reads a file you
@@ -116,7 +116,7 @@ export function ImportPanel({
       ) : null}
 
       {result ? (
-        <div className="mt-3 rounded-lg border border-positive/30 bg-positive/10 p-3" role="status">
+        <div className="mt-3 cut-sm border-l-4 border-positive bg-positive/10 p-3" role="status">
           <p className="text-xs text-ink-200">
             Imported {result.imported} {result.imported === 1 ? 'game' : 'games'}
             {result.skipped > 0 ? `, skipped ${result.skipped}` : ''}. Syncing now.

@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { formatHours, providerLabel } from '@/lib/format';
 import { platformStyle, staggerStep } from '@/lib/platform';
 import { Wordmark } from '@/components/wordmark';
+import { Backdrop } from '@/components/backdrop';
 import type { CSSProperties } from 'react';
 
 /**
@@ -86,12 +87,13 @@ export default async function PublicProfilePage({
 
   return (
     <div className="min-h-dvh">
+      <Backdrop />
       <header className="border-b border-ink-850">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
           <Wordmark href="/" />
           <Link
             href="/register"
-            className="rounded-lg border border-ink-700 px-3 py-1.5 text-xs text-ink-300 transition-all duration-200 hover:-translate-y-px hover:border-accent/50 hover:bg-ink-850 hover:text-ink-100"
+            className="btn-ghost btn-sm"
           >
             Build your own
           </Link>
@@ -100,11 +102,11 @@ export default async function PublicProfilePage({
 
       <main className="mx-auto max-w-5xl px-6 py-12">
         <section className="anim-rise flex flex-wrap items-center gap-6">
-          <span className="grid size-20 shrink-0 place-items-center rounded-full bg-gradient-to-br from-accent via-violet to-positive text-2xl font-bold text-ink-950">
+          <span className="grid size-20 shrink-0 place-items-center slant bg-accent font-display text-2xl font-bold italic text-ink-950">
             {name.slice(0, 2).toUpperCase()}
           </span>
           <div className="min-w-0">
-            <h1 className="text-3xl font-semibold tracking-tight text-ink-100">{name}</h1>
+            <h1 className="display text-[3rem] leading-none text-ink-100 sm:text-[4rem]">{name}</h1>
             <p className="mt-1 text-sm text-ink-500">@{profile.username}</p>
             {profile.bio ? (
               <p className="mt-3 max-w-lg text-sm leading-relaxed text-ink-300">{profile.bio}</p>
@@ -130,8 +132,8 @@ export default async function PublicProfilePage({
 
         {profile.platforms.length > 0 ? (
           <section className="anim-rise mt-10">
-            <h2 className="eyebrow mb-4 flex items-center gap-2 text-ink-400">
-              <span className="h-3 w-0.5 rounded-full bg-accent/70" aria-hidden />
+            <h2 className="display mb-4 flex items-center gap-2.5 text-[1.35rem] text-ink-100">
+              <span className="slash" aria-hidden />
               Platforms
             </h2>
             <div className="flex flex-wrap gap-3">
@@ -149,7 +151,7 @@ export default async function PublicProfilePage({
                     }
           className={`card bloom anim-rise stagger flex items-center gap-2.5 px-4 py-3 text-sm ring-1 ${style.ring}`}
                   >
-                    <span className={`size-2 rounded-full ${style.bar}`} aria-hidden />
+                    <span className={`size-2 -skew-x-[20deg] ${style.bar}`} aria-hidden />
                     <span className="text-ink-200">{providerLabel(platform.provider)}</span>
                     <span className={`stat-figure ml-1 ${style.text}`}>
                       {platform.gameCount.toLocaleString()}
@@ -163,8 +165,8 @@ export default async function PublicProfilePage({
 
         {profile.favourites.length > 0 ? (
           <section className="anim-rise mt-10">
-            <h2 className="eyebrow mb-4 flex items-center gap-2 text-ink-400">
-              <span className="h-3 w-0.5 rounded-full bg-accent/70" aria-hidden />
+            <h2 className="display mb-4 flex items-center gap-2.5 text-[1.35rem] text-ink-100">
+              <span className="slash" aria-hidden />
               Most played
             </h2>
             <div
@@ -175,7 +177,7 @@ export default async function PublicProfilePage({
                 <div
                   key={game.slug}
                   style={{ '--i': index } as CSSProperties}
-         className="group anim-rise stagger overflow-hidden rounded-[var(--radius-card)] border border-ink-800 bg-ink-900"
+         className="group anim-rise stagger cut-sm overflow-hidden bg-ink-900"
                 >
                   <div className="aspect-[3/4] overflow-hidden bg-ink-850">
                     {game.coverImage ? (
@@ -205,8 +207,8 @@ export default async function PublicProfilePage({
 
         {profile.collections.length > 0 ? (
           <section className="anim-rise mt-10">
-            <h2 className="eyebrow mb-4 flex items-center gap-2 text-ink-400">
-              <span className="h-3 w-0.5 rounded-full bg-accent/70" aria-hidden />
+            <h2 className="display mb-4 flex items-center gap-2.5 text-[1.35rem] text-ink-100">
+              <span className="slash" aria-hidden />
               Collections
             </h2>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

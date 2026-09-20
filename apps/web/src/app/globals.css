@@ -1,77 +1,96 @@
 @import 'tailwindcss';
 
 /*
- * OMNIPLAY visual system (spec 18).
+ * OMNIPLAY visual system — "Phantom" revision.
  *
- * Dark-first, because the product is a place to look at game artwork and a
- * light chrome would compete with it. The accent is a cyan-to-violet pair used
- * sparingly: on data, on focus, and on the one primary action per screen.
- * Everything else is neutral, so the covers carry the colour.
+ * The previous system was a competent dark dashboard, and that was the
+ * problem: it looked like every other one. This revision borrows the visual
+ * grammar Atlus built for Persona and Metaphor — a menu that behaves like a
+ * game menu. Panels are cut at an angle rather than rounded, type is
+ * condensed, heavy and set on a slant, one warm gold does all the talking,
+ * and off-white "paper" cut-outs are used for the single most important
+ * thing on a screen. Motion is a wipe, not a fade.
+ *
+ * The accent was a hot red for one revision. At the size this system uses
+ * its accent — a full-screen wipe, a title, a menu fill — a saturated red
+ * is physically tiring to look at, and it made every screen read as an
+ * alarm. Gold carries the same weight without the glare, and it is the
+ * colour Metaphor and Persona 4 already taught this audience to read as
+ * "the interface".
+ *
+ * What did not change: the ink ramp, the platform colours, and every
+ * utility name. The whole app was written against `card`, `eyebrow`,
+ * `anim-rise` and friends, and this file retunes what those mean rather than
+ * renaming them, so forty files pick up the new look without being touched.
  */
 
 @theme {
-  /* Neutrals: a slightly blue-shifted grey ramp, warmer than pure black so
-     large surfaces do not look like holes in the screen.
+  /* Neutrals. Slightly warm-shifted now, towards the black of printed ink
+     rather than the blue of a monitor, so the red sits on it like a poster
+     and not like a warning light. The text half (600-100) clears 4.5:1 on
+     ink-850 as before. */
+  --color-ink-950: oklch(0.13 0.010 300);
+  --color-ink-900: oklch(0.17 0.012 300);
+  --color-ink-850: oklch(0.21 0.013 300);
+  --color-ink-800: oklch(0.25 0.014 300);
+  --color-ink-700: oklch(0.34 0.015 300);
+  --color-ink-600: oklch(0.62 0.015 300);
+  --color-ink-500: oklch(0.71 0.014 300);
+  --color-ink-400: oklch(0.80 0.012 300);
+  --color-ink-300: oklch(0.88 0.008 300);
+  --color-ink-200: oklch(0.93 0.006 300);
+  --color-ink-100: oklch(0.97 0.004 300);
+  /* The two ends of the ramp under fixed names, for the places the ramp is
+     inverted (see `.auth-paper`) and something still needs true black or
+     true paper. */
+  --color-ink: oklch(0.13 0.010 300);
 
-     The ramp is deliberately in two halves. 950-700 are surfaces and borders,
-     where contrast rules do not apply and low separation is the point. 600-100
-     carry text, and every one of them clears 4.5:1 against ink-850, the
-     lightest surface any of them sits on — measured, not estimated.
-
-     The text half used to start at 0.45, which put 11px hint text at 2.3:1
-     against a card. That is the grey-on-grey that dark dashboards default to,
-     and it is unreadable for a great many people; the ramp now starts at 0.62
-     and the hierarchy is carried by spacing the steps further apart instead of
-     by making the quiet ones dimmer. */
-  --color-ink-950: oklch(0.15 0.012 265);
-  --color-ink-900: oklch(0.19 0.014 265);
-  --color-ink-850: oklch(0.22 0.015 265);
-  --color-ink-800: oklch(0.26 0.016 265);
-  --color-ink-700: oklch(0.34 0.017 265);
-  --color-ink-600: oklch(0.62 0.017 265);
-  --color-ink-500: oklch(0.71 0.016 265);
-  --color-ink-400: oklch(0.80 0.014 265);
-  --color-ink-300: oklch(0.88 0.010 265);
-  --color-ink-100: oklch(0.96 0.005 265);
-
-  --color-accent: oklch(0.78 0.15 195);
-  --color-accent-strong: oklch(0.70 0.17 195);
+  /* The one voice. A warm gold — brass rather than lemon, bright enough to
+     read on ink and dark enough that black type sits on it. It is the
+     interface's colour: navigation, headings, the primary action, the
+     cursor. Data keeps its own colours. `strong` is the same hue pulled
+     down for text on paper, where the bright cut would not clear 4.5:1. */
+  --color-accent: oklch(0.83 0.145 85);
+  --color-accent-strong: oklch(0.62 0.14 78);
   --color-violet: oklch(0.68 0.19 295);
+
+  /* Off-white cut-outs. Used for the single most important panel on a
+     screen, where dark text on paper reads as a shout. */
+  --color-paper: oklch(0.97 0.008 85);
+  --color-paper-dim: oklch(0.90 0.010 85);
 
   /* Provider identity colours — the single source of truth for "which
      platform is this?", used by badges, bars, rings, blooms and dots alike.
-
-     They were previously badge-only, and a second, different set of platform
-     colours had grown up alongside them in the page components: Steam was
-     violet on every chart and blue on every badge, on the same screen. Worse,
-     steam (240) and psn (255) sat fifteen degrees apart, so two of the three
-     badges were the same blue.
-
-     These three are spread across the wheel — cyan, green, violet — so they
-     stay distinguishable side by side, and each is the colour its platform is
-     actually known by. */
+     Unchanged: these carry meaning, not decoration. */
   --color-psn: oklch(0.78 0.15 195);
   --color-xbox: oklch(0.75 0.16 150);
   --color-steam: oklch(0.68 0.19 295);
 
   --color-positive: oklch(0.75 0.16 150);
-  --color-warning: oklch(0.80 0.15 75);
-  --color-danger: oklch(0.65 0.20 25);
+  /* Orange rather than yellow, now that yellow is the accent: a mixed
+     critic score and the interface's own colour must not be confused. */
+  --color-warning: oklch(0.76 0.17 55);
+  /* Pulled towards crimson so it never reads as the accent. Danger states
+     always carry a word or an icon as well; colour alone was never the
+     signal. */
+  --color-danger: oklch(0.62 0.22 10);
 
-  /* Chakra Petch for everything the interface says, JetBrains Mono for every
-     number it reports.
-     
-     Inter was the default here and reads as exactly that — the face a project
-     lands on when nobody chose one. Chakra Petch is squared-off and technical
-     without being a novelty display font: it carries the subject's character
-     at heading sizes and still sets a label at 11px. The mono is not
-     decoration either; this app is full of figures that must line up in
-     columns, and a real monospace does that better than tabular-lining a
-     proportional face. */
-  --font-sans: 'Chakra Petch', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  /* Barlow for the body, Barlow Condensed for everything that shouts.
+     One superfamily, so a heading and the paragraph under it share bone
+     structure; the condensed cut at 800 italic is what gives the menus their
+     forward lean. JetBrains Mono for figures, as before. */
+  --font-sans: 'Barlow', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: 'Barlow Condensed', 'Barlow', ui-sans-serif, system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Code', 'Fira Code', monospace;
 
-  --radius-card: 0.875rem;
+  /* Panels are cut, not rounded. The radius survives as a hairline so
+     antialiasing does not leave a jagged corner on the chamfers. */
+  --radius-card: 2px;
+
+  /* The chamfer every cut panel shares, and the slant every leaning thing
+     shares. Both in one place so the angles agree across the screen. */
+  --cut: 14px;
+  --cut-sm: 8px;
 }
 
 :root {
@@ -82,27 +101,31 @@ body {
   background: var(--color-ink-950);
   color: var(--color-ink-100);
   font-family: var(--font-sans);
-  /* A single wide gradient anchored top-left, so the app has depth without
-     every card needing its own decoration. */
-  background-image:
-    radial-gradient(60rem 40rem at 10% -10%, oklch(0.30 0.08 265 / 0.45), transparent 60%),
-    radial-gradient(50rem 35rem at 90% 0%, oklch(0.28 0.09 300 / 0.30), transparent 55%);
-  background-attachment: fixed;
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
 }
 
-/* Restrained glass: a translucent panel that still reads as a surface when the
-   backdrop behind it is busy artwork. */
-@utility glass {
-  background: color-mix(in oklch, var(--color-ink-900) 72%, transparent);
-  backdrop-filter: blur(16px) saturate(1.3);
-  border: 1px solid color-mix(in oklch, var(--color-ink-700) 55%, transparent);
+/* ------------------------------------------------------------------ *
+ * Type
+ * ------------------------------------------------------------------ */
+
+/* Headings use the condensed cut, heavy and leaning. Body copy stays at 400
+   in the regular width so a paragraph of game description does not shout. */
+h1, h2, h3 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.005em;
+  text-wrap: balance;
 }
 
-@utility card {
-  border-radius: var(--radius-card);
-  background: color-mix(in oklch, var(--color-ink-900) 80%, transparent);
-  border: 1px solid color-mix(in oklch, var(--color-ink-800) 80%, transparent);
+/* The display voice, for anything that should read like a menu label. */
+@utility display {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-style: italic;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  line-height: 0.92;
 }
 
 /* Numeric display type for statistics: tabular figures so columns of numbers
@@ -114,242 +137,127 @@ body {
   font-weight: 500;
 }
 
-/* Uppercase micro-labels. Chakra Petch is already squared, so it needs less
-   tracking than a humanist face would at this size. */
+/* Uppercase micro-labels, now in the condensed cut so they match the
+   headings they sit under. */
 @utility eyebrow {
-  font-size: 0.6875rem;
+  font-family: var(--font-display);
+  font-size: 0.75rem;
   line-height: 1.2;
-  letter-spacing: 0.09em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  font-weight: 500;
-}
-
-/* Visible, consistent focus for keyboard users (spec 9: accessibility). */
-*:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
-  border-radius: 4px;
-}
-
-/* iOS Safari zooms the entire page when a control it is focusing has text
-   under 16px, and every input in this app is 14px by design. Rather than
-   patching six call sites and missing the seventh, the floor lives here and
-   applies only at the widths where that zoom actually happens.
-
-   This rule is deliberately unlayered: Tailwind v4 emits its utilities inside
-   a cascade layer, and unlayered styles beat layered ones regardless of
-   specificity, so `text-sm` on the element does not win. */
-@media (max-width: 640px) {
-  input:not([type='checkbox']):not([type='radio']),
-  select,
-  textarea {
-    font-size: 16px;
-  }
-}
-
-::selection {
-  background: color-mix(in oklch, var(--color-accent) 35%, transparent);
-}
-
-/* Scrollbars styled to match the surface rather than punching a light hole. */
-::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: var(--color-ink-800);
-  border-radius: 999px;
-  border: 2px solid transparent;
-  background-clip: content-box;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: var(--color-ink-700);
-  background-clip: content-box;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    transition-duration: 0.01ms !important;
-  }
-}
-
-/* Headings carry the display weight; body stays at 400 so the squared face
-   does not shout through a paragraph of game description. */
-h1, h2, h3 {
   font-weight: 600;
-  letter-spacing: -0.015em;
-  text-wrap: balance;
 }
 
 /* ------------------------------------------------------------------ *
- * Motion
+ * Shapes
  *
- * One vocabulary, used everywhere, so movement means the same thing on
- * every screen: things rise as they arrive, lift when pointed at, and
- * bars grow from nothing to their value.
- *
- * Every entrance keyframe ends at the element's *normal* style and uses
- * `both` fill, so the resting state and the finished state are the same
- * thing. An animation that never runs, or a tab that stops producing
- * frames, therefore leaves readable content rather than a stranded
- * half-faded tile — which is exactly what happened when this was first
- * built the other way round.
+ * Everything below is a clip-path. The corner that is cut is always the
+ * top-right and the bottom-left, so every panel on a screen leans the
+ * same way and the cuts line up down a column.
  * ------------------------------------------------------------------ */
 
-@keyframes rise {
-  from { opacity: 0; transform: translate3d(0, 10px, 0); }
-  to   { opacity: 1; transform: none; }
-}
-
-@keyframes rise-in-place {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-
-@keyframes pop {
-  0%   { opacity: 0; transform: scale(0.94); }
-  60%  { transform: scale(1.015); }
-  100% { opacity: 1; transform: none; }
-}
-
-/* Bars and meters grow to the width their inline style already sets, so the
-   final geometry is defined by the data and never by the animation. */
-@keyframes grow-x {
-  from { transform: scaleX(0); }
-  to   { transform: scaleX(1); }
-}
-
-@keyframes sweep {
-  from { transform: translateX(-120%); }
-  to   { transform: translateX(220%); }
-}
-
-@utility anim-rise {
-  animation: rise 420ms cubic-bezier(0.22, 0.68, 0.32, 1) both;
-}
-
-@utility anim-fade {
-  animation: rise-in-place 320ms ease-out both;
-}
-
-@utility anim-pop {
-  animation: pop 380ms cubic-bezier(0.22, 0.68, 0.32, 1) both;
-}
-
-/* Applied to the filled part of a bar. Origin left so it unrolls from the
-   start of the track rather than growing from the middle. */
-@utility anim-grow {
-  transform-origin: left center;
-  animation: grow-x 620ms cubic-bezier(0.22, 0.68, 0.32, 1) both;
-}
-
-/* Staggering is a delay set on the child, driven by one variable the parent
-   sets from its own item count — so a grid of eight and a grid of a hundred
-   both finish in about the same time. */
-@utility stagger {
-  animation-delay: calc(var(--i, 0) * var(--stagger-step, 40ms));
-}
-
-/* A slow highlight travelling across a surface. Used once, on the headline
-   figure, because a page of static numbers needs one thing that breathes. */
-@utility shimmer {
-  position: relative;
-  overflow: hidden;
-}
-.shimmer::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  width: 40%;
-  background: linear-gradient(
-    100deg,
-    transparent,
-    color-mix(in oklch, var(--color-accent) 22%, transparent),
-    transparent
+@utility cut {
+  clip-path: polygon(
+    0 0,
+    calc(100% - var(--cut)) 0,
+    100% var(--cut),
+    100% 100%,
+    var(--cut) 100%,
+    0 calc(100% - var(--cut))
   );
-  animation: sweep 4.5s ease-in-out 1.2s infinite;
-  pointer-events: none;
 }
 
-/* Interactive lift. Separate from the entrance animations because it is a
-   transition on a resting state, so it cannot strand anything.
-
-   Only ever on something that can actually be activated — a link or a button.
-   A card that rises under the pointer is making a promise about what a click
-   will do, and eight non-interactive panels wore this before the promise was
-   checked. Non-interactive cards acknowledge the pointer through `bloom`,
-   which brightens without implying a destination. */
-@utility lift {
-  transition:
-    transform 180ms cubic-bezier(0.22, 0.68, 0.32, 1),
-    border-color 180ms ease,
-    box-shadow 180ms ease;
-}
-.lift:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 30px -12px oklch(0 0 0 / 0.7);
+@utility cut-sm {
+  clip-path: polygon(
+    0 0,
+    calc(100% - var(--cut-sm)) 0,
+    100% var(--cut-sm),
+    100% 100%,
+    var(--cut-sm) 100%,
+    0 calc(100% - var(--cut-sm))
+  );
 }
 
-/* Anyone who has asked for less motion gets the finished state at once —
-   not a shorter version of the same movement. */
-@media print {
-  /* Paper has no animation clock, and `both` fill would hold every element at
-     its opening frame — printing a page of invisible content. */
-  .anim-rise,
-  .anim-fade,
-  .anim-pop,
-  .anim-grow,
-  .stagger {
-    animation: none !important;
-  }
-  .shimmer::after,
-  .bloom::before {
-    display: none;
-  }
+/* A parallelogram: the shape of a Persona menu item. The inner content is
+   un-slanted by the caller where it needs to stay upright. */
+@utility slant {
+  clip-path: polygon(var(--cut) 0, 100% 0, calc(100% - var(--cut)) 100%, 0 100%);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .anim-rise,
-  .anim-fade,
-  .anim-pop,
-  .anim-grow,
-  .stagger {
-    animation: none !important;
-  }
-  .shimmer::after {
-    display: none;
-  }
-  .lift {
-    transition: border-color 180ms ease;
-  }
-  .lift:hover {
-    transform: none;
-  }
-  *,
-  *::before,
-  *::after {
-    scroll-behavior: auto !important;
-  }
+/* Off-white cut-out. Dark text, hard shadow, the one panel per screen that
+   is allowed to shout. */
+@utility paper {
+  background: var(--color-paper);
+  color: var(--color-ink-950);
+}
+
+/* Hard, offset, un-blurred — a printed shadow, not a glow.
+
+   A drop-shadow filter rather than a box-shadow, and it goes on the *parent*
+   of the cut panel: a box-shadow is clipped away with everything else
+   outside the clip-path, and a filter on the same element is applied before
+   the clip and lost the same way. On the wrapper it sees the finished
+   shape and shadows that. */
+@utility hard-shadow {
+  filter: drop-shadow(6px 6px 0 var(--color-accent));
+}
+
+@utility hard-shadow-ink {
+  filter: drop-shadow(6px 6px 0 var(--color-ink-950));
+}
+
+/* Halftone dot field, for large flat surfaces that would otherwise be a
+   hole in the screen. Very quiet: it is texture, not pattern. */
+@utility halftone {
+  background-image: radial-gradient(
+    color-mix(in oklch, var(--color-ink-100) 5%, transparent) 1px,
+    transparent 1.5px
+  );
+  background-size: 9px 9px;
+}
+
+/* Diagonal hatching, used on the accent to give a solid red area some
+   ink-on-paper grain. */
+@utility hatch {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    transparent 0 6px,
+    color-mix(in oklch, var(--color-ink-950) 22%, transparent) 6px 7px
+  );
 }
 
 /* ------------------------------------------------------------------ *
  * Surfaces
- *
- * Depth comes from light, not from borders. A flat panel with a 1px
- * outline is what every dark dashboard looks like; giving each surface a
- * faint top highlight and a coloured bloom lets cards sit in front of the
- * page rather than being drawn on it.
  * ------------------------------------------------------------------ */
 
-/* A coloured bloom behind a panel, tinted by whatever sets --bloom. Used
-   for platform cards so each one reads as its own colour before a word of
-   it is read. */
+/* The standard panel. Cut corners, a near-opaque fill so it reads over the
+   backdrop footage, and a 1px inset edge in place of a border (a border
+   would be clipped along the chamfer). */
+@utility card {
+  border-radius: var(--radius-card);
+  background: color-mix(in oklch, var(--color-ink-900) 94%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--color-ink-700) 70%, transparent);
+  clip-path: polygon(
+    0 0,
+    calc(100% - var(--cut)) 0,
+    100% var(--cut),
+    100% 100%,
+    var(--cut) 100%,
+    0 calc(100% - var(--cut))
+  );
+}
+
+/* Restrained glass, for the mobile bar sitting over content. */
+@utility glass {
+  background: color-mix(in oklch, var(--color-ink-950) 82%, transparent);
+  backdrop-filter: blur(16px) saturate(1.2);
+  border-bottom: 1px solid color-mix(in oklch, var(--color-ink-700) 55%, transparent);
+}
+
+/* A coloured bloom behind a panel, tinted by whatever sets --bloom. Kept for
+   the platform cards, which still need to read as their colour before a
+   word of them is read; the blur is tighter than before so it reads as a
+   printed wash rather than a neon glow. */
 @utility bloom {
   position: relative;
   overflow: hidden;
@@ -357,23 +265,21 @@ h1, h2, h3 {
 .bloom::before {
   content: '';
   position: absolute;
-  top: -40%;
-  right: -25%;
-  width: 60%;
+  top: -30%;
+  right: -20%;
+  width: 55%;
   aspect-ratio: 1;
-  border-radius: 50%;
   background: var(--bloom, var(--color-accent));
-  opacity: 0.14;
-  filter: blur(46px);
+  opacity: 0.12;
+  filter: blur(34px);
   pointer-events: none;
   transition: opacity 300ms ease;
 }
 .bloom:hover::before {
-  opacity: 0.22;
+  opacity: 0.2;
 }
 
-/* A hairline rule that fades out at both ends, for section breaks that
-   should not look like table borders. */
+/* A hairline rule that fades out at both ends. */
 @utility rule-soft {
   height: 1px;
   background: linear-gradient(
@@ -385,16 +291,314 @@ h1, h2, h3 {
   );
 }
 
+/* A red slash, the mark that punctuates headings and labels. */
+@utility slash {
+  display: inline-block;
+  width: 0.5rem;
+  height: 1.1em;
+  background: var(--color-accent);
+  transform: skewX(-20deg);
+  flex: none;
+}
+
+/* ------------------------------------------------------------------ *
+ * Focus, selection, scrollbars
+ * ------------------------------------------------------------------ */
+
+*:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* Anything clipped to a shape loses an outline drawn outside its box — the
+   clip takes the ring with it. Those elements draw their focus ring inside
+   instead, so a keyboard user never lands on a cut panel or a slanted button
+   and sees nothing. Red on dark surfaces; paper on the red button, where red
+   on red would vanish. */
+.cut:focus-visible,
+.cut-sm:focus-visible,
+.slant:focus-visible,
+.btn-ghost:focus-visible,
+input.cut-sm:focus-visible,
+select.cut-sm:focus-visible,
+textarea.cut-sm:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--color-accent);
+}
+.btn-primary:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--color-ink);
+}
+
+::selection {
+  background: var(--color-accent);
+  color: var(--color-ink);
+}
+
+/* iOS Safari zooms the entire page when a control it is focusing has text
+   under 16px. The floor lives here, unlayered so it beats `text-sm`. */
+@media (max-width: 640px) {
+  input:not([type='checkbox']):not([type='radio']),
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-ink-800);
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-accent);
+  background-clip: content-box;
+}
+
+/* ------------------------------------------------------------------ *
+ * Motion
+ *
+ * One vocabulary, used everywhere. Things arrive on a slant and snap
+ * upright — the entrance is a lean, not a drift — bars grow from
+ * nothing to their value, and the page itself arrives behind a wipe
+ * (see `PageWipe`). Every entrance keyframe ends at the element's
+ * normal style with `both` fill, so an animation that never runs leaves
+ * readable content.
+ * ------------------------------------------------------------------ */
+
+@keyframes rise {
+  from { opacity: 0; transform: translate3d(-14px, 6px, 0) skewX(-4deg); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes rise-in-place {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes pop {
+  0%   { opacity: 0; transform: scale(0.9) skewX(-6deg); }
+  60%  { transform: scale(1.02) skewX(0); }
+  100% { opacity: 1; transform: none; }
+}
+
+@keyframes grow-x {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
+@keyframes sweep {
+  from { transform: translateX(-120%) skewX(-20deg); }
+  to   { transform: translateX(260%) skewX(-20deg); }
+}
+
+@utility anim-rise {
+  animation: rise 460ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@utility anim-fade {
+  animation: rise-in-place 320ms ease-out both;
+}
+
+@utility anim-pop {
+  animation: pop 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@utility anim-grow {
+  transform-origin: left center;
+  animation: grow-x 640ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@utility stagger {
+  animation-delay: calc(var(--i, 0) * var(--stagger-step, 40ms));
+}
+
+/* ------------------------------------------------------------------ *
+ * Page arrival
+ *
+ * The wipe and the page entrance are CSS, not JavaScript, on purpose: a
+ * keyframe starts the moment the HTML paints, while anything driven by a
+ * motion library waits for hydration — which on a cold dev compile or a
+ * slow connection is seconds of blank page with the content parked at
+ * opacity 0. The route template remounts these on every navigation, so
+ * they replay each time a page changes.
+ * ------------------------------------------------------------------ */
+
+@keyframes wipe {
+  0%   { transform: translateX(-100%) skewX(-18deg); visibility: visible; }
+  99%  { visibility: visible; }
+  100% { transform: translateX(100%) skewX(-18deg); visibility: hidden; }
+}
+
+@keyframes page-in {
+  from { opacity: 0; transform: translate3d(-24px, 0, 0) skewX(-3deg); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* A slanted ink panel with a gold leading edge, 140vw so its slanted sides
+   never show, sweeping left to right across the viewport. Ink rather than
+   the accent: a full-screen flash of the brightest colour in the system,
+   on every navigation, is the kind of thing that made the red version
+   tiring. It ends hidden, so the compositor is not asked to carry a
+   viewport-sized layer parked off-screen. */
+@utility page-wipe {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: -20vw;
+  width: 140vw;
+  z-index: 50;
+  pointer-events: none;
+  background: var(--color-ink-900);
+  border-right: 10px solid var(--color-accent);
+  animation: wipe 620ms cubic-bezier(0.76, 0, 0.24, 1) both;
+}
+
+@utility anim-page {
+  animation: page-in 420ms cubic-bezier(0.16, 1, 0.3, 1) 180ms both;
+}
+
+/* Word-by-word headline: each word rises out of its own clip a beat after
+   the last. The parent sets --i per word. */
+@keyframes word-up {
+  from { transform: translateY(110%) skewX(-12deg); opacity: 0; }
+  to   { transform: none; opacity: 1; }
+}
+
+@utility anim-word {
+  display: inline-block;
+  animation: word-up 500ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--delay, 200ms) + var(--i, 0) * 60ms);
+}
+
+/* Reveal on scroll. Time-based everywhere, so the content is never held
+   hostage; where the browser can drive an animation from the scroll
+   position, the same keyframe plays as the element enters the viewport
+   instead of on page load. */
+@utility reveal {
+  animation: rise 460ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--i, 0) * 45ms);
+}
+@supports (animation-timeline: view()) {
+  .reveal {
+    animation-timeline: view();
+    animation-range: entry 0% entry 35%;
+    animation-delay: 0s;
+  }
+}
+
+/* The "press any key" breath: a slow pulse that never goes fully out. */
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.35; }
+}
+
+@utility anim-pulse-soft {
+  animation: pulse-soft 1.8s ease-in-out infinite;
+}
+
+/* The title-screen prompt's breathing: a slow swell, never a blink. */
+@keyframes breathe {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.04); }
+}
+
+@utility anim-breathe {
+  animation: breathe 2.2s ease-in-out infinite;
+}
+
+/* A slanted highlight travelling across a surface, once per few seconds. */
+@utility shimmer {
+  position: relative;
+  overflow: hidden;
+}
+.shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  width: 30%;
+  background: linear-gradient(
+    100deg,
+    transparent,
+    color-mix(in oklch, var(--color-ink-100) 10%, transparent),
+    transparent
+  );
+  animation: sweep 4.5s ease-in-out 1.2s infinite;
+  pointer-events: none;
+}
+/* On paper the highlight is a shadow instead: a light sweep over an
+   off-white surface is invisible. */
+.paper.shimmer::after {
+  background: linear-gradient(
+    100deg,
+    transparent,
+    color-mix(in oklch, var(--color-ink) 10%, transparent),
+    transparent
+  );
+}
+
+/* Interactive lift. Only ever on something that can be activated. The
+   movement is sideways and up — a menu item nudged, not a card floating. */
+@utility lift {
+  transition:
+    transform 180ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 180ms ease;
+}
+.lift:hover {
+  transform: translate(3px, -3px);
+  box-shadow: -4px 4px 0 0 var(--color-accent);
+}
+
+@media print {
+  .anim-rise, .anim-fade, .anim-pop, .anim-grow, .stagger,
+  .anim-page, .anim-word, .reveal, .anim-pulse-soft, .anim-breathe {
+    animation: none !important;
+  }
+  .page-wipe {
+    display: none;
+  }
+  .shimmer::after, .bloom::before {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .anim-rise, .anim-fade, .anim-pop, .anim-grow, .stagger,
+  .anim-page, .anim-word, .reveal, .anim-pulse-soft, .anim-breathe {
+    animation: none !important;
+  }
+  .page-wipe {
+    display: none;
+  }
+  .shimmer::after {
+    display: none;
+  }
+  .lift {
+    transition: box-shadow 180ms ease;
+  }
+  .lift:hover {
+    transform: none;
+  }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* ------------------------------------------------------------------ *
  * Controls
  *
- * The primary button's class list was written out at eight call sites,
- * which meant eight slightly different buttons: some had a hover state,
- * some had press feedback. One utility instead, so every button in the
- * product responds to a pointer the same way. Focus is deliberately not
- * handled here: the global `*:focus-visible` rule above already draws one
- * consistent ring, and a second definition per component is how an app ends
- * up with four different focus states.
+ * Buttons are parallelograms. The primary is solid red with the label in
+ * the display cut; the ghost is an outline that fills on hover. Focus is
+ * handled by the global rule above.
  * ------------------------------------------------------------------ */
 
 @utility btn-primary {
@@ -402,35 +606,35 @@ h1, h2, h3 {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  border-radius: 0.5rem;
   background: var(--color-accent);
-  color: var(--color-ink-950);
-  font-size: 0.875rem;
-  font-weight: 500;
-  padding: 0.5rem 1rem;
+  color: var(--color-ink);
+  font-family: var(--font-display);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  font-style: italic;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.5rem 1.25rem;
+  clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
   transition:
-    background-color 180ms ease,
-    box-shadow 180ms ease,
+    background-color 160ms ease,
     transform 120ms ease;
 }
 .btn-primary:hover:not(:disabled) {
-  background: var(--color-accent-strong);
-  box-shadow: 0 8px 24px -10px color-mix(in oklch, var(--color-accent) 70%, transparent);
+  background: var(--color-paper);
+  color: var(--color-ink);
 }
 .btn-primary:active:not(:disabled) {
-  transform: scale(0.98);
+  transform: translate(2px, 2px);
 }
 .btn-primary:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
 
-/* Size modifier. Declared after btn-primary/btn-ghost so it wins on padding
-   and type size when both are applied, which keeps the small buttons on the
-   shared definition instead of forking it. */
 @utility btn-sm {
-  padding: 0.375rem 0.75rem;
-  font-size: 0.75rem;
+  padding: 0.3125rem 0.875rem;
+  font-size: 0.8125rem;
   gap: 0.375rem;
 }
 
@@ -439,25 +643,29 @@ h1, h2, h3 {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  border-radius: 0.5rem;
-  border: 1px solid var(--color-ink-700);
   color: var(--color-ink-200);
-  font-size: 0.875rem;
-  padding: 0.5rem 1rem;
+  font-family: var(--font-display);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  font-style: italic;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.5rem 1.25rem;
+  clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+  box-shadow: inset 0 0 0 1.5px var(--color-ink-600);
   transition:
-    border-color 180ms ease,
-    background-color 180ms ease,
-    color 180ms ease,
+    background-color 160ms ease,
+    color 160ms ease,
+    box-shadow 160ms ease,
     transform 120ms ease;
 }
 .btn-ghost:hover:not(:disabled) {
-  border-color: color-mix(in oklch, var(--color-accent) 50%, transparent);
-  background: var(--color-ink-850);
-  color: var(--color-ink-100);
-  transform: translateY(-1px);
+  background: var(--color-ink-100);
+  color: var(--color-ink-950);
+  box-shadow: inset 0 0 0 1.5px var(--color-ink-100);
 }
 .btn-ghost:active:not(:disabled) {
-  transform: scale(0.98);
+  transform: translate(2px, 2px);
 }
 .btn-ghost:disabled {
   opacity: 0.6;
@@ -466,8 +674,39 @@ h1, h2, h3 {
 
 @media (prefers-reduced-motion: reduce) {
   .btn-primary:active:not(:disabled),
-  .btn-ghost:hover:not(:disabled),
   .btn-ghost:active:not(:disabled) {
     transform: none;
   }
+}
+
+/* ------------------------------------------------------------------ *
+ * Inverted surfaces
+ *
+ * Inside a paper cut-out the ink ramp runs the other way. Tailwind emits
+ * every colour utility as `var(--color-ink-*)`, so redefining the ramp on
+ * a wrapper flips every label, input and message inside it without the
+ * form knowing it has been put on paper. Text steps still clear 4.5:1
+ * against the surface they sit on, now measured against paper.
+ * ------------------------------------------------------------------ */
+.auth-paper {
+  --color-ink-950: oklch(0.97 0.008 85);
+  --color-ink-900: oklch(0.93 0.008 85);
+  --color-ink-850: oklch(0.89 0.008 85);
+  --color-ink-800: oklch(0.84 0.008 85);
+  --color-ink-700: oklch(0.72 0.008 85);
+  --color-ink-600: oklch(0.46 0.010 300);
+  --color-ink-500: oklch(0.40 0.010 300);
+  --color-ink-400: oklch(0.34 0.010 300);
+  --color-ink-300: oklch(0.28 0.010 300);
+  --color-ink-200: oklch(0.22 0.010 300);
+  --color-ink-100: oklch(0.15 0.010 300);
+}
+.auth-paper .btn-primary:hover:not(:disabled) {
+  background: var(--color-ink);
+  color: var(--color-paper);
+}
+/* Bright gold on paper does not clear 4.5:1; the strong cut does. */
+.auth-paper,
+.paper {
+  --color-accent: var(--color-accent-strong);
 }

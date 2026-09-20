@@ -7,6 +7,8 @@ import { GameVerdict } from '@/components/game-verdict';
 import { GameNotes, type GameNote } from '@/components/game-notes';
 import { criticProvenance, isThinlyReviewed } from '@/lib/critic';
 import { PlatformReport, type PlatformReportRow } from '@/components/platform-report';
+import { Backdrop } from '@/components/backdrop';
+import { Headline } from '@/components/motion';
 import type { CSSProperties } from 'react';
 
 /**
@@ -82,96 +84,97 @@ export default async function GamePage({ params }: { params: Promise<{ slug: str
 
   return (
     <article>
-      {/* Hero: artwork bleeds behind the title, with a scrim for legibility. */}
-      <div className="relative -mx-4 -mt-6 mb-8 overflow-hidden sm:-mx-8 sm:-mt-10">
-        {game.heroImage ? (
-          <>
+      {/* The game's own artwork replaces the ambient footage for as long as
+          this page is open. It is the one place the backdrop is real data
+          rather than a placeholder. */}
+      {game.heroImage || game.coverImage ? (
+        <Backdrop src={game.heroImage ?? game.coverImage ?? undefined} strength={0.6} />
+      ) : null}
+
+      {/* Hero: the cover on a hard red shadow, the title in the largest
+          type on the site, platforms as slanted tags underneath. */}
+      <header className="mb-10 flex flex-col gap-6 sm:flex-row sm:items-end sm:gap-8">
+        {game.coverImage ? (
+          <div className="hard-shadow anim-rise shrink-0">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={game.heroImage}
+              src={game.coverImage}
               alt=""
-              className="anim-fade h-64 w-full scale-105 object-cover sm:h-80"
+              className="cut w-36 sm:w-44"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-ink-950 via-ink-950/70 to-ink-950/20" />
-          </>
-        ) : (
-          <div className="h-40 w-full bg-gradient-to-br from-ink-900 to-ink-850" />
-        )}
+          </div>
+        ) : null}
 
-        <div className="absolute inset-x-0 bottom-0 px-4 pb-6 sm:px-8">
-          <div className="mx-auto flex max-w-6xl items-end gap-5">
-            {game.coverImage ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={game.coverImage}
-                alt=""
-                className="anim-rise hidden w-32 rounded-lg border border-ink-800 shadow-xl shadow-black/50 sm:block"
-              />
-            ) : null}
-            <div className="anim-rise stagger min-w-0 flex-1 pb-1" style={{ '--i': 1 } as CSSProperties}>
-              <h1 className="text-3xl font-semibold tracking-tight text-ink-100 sm:text-4xl">
-                {game.name}
-              </h1>
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                {providers.map((provider, index) => (
-                  <span
-                    key={provider}
-                    className="anim-pop stagger"
-                    style={{ '--i': index + 2, '--stagger-step': '70ms' } as CSSProperties}
-                  >
-                    <PlatformBadge provider={provider} />
-                  </span>
-                ))}
-                {/* A dashed edge marks an inference, a solid one the user's
-                    own word. The label alone cannot tell them apart, and the
-                    difference is the whole point of keeping both. */}
-                <span
-                  title={
-                    game.statusDerived
-                      ? 'Worked out from your playtime and achievements'
-                      : 'You set this yourself'
-                  }
-                  className={`rounded-full border px-2.5 py-1 text-xs ${
-                    game.statusDerived
-                      ? 'border-dashed border-ink-700 text-ink-400'
-                      : 'border-accent/50 bg-accent/10 text-accent'
-                  }`}
-                >
-                  {STATUS_LABELS[game.status] ?? game.status}
+        <div className="min-w-0 flex-1 pb-1">
+          <div className="eyebrow anim-rise mb-3 flex items-center gap-2.5 text-accent">
+            <span className="slash" aria-hidden />
+            {game.firstReleaseDate ? new Date(game.firstReleaseDate).getUTCFullYear() : 'Game'}
+            {game.developers[0] ? <span className="text-ink-500">· {game.developers[0]}</span> : null}
+          </div>
+          <h1 className="display text-[2.75rem] leading-[0.9] text-ink-100 sm:text-[4rem]">
+            <Headline text={game.name} />
+          </h1>
+
+          <div className="mt-5 flex flex-wrap items-center gap-2">
+            {providers.map((provider, index) => (
+              <span
+                key={provider}
+                className="anim-pop stagger"
+                style={{ '--i': index + 2, '--stagger-step': '70ms' } as CSSProperties}
+              >
+                <PlatformBadge provider={provider} />
+              </span>
+            ))}
+            {/* A dashed edge marks an inference, a solid one the user's
+                own word. The label alone cannot tell them apart, and the
+                difference is the whole point of keeping both. */}
+            <span
+              title={
+                game.statusDerived
+                  ? 'Worked out from your playtime and achievements'
+                  : 'You set this yourself'
+              }
+              className={`inline-flex -skew-x-[14deg] px-2.5 py-0.5 font-display text-xs font-bold uppercase tracking-wider ${
+                game.statusDerived
+                  ? 'border border-dashed border-ink-600 text-ink-400'
+                  : 'bg-paper text-ink-950'
+              }`}
+            >
+              <span className="skew-x-[14deg]">{STATUS_LABELS[game.status] ?? game.status}</span>
+            </span>
+
+            {/* Shown here even when thinly reviewed, unlike in the
+                library. One game has room to say what the number rests
+                on; a shelf of two hundred covers does not. */}
+            {game.criticRating !== null ? (
+              <span
+                title={criticProvenance(game.criticRating, game.criticRatingCount) ?? undefined}
+                className={`stat-figure inline-flex h-6 -skew-x-[14deg] items-center gap-1 px-2 text-xs font-semibold ${
+                  isThinlyReviewed(game.criticRating, game.criticRatingCount)
+                    ? 'bg-ink-800 text-ink-300 ring-1 ring-ink-700'
+                    : game.criticRating >= 75
+                      ? 'bg-positive text-ink-950'
+                      : game.criticRating >= 50
+                        ? 'bg-warning text-ink-950'
+                        : 'bg-danger text-ink-950'
+                }`}
+              >
+                <span className="flex skew-x-[14deg] items-center gap-1">
+                  {Math.round(game.criticRating)}
+                  {game.criticRatingCount !== null ? (
+                    <span className="font-normal opacity-70">
+                      ·{' '}
+                      {game.criticRatingCount === 1
+                        ? '1 review'
+                        : `${game.criticRatingCount} reviews`}
+                    </span>
+                  ) : null}
                 </span>
-
-                {/* Shown here even when thinly reviewed, unlike in the
-                    library. One game has room to say what the number rests
-                    on; a shelf of two hundred covers does not. */}
-                {game.criticRating !== null ? (
-                  <span
-                    title={criticProvenance(game.criticRating, game.criticRatingCount) ?? undefined}
-                    className={`stat-figure inline-flex h-6 items-center gap-1 rounded-md px-1.5 text-xs font-semibold shadow-md shadow-black/50 ${
-                      isThinlyReviewed(game.criticRating, game.criticRatingCount)
-                        ? 'bg-ink-800 text-ink-300 ring-1 ring-ink-700'
-                        : game.criticRating >= 75
-                          ? 'bg-positive text-ink-950'
-                          : game.criticRating >= 50
-                            ? 'bg-warning text-ink-950'
-                            : 'bg-danger text-ink-950'
-                    }`}
-                  >
-                    {Math.round(game.criticRating)}
-                    {game.criticRatingCount !== null ? (
-                      <span className="font-normal opacity-70">
-                        ·{' '}
-                        {game.criticRatingCount === 1
-                          ? '1 review'
-                          : `${game.criticRatingCount} reviews`}
-                      </span>
-                    ) : null}
-                  </span>
-                ) : null}
-              </div>
-            </div>
+              </span>
+            ) : null}
           </div>
         </div>
-      </div>
+      </header>
 
       <div className="grid gap-8 lg:grid-cols-[1fr_20rem]">
         <div className="min-w-0 space-y-8">
@@ -248,7 +251,7 @@ export default async function GamePage({ params }: { params: Promise<{ slug: str
                       <span
                         key={genre}
                         style={{ '--i': index, '--stagger-step': '55ms' } as CSSProperties}
-                        className="anim-pop stagger rounded-full border border-ink-800 px-2.5 py-1 text-xs text-ink-400 transition-colors hover:border-accent/40 hover:text-accent"
+                        className="anim-pop stagger -skew-x-[14deg] px-2.5 py-1 font-display text-xs font-semibold uppercase tracking-wider text-ink-400 shadow-[inset_0_0_0_1px_var(--color-ink-700)] transition-colors hover:bg-ink-100 hover:text-ink-950"
                       >
                         {genre}
                       </span>
@@ -265,7 +268,7 @@ export default async function GamePage({ params }: { params: Promise<{ slug: str
                       <span
                         key={platform}
                         style={{ '--i': index, '--stagger-step': '45ms' } as CSSProperties}
-                        className="anim-pop stagger rounded-full bg-ink-850 px-2.5 py-1 text-xs text-ink-400"
+                        className="anim-pop stagger -skew-x-[14deg] bg-ink-850 px-2.5 py-1 font-display text-xs font-semibold uppercase tracking-wider text-ink-400"
                       >
                         {platform}
                       </span>

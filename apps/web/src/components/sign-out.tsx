@@ -6,6 +6,19 @@ import { useState } from 'react';
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
 /**
+ * Ends the session. Resolves whether or not the API could be reached: the
+ * cookie may already be gone, or the network may be down, and either way
+ * the honest next step is the same — ask the server who we are.
+ */
+export async function requestSignOut(): Promise<void> {
+  try {
+    await fetch(`${API_URL}/auth/logout`, { method: 'POST', credentials: 'include' });
+  } catch {
+    // See above.
+  }
+}
+
+/**
  * Sign out.
  *
  * The API has cleared sessions properly since the beginning — hashed token
@@ -25,12 +38,7 @@ export function SignOut() {
 
   async function signOut() {
     setBusy(true);
-    try {
-      await fetch(`${API_URL}/auth/logout`, { method: 'POST', credentials: 'include' });
-    } catch {
-      // The cookie may already be gone, or the network may be down. Either
-      // way the honest next step is the same: ask the server who we are.
-    }
+    await requestSignOut();
     router.refresh();
     setBusy(false);
   }
@@ -40,7 +48,7 @@ export function SignOut() {
       type="button"
       onClick={() => void signOut()}
       disabled={busy}
-      className="group flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-ink-400 transition-colors hover:bg-ink-850 hover:text-ink-200 disabled:opacity-60"
+      className="group flex w-full items-center gap-3 px-3 py-2 font-display text-sm font-semibold uppercase tracking-wider text-ink-500 transition-colors hover:bg-ink-850 hover:text-ink-200 disabled:opacity-60"
     >
       <svg
         viewBox="0 0 24 24"

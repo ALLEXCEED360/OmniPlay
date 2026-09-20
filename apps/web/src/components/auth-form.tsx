@@ -58,7 +58,8 @@ export function AuthForm({
         return;
       }
 
-      router.push('/dashboard');
+      // Through the title screen, then the menu.
+      router.push('/boot');
       // Ensures the layout re-resolves the new session server-side.
       router.refresh();
     } catch {
@@ -101,14 +102,14 @@ export function AuthForm({
 
           <div className="flex items-center gap-3" aria-hidden>
             <span className="rule-soft flex-1" />
-            <span className="text-[11px] uppercase tracking-wider text-ink-600">or</span>
+            <span className="eyebrow text-ink-600">or</span>
             <span className="rule-soft flex-1" />
           </div>
         </>
       ) : null}
 
       {message ? (
-        <p role="alert" className="rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-ink-200">
+        <p role="alert" className="cut-sm border-l-4 border-danger bg-danger/10 px-3 py-2 text-sm text-ink-200">
           {message}
         </p>
       ) : null}
@@ -209,7 +210,7 @@ function Field({
 
   return (
     <div>
-      <label htmlFor={name} className="mb-1.5 block text-sm text-ink-300">
+      <label htmlFor={name} className="eyebrow mb-1.5 block text-ink-400">
         {label}
       </label>
       <input
@@ -217,10 +218,10 @@ function Field({
         name={name}
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy || undefined}
-        className={`w-full rounded-lg border bg-ink-900 px-3 py-2.5 text-sm text-ink-100 transition-[border-color,box-shadow] duration-200 placeholder:text-ink-600 focus:outline-none ${
+        className={`w-full cut-sm bg-ink-900 px-3 py-2.5 text-sm text-ink-100 transition-shadow duration-200 placeholder:text-ink-600 focus:outline-none ${
           error
-            ? 'border-danger focus:shadow-[0_0_0_3px] focus:shadow-danger/20'
-            : 'border-ink-800 focus:border-accent focus:shadow-[0_0_0_3px] focus:shadow-accent/15'
+            ? 'shadow-[inset_0_0_0_1.5px_var(--color-danger)]'
+            : 'shadow-[inset_0_0_0_1px_var(--color-ink-800)] focus:shadow-[inset_0_0_0_1.5px_var(--color-accent)]'
         }`}
         {...props}
       />

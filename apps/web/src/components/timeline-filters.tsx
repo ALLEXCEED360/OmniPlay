@@ -94,14 +94,14 @@ export function TimelineFilters({
               type="button"
               aria-pressed={on}
               onClick={() => toggleInList('kinds', kind.id, allKinds)}
-              className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium transition-all duration-200 active:scale-[0.96] ${
+              className={`inline-flex -skew-x-[14deg] items-center gap-2 border px-3 py-1.5 font-display text-xs font-semibold uppercase tracking-wider transition-all duration-200 active:scale-[0.96] ${
                 on
                   ? 'border-ink-600 bg-ink-800 text-ink-100'
                   : 'border-ink-850 text-ink-500 hover:-translate-y-px hover:border-ink-700 hover:text-ink-300'
               }`}
             >
               <span
-                className={`size-2 rounded-full transition-all duration-200 ${
+                className={`size-2 -skew-x-[20deg] transition-all duration-200 ${
                   on ? `${kind.dot} scale-110` : 'bg-ink-700'
                 }`}
                 aria-hidden
@@ -123,14 +123,14 @@ export function TimelineFilters({
                 type="button"
                 aria-pressed={on}
                 onClick={() => toggleInList('providers', provider, providers)}
-                className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-all duration-200 active:scale-[0.96] ${
+                className={`inline-flex -skew-x-[14deg] items-center gap-1.5 border px-3 py-1.5 font-display text-xs font-semibold uppercase tracking-wider transition-all duration-200 active:scale-[0.96] ${
                   on
                     ? `${platformStyle(provider).border} ${platformStyle(provider).text} bg-ink-850`
                     : 'border-ink-850 text-ink-500 hover:-translate-y-px hover:border-ink-700 hover:text-ink-300'
                 }`}
               >
                 <span
-                  className={`size-1.5 rounded-full ${
+                  className={`size-1.5 -skew-x-[20deg] ${
                     on ? platformStyle(provider).bar : 'bg-ink-700'
                   }`}
                   aria-hidden

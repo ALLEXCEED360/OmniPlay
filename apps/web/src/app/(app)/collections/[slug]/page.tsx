@@ -83,7 +83,7 @@ export default async function CollectionPage({
               <RemoveFromCollection slug={collection.slug} gameId={game.id} />
               <Link
                 href={`/game/${game.slug}`}
-                className="lift block overflow-hidden rounded-[var(--radius-card)] border border-ink-800 bg-ink-900"
+                className="lift block cut-sm overflow-hidden bg-ink-900"
               >
                 <div className="aspect-[3/4] overflow-hidden bg-ink-850">
                   {game.coverImage ? (

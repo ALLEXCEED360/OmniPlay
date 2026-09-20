@@ -70,7 +70,7 @@ export function ProfileSettings({
             name="displayName"
             defaultValue={user.displayName ?? user.username}
             maxLength={60}
-            className="w-full max-w-sm rounded-lg border border-ink-800 bg-ink-900 px-3 py-2 text-sm text-ink-100 focus:border-accent focus:outline-none"
+            className="w-full max-w-sm cut-sm bg-ink-900 shadow-[inset_0_0_0_1px_var(--color-ink-800)] px-3 py-2 text-sm text-ink-100 focus:shadow-[inset_0_0_0_1.5px_var(--color-accent)] focus:outline-none"
           />
         </div>
 
@@ -85,7 +85,7 @@ export function ProfileSettings({
             maxLength={300}
             defaultValue={user.bio ?? ''}
             placeholder="RPGs, long campaigns, and a backlog I will absolutely get to."
-            className="w-full max-w-lg rounded-lg border border-ink-800 bg-ink-900 px-3 py-2 text-sm text-ink-100 placeholder:text-ink-600 focus:border-accent focus:outline-none"
+            className="w-full max-w-lg cut-sm bg-ink-900 shadow-[inset_0_0_0_1px_var(--color-ink-800)] px-3 py-2 text-sm text-ink-100 placeholder:text-ink-600 focus:shadow-[inset_0_0_0_1.5px_var(--color-accent)] focus:outline-none"
           />
         </div>
 
@@ -127,7 +127,7 @@ export function ProfileSettings({
           <div className="mt-4 flex flex-wrap items-center gap-2">
             <Link
               href={`/u/${user.username}`}
-              className="rounded-lg border border-ink-700 px-3 py-1.5 text-xs text-ink-300 transition-colors hover:bg-ink-850"
+              className="btn-ghost btn-sm"
             >
               View my profile
             </Link>
@@ -138,7 +138,7 @@ export function ProfileSettings({
                 setCopied(true);
                 setTimeout(() => setCopied(false), 2000);
               }}
-              className="rounded-lg border border-ink-700 px-3 py-1.5 text-xs text-ink-300 transition-colors hover:bg-ink-850"
+              className="btn-ghost btn-sm"
             >
               {copied ? 'Link copied' : 'Copy link'}
             </button>

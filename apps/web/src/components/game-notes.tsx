@@ -81,7 +81,7 @@ export function GameNotes({ slug, notes }: { slug: string; notes: GameNote[] }) 
     <section className="card anim-rise p-5">
       <div className="mb-3 flex items-baseline justify-between gap-3">
         <h2 className="eyebrow flex items-center gap-2 text-ink-400">
-          <span className="h-3 w-0.5 rounded-full bg-accent/70" aria-hidden />
+          <span className="slash" aria-hidden />
           Your notes
         </h2>
         {notes.length > 0 ? (
@@ -100,7 +100,7 @@ export function GameNotes({ slug, notes }: { slug: string; notes: GameNote[] }) 
           rows={3}
           maxLength={4000}
           placeholder="What did you make of it?"
-          className="w-full resize-y rounded-lg border border-ink-800 bg-ink-900 px-3 py-2.5 text-sm leading-relaxed text-ink-100 transition-[border-color,box-shadow] duration-200 placeholder:text-ink-600 focus:border-accent focus:shadow-[0_0_0_3px] focus:shadow-accent/15 focus:outline-none"
+          className="w-full resize-y cut-sm bg-ink-900 shadow-[inset_0_0_0_1px_var(--color-ink-800)] px-3 py-2.5 text-sm leading-relaxed text-ink-100 transition-shadow duration-200 placeholder:text-ink-600 focus:shadow-[inset_0_0_0_1.5px_var(--color-accent)] focus:outline-none"
         />
 
         <div className="flex items-center justify-between gap-3">
@@ -128,7 +128,7 @@ export function GameNotes({ slug, notes }: { slug: string; notes: GameNote[] }) 
             const edited = note.updatedAt !== note.createdAt;
 
             return (
-              <li key={note.id} className="rounded-lg border border-ink-850 bg-ink-950/40 p-3">
+              <li key={note.id} className="cut-sm bg-ink-950/50 p-3 shadow-[inset_0_0_0_1px_var(--color-ink-800)]">
                 {editing === note.id ? (
                   <div className="space-y-2">
                     <textarea
@@ -137,7 +137,7 @@ export function GameNotes({ slug, notes }: { slug: string; notes: GameNote[] }) 
                       rows={3}
                       maxLength={4000}
                       aria-label="Edit note"
-                      className="w-full resize-y rounded-lg border border-ink-800 bg-ink-900 px-3 py-2 text-sm leading-relaxed text-ink-100 focus:border-accent focus:outline-none"
+                      className="w-full resize-y cut-sm bg-ink-900 shadow-[inset_0_0_0_1px_var(--color-ink-800)] px-3 py-2 text-sm leading-relaxed text-ink-100 focus:shadow-[inset_0_0_0_1.5px_var(--color-accent)] focus:outline-none"
                     />
                     <div className="flex justify-end gap-2">
                       <button

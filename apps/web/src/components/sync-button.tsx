@@ -117,12 +117,12 @@ export function SyncButton() {
       </button>
 
       {active && jobs ? (
-        <div className="glass anim-rise w-64 rounded-lg p-3 text-xs" role="status" aria-live="polite">
+        <div className="card anim-rise w-64 p-3 text-xs" role="status" aria-live="polite">
           {jobs.map((job) => (
             <div key={job.id} className="flex items-center justify-between gap-2 py-0.5">
               <span className="flex items-center gap-1.5 capitalize text-ink-300">
                 <span
-                  className={`size-1.5 rounded-full ${
+                  className={`size-1.5 -skew-x-[20deg] ${
                     job.status === 'RUNNING' ? 'animate-pulse bg-accent' : 'bg-ink-600'
                   }`}
                   aria-hidden

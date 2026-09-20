@@ -1,4 +1,6 @@
 import Link from 'next/link';
+import { Wordmark } from '@/components/wordmark';
+import { Backdrop } from '@/components/backdrop';
 
 /**
  * Root not-found boundary.
@@ -11,17 +13,14 @@ import Link from 'next/link';
 export default function NotFound() {
   return (
     <div className="grid min-h-dvh place-items-center px-6">
+      <Backdrop />
       <div className="max-w-md text-center">
-        <Link href="/" className="inline-flex items-baseline gap-0.5">
-          <span className="text-lg font-bold tracking-tight text-ink-100">OMNI</span>
-          <span className="bg-gradient-to-r from-accent to-violet bg-clip-text text-lg font-bold tracking-tight text-transparent">
-            PLAY
-          </span>
-        </Link>
+        <Wordmark large href="/" />
 
-        <h1 className="mt-8 text-3xl font-semibold tracking-tight text-ink-100">
-          Nothing here
-        </h1>
+        <p className="display mt-10 text-[7rem] leading-none text-accent" aria-hidden>
+          404
+        </p>
+        <h1 className="display mt-2 text-4xl text-ink-100">Nothing here</h1>
         <p className="mt-3 text-sm leading-relaxed text-ink-400">
           This page does not exist, or it is not public.
         </p>

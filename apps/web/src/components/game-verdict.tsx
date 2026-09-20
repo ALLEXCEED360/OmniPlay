@@ -103,7 +103,7 @@ export function GameVerdict({
     <div className="card p-5">
       <div className="mb-3 flex items-baseline justify-between gap-3">
         <h2 className="eyebrow flex items-center gap-2 text-ink-400">
-          <span className="h-3 w-0.5 rounded-full bg-accent/70" aria-hidden />
+          <span className="slash" aria-hidden />
           Your verdict
         </h2>
         {declared ? (
@@ -131,7 +131,7 @@ export function GameVerdict({
               disabled={busy}
               aria-pressed={declared === option}
               onClick={() => void save({ status: declared === option ? null : option })}
-              className={`rounded-full border px-2.5 py-1 text-xs font-medium transition-all duration-200 disabled:opacity-60 ${
+              className={`-skew-x-[14deg] border px-2.5 py-1 font-display text-xs font-semibold uppercase tracking-wider transition-all duration-200 disabled:opacity-60 ${
                 declared === option
                   ? 'border-accent/50 bg-accent/15 text-accent'
                   : inferred

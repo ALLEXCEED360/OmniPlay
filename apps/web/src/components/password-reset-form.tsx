@@ -37,7 +37,7 @@ function Field({
 }) {
   return (
     <div>
-      <label htmlFor={name} className="mb-1.5 block text-sm text-ink-300">
+      <label htmlFor={name} className="eyebrow mb-1.5 block text-ink-400">
         {label}
       </label>
       <input
@@ -47,7 +47,7 @@ function Field({
         required
         autoComplete={autoComplete}
         autoFocus={autoFocus}
-        className="w-full rounded-lg border border-ink-800 bg-ink-900 px-3 py-2.5 text-sm text-ink-100 transition-[border-color,box-shadow] duration-200 placeholder:text-ink-600 focus:border-accent focus:shadow-[0_0_0_3px] focus:shadow-accent/15 focus:outline-none"
+        className="w-full cut-sm bg-ink-900 px-3 py-2.5 text-sm text-ink-100 shadow-[inset_0_0_0_1px_var(--color-ink-800)] transition-shadow duration-200 placeholder:text-ink-600 focus:shadow-[inset_0_0_0_1.5px_var(--color-accent)] focus:outline-none"
       />
       {hint ? <p className="mt-1.5 text-xs text-ink-500">{hint}</p> : null}
     </div>
@@ -99,7 +99,7 @@ export function RequestReset({
       <div className="anim-rise space-y-4">
         {emailDelivery ? (
           <>
-            <div className="rounded-lg border border-positive/30 bg-positive/10 px-4 py-3 text-sm text-ink-200">
+            <div className="cut-sm border-l-4 border-positive bg-positive/10 px-4 py-3 text-sm text-ink-200">
               If that address has an account, a reset link is on its way. It
               works once and expires in an hour.
             </div>
@@ -122,7 +122,7 @@ export function RequestReset({
              away no more about who has an account than the neutral wording
              above does. */
           <>
-            <div className="rounded-lg border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-ink-200">
+            <div className="cut-sm border-l-4 border-warning bg-warning/10 px-4 py-3 text-sm text-ink-200">
               <strong className="font-medium">No email was sent.</strong> This
               OMNIPLAY instance has no mail provider configured, so a reset
               link cannot reach an inbox.
@@ -162,7 +162,7 @@ export function RequestReset({
       {error ? (
         <div
           role="alert"
-          className="anim-fade rounded-lg border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-ink-200"
+          className="anim-fade cut-sm border-l-4 border-danger bg-danger/10 px-4 py-3 text-sm text-ink-200"
         >
           {error}
         </div>
@@ -211,7 +211,7 @@ export function ChooseNewPassword() {
         setError(body?.message ?? 'Could not reset your password. Please try again.');
         return;
       }
-      router.push('/dashboard');
+      router.push('/boot');
       router.refresh();
     } catch {
       setError('Could not reach OMNIPLAY. Check your connection and try again.');
@@ -225,7 +225,7 @@ export function ChooseNewPassword() {
   if (!token) {
     return (
       <div className="space-y-4">
-        <div className="rounded-lg border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-ink-200">
+        <div className="cut-sm border-l-4 border-danger bg-danger/10 px-4 py-3 text-sm text-ink-200">
           This link is missing its reset code. It may have been cut short by
           your email client.
         </div>
@@ -241,7 +241,7 @@ export function ChooseNewPassword() {
       {error ? (
         <div
           role="alert"
-          className="anim-fade rounded-lg border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-ink-200"
+          className="anim-fade cut-sm border-l-4 border-danger bg-danger/10 px-4 py-3 text-sm text-ink-200"
         >
           {error}{' '}
           <Link href="/forgot-password" className="text-accent underline underline-offset-2">

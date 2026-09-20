@@ -135,9 +135,7 @@ function PageLink({
 }) {
   if (disabled) {
     return (
-      <span className="cursor-not-allowed rounded-lg border border-ink-850 px-4 py-2 text-sm text-ink-600">
-        {children}
-      </span>
+      <span className="btn-ghost cursor-not-allowed opacity-40">{children}</span>
     );
   }
 

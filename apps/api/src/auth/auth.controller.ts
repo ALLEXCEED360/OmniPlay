@@ -145,7 +145,8 @@ export class AuthController {
       const { user, returnTo } = await this.google.completeSignIn(query);
       const { token, expiresAt } = await this.auth.startSessionFor(user.id, contextOf(req));
       res.cookie(SESSION_COOKIE, token, this.auth.cookieOptions(expiresAt));
-      return res.redirect(returnTo ?? `${web}/dashboard`);
+      // Through the title screen, like every other way in.
+      return res.redirect(returnTo ?? `${web}/boot`);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Google sign-in failed.';
       return res.redirect(`${web}/login?error=${encodeURIComponent(message)}`);

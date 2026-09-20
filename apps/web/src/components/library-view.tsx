@@ -2,6 +2,7 @@ import Link from 'next/link';
 import type { CSSProperties } from 'react';
 import { formatHours, formatRelative } from '@/lib/format';
 import { PlatformBadge } from '@/components/ui';
+import { TiltLink } from '@/components/motion';
 import { platformStyle, staggerStep } from '@/lib/platform';
 import { criticProvenance, isThinlyReviewed } from '@/lib/critic';
 
@@ -117,17 +118,19 @@ function ScoreBadge({
 }) {
   return (
     <span
-      className={`stat-figure inline-flex items-center justify-center rounded-md font-semibold shadow-md shadow-black/50 ${
+      className={`stat-figure inline-flex -skew-x-[14deg] items-center justify-center font-semibold shadow-md shadow-black/50 ${
         provisional
           ? `bg-ink-950/85 ring-1 backdrop-blur-sm ${provisionalTone(score)}`
           : scoreTone(score)
-      } ${large ? 'h-7 min-w-8 px-1.5 text-sm' : 'h-6 min-w-7 px-1.5 text-xs'}`}
+      } ${large ? 'h-7 min-w-8 px-2 text-sm' : 'h-6 min-w-7 px-1.5 text-xs'}`}
       title={criticProvenance(score, count) ?? undefined}
     >
-      {Math.round(score)}
-      {/* A dot rather than a word: the tooltip carries the explanation, and
-          the badge only has to say "treat this differently". */}
-      {provisional ? <span className="ml-0.5 opacity-60">·</span> : null}
+      <span className="skew-x-[14deg]">
+        {Math.round(score)}
+        {/* A dot rather than a word: the tooltip carries the explanation, and
+            the badge only has to say "treat this differently". */}
+        {provisional ? <span className="ml-0.5 opacity-60">·</span> : null}
+      </span>
     </span>
   );
 }
@@ -143,13 +146,11 @@ function ScoreBadge({
 function StatChip({ children, primary }: { children: React.ReactNode; primary?: boolean }) {
   return (
     <span
-      className={`stat-figure inline-flex items-center rounded-md px-1.5 py-0.5 text-[11px] font-medium backdrop-blur-sm ${
-        primary
-          ? 'bg-accent/20 text-accent ring-1 ring-accent/40'
-          : 'bg-ink-950/70 text-ink-200 ring-1 ring-white/10'
+      className={`stat-figure inline-flex -skew-x-[14deg] items-center px-1.5 py-0.5 text-[11px] font-medium backdrop-blur-sm ${
+        primary ? 'bg-accent text-ink-950' : 'bg-ink-950/80 text-ink-200 ring-1 ring-white/10'
       }`}
     >
-      {children}
+      <span className="skew-x-[14deg]">{children}</span>
     </span>
   );
 }
@@ -170,14 +171,18 @@ export function LibraryGrid({ games, sort }: { games: LibraryGame[]; sort: Libra
         const hours = game.totalMinutes > 0 ? formatHours(game.totalMinutes) : null;
 
         return (
-          <Link
+          <TiltLink
             key={game.id}
             href={`/game/${game.slug}`}
             style={{ '--i': index } as CSSProperties}
-            className={`group anim-rise stagger lift relative block overflow-hidden rounded-[var(--radius-card)] border bg-ink-900 ${
-              edge ? edge.border : 'border-ink-800'
-            }`}
+            className="group anim-rise stagger cut-sm relative block overflow-hidden bg-ink-900"
           >
+            {/* The first platform's colour as a stripe down the left edge:
+                the same legend as everywhere else, read before the badges. */}
+            <span
+              className={`absolute inset-y-0 left-0 z-10 w-1 ${edge ? edge.bar : 'bg-ink-700'}`}
+              aria-hidden
+            />
             <div className="relative aspect-[3/4] overflow-hidden bg-ink-850">
               {game.coverImage ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -216,15 +221,17 @@ export function LibraryGrid({ games, sort }: { games: LibraryGame[]; sort: Libra
               ) : null}
 
               {game.ownershipState && game.ownershipState !== 'OWNED' ? (
-                <span className="absolute right-2 top-2 rounded-full bg-ink-950/80 px-2 py-0.5 text-[10px] font-medium text-ink-400 backdrop-blur">
-                  {game.ownershipState === 'PREVIOUSLY_OWNED' ? 'Previously owned' : 'Played'}
+                <span className="absolute right-2 top-2 -skew-x-[14deg] bg-ink-950/85 px-2 py-0.5 font-display text-[10px] font-semibold uppercase tracking-wider text-ink-400 backdrop-blur">
+                  <span className="inline-block skew-x-[14deg]">
+                    {game.ownershipState === 'PREVIOUSLY_OWNED' ? 'Previously owned' : 'Played'}
+                  </span>
                 </span>
               ) : null}
 
               <div className="absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-t from-ink-950 via-ink-950/85 to-transparent" />
 
               <div className="absolute inset-x-0 bottom-0 p-3">
-                <div className="line-clamp-2 text-sm font-medium leading-snug text-ink-100">
+                <div className="line-clamp-2 font-display text-[15px] font-bold uppercase leading-[1.05] tracking-wide text-ink-100">
                   {game.name}
                 </div>
 
@@ -260,7 +267,7 @@ export function LibraryGrid({ games, sort }: { games: LibraryGame[]; sort: Libra
                 </div>
               </div>
             </div>
-          </Link>
+          </TiltLink>
         );
       })}
     </div>
@@ -332,13 +339,13 @@ export function LibraryList({ games, sort }: { games: LibraryGame[]; sort: Libra
                       src={game.coverImage}
                       alt=""
                       loading="lazy"
-                      className="h-12 w-9 shrink-0 rounded object-cover transition-transform duration-200 group-hover:scale-105"
+                      className="h-12 w-9 shrink-0 object-cover transition-transform duration-200 group-hover:scale-105"
                     />
                   ) : (
-                    <span className="h-12 w-9 shrink-0 rounded bg-ink-850" />
+                    <span className="h-12 w-9 shrink-0 bg-ink-850" />
                   )}
                   <span className="min-w-0">
-                    <span className="block truncate text-ink-100 transition-colors group-hover:text-accent">
+                    <span className="block truncate font-display text-[15px] font-semibold uppercase tracking-wide text-ink-100 transition-colors group-hover:text-accent">
                       {game.name}
                     </span>
                     {game.ownershipState && game.ownershipState !== 'OWNED' ? (
@@ -357,7 +364,7 @@ export function LibraryList({ games, sort }: { games: LibraryGame[]; sort: Libra
                   {game.providers.map((provider) => (
                     <span
                       key={provider}
-                      className={`size-2 rounded-full ${platformStyle(provider).bar}`}
+                      className={`size-2 -skew-x-[20deg] ${platformStyle(provider).bar}`}
                     />
                   ))}
                 </span>

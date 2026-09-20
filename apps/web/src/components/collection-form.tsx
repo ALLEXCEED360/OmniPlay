@@ -84,7 +84,7 @@ export function CreateCollectionButton() {
           maxLength={80}
           autoFocus
           placeholder="All-Time Favourites"
-          className="w-full rounded-lg border border-ink-800 bg-ink-900 px-3 py-2 text-sm text-ink-100 placeholder:text-ink-600 focus:border-accent focus:outline-none"
+          className="w-full cut-sm bg-ink-900 shadow-[inset_0_0_0_1px_var(--color-ink-800)] px-3 py-2 text-sm text-ink-100 placeholder:text-ink-600 focus:shadow-[inset_0_0_0_1.5px_var(--color-accent)] focus:outline-none"
         />
       </div>
 
@@ -96,7 +96,7 @@ export function CreateCollectionButton() {
           id="collection-description"
           name="description"
           maxLength={500}
-          className="w-full rounded-lg border border-ink-800 bg-ink-900 px-3 py-2 text-sm text-ink-100 focus:border-accent focus:outline-none"
+          className="w-full cut-sm bg-ink-900 shadow-[inset_0_0_0_1px_var(--color-ink-800)] px-3 py-2 text-sm text-ink-100 focus:shadow-[inset_0_0_0_1.5px_var(--color-accent)] focus:outline-none"
         />
       </div>
 
@@ -132,7 +132,7 @@ export function CreateCollectionButton() {
         <button
           type="button"
           onClick={() => setOpen(false)}
-          className="rounded-lg px-3 py-2 text-sm text-ink-400 hover:text-ink-200"
+          className="px-3 py-2 font-display text-sm font-semibold uppercase tracking-wider text-ink-500 hover:text-ink-200"
         >
           Cancel
         </button>
@@ -192,7 +192,7 @@ export function CollectionControls({
         disabled={busy}
         onChange={(event) => void setVisibility(event.target.value)}
         aria-label="Collection visibility"
-        className="rounded-lg border border-ink-800 bg-ink-900 px-3 py-2 text-sm text-ink-200 focus:border-accent focus:outline-none"
+        className="cut-sm bg-ink-900 shadow-[inset_0_0_0_1px_var(--color-ink-800)] px-3 py-2 text-sm text-ink-200 focus:shadow-[inset_0_0_0_1.5px_var(--color-accent)] focus:outline-none"
       >
         {VISIBILITIES.map((option) => (
           <option key={option.id} value={option.id}>
@@ -209,7 +209,7 @@ export function CollectionControls({
             setCopied(true);
             setTimeout(() => setCopied(false), 2000);
           }}
-          className="rounded-lg border border-ink-700 px-3 py-2 text-sm text-ink-300 hover:bg-ink-850"
+          className="btn-ghost btn-sm"
         >
           {copied ? 'Link copied' : 'Copy profile link'}
         </button>
@@ -221,14 +221,14 @@ export function CollectionControls({
             type="button"
             onClick={() => void remove()}
             disabled={busy}
-            className="rounded-lg bg-danger px-3 py-2 text-sm font-medium text-ink-100 disabled:opacity-60"
+            className="btn-primary btn-sm bg-danger!"
           >
             Delete for good
           </button>
           <button
             type="button"
             onClick={() => setConfirming(false)}
-            className="rounded-lg px-3 py-2 text-sm text-ink-400 hover:text-ink-200"
+            className="px-3 py-2 font-display text-sm font-semibold uppercase tracking-wider text-ink-500 hover:text-ink-200"
           >
             Cancel
           </button>
@@ -237,7 +237,7 @@ export function CollectionControls({
         <button
           type="button"
           onClick={() => setConfirming(true)}
-          className="rounded-lg border border-ink-800 px-3 py-2 text-sm text-ink-400 hover:bg-ink-850 hover:text-ink-200"
+          className="cut-sm px-3 py-2 shadow-[inset_0_0_0_1px_var(--color-ink-800)] text-sm text-ink-400 hover:bg-ink-850 hover:text-ink-200"
         >
           Delete
         </button>
@@ -268,7 +268,7 @@ export function RemoveFromCollection({ slug, gameId }: { slug: string; gameId: s
           setBusy(false);
         }
       }}
-      className="absolute right-2 top-2 z-10 grid size-7 place-items-center rounded-full bg-ink-950/80 text-ink-300 opacity-0 backdrop-blur transition-opacity hover:text-danger group-hover:opacity-100 disabled:opacity-50"
+      className="absolute right-2 top-2 z-10 grid size-7 place-items-center -skew-x-[14deg] bg-ink-950/80 text-ink-300 opacity-0 backdrop-blur transition-opacity hover:text-danger group-hover:opacity-100 disabled:opacity-50"
     >
       <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2">
         <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round" />

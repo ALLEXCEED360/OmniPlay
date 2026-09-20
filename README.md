@@ -273,7 +273,7 @@ Modular monolith, background workers, provider adapter layer.
 
 ```
 apps/
-  web/       Next.js 15 — dark-first UI, server components
+  web/       Next.js 15 — server components, Persona-styled UI, motion
   api/       NestJS 11 — REST, sessions, provider connect flows
   worker/    BullMQ — sync jobs, ingestion, entity resolution
 packages/
@@ -284,6 +284,42 @@ packages/
   statistics/     Playtime and library aggregation
   config/         Shared TypeScript configuration
 ```
+
+### The interface
+
+The web app is styled after the menus in Atlus's Persona and Metaphor games:
+cut panels rather than rounded cards, condensed type set on a slant, one warm
+gold for the interface and the platform colours for the data, and a wipe
+between pages.
+The whole system lives in `apps/web/src/app/globals.css`; the shell is
+`components/nav.tsx`, the page primitives are `components/ui.tsx`, and the
+motion pieces are `components/motion.tsx`.
+
+Every signed-in screen sits over an ambient backdrop (`components/backdrop.tsx`).
+It is a still for now — `apps/web/public/backdrop/city.jpg`, a rendered night
+city by Nat ([@nattgw on Unsplash](https://unsplash.com/@nattgw), Unsplash
+licence). To replace it with footage, drop a `.mp4` or `.webm` into
+`public/backdrop/` and change the default `src` in `backdrop.tsx` — the
+component renders a muted, looping video for a video source and an image for
+anything else, and nothing else changes. The game page swaps in the game's own
+artwork for as long as it is open.
+
+The app opens the way a game does. Signing in — by password, Google, or a
+password reset — lands on a title screen (`/boot`): the name and "press any
+key". That leads to the main menu (`/menu`): a shelf of game cases, spines
+out with the titles running vertically, the chosen one pulled forward into a
+window on the art with its title and a line about what it opens. Arrow keys,
+number keys `1`–`9`, mouse or touch move along the shelf; `Esc` returns to the
+title; sign out is in the corner. Each case carries its own art — nine
+Unsplash photographs under the Unsplash licence, in `public/backdrop/menu/`,
+named for the entry they belong to. Every page's rail has a "Main menu" link
+back. Opening the app in a tab that is already signed in goes to the menu
+directly.
+
+Arrival animations (the wipe, headlines, sections revealing on scroll) are CSS,
+so they start the moment the HTML paints; `motion` is used only for what CSS
+cannot do — springs on hover, the menu cursor sliding between rows, the mobile
+sheet's exit. Everything honours `prefers-reduced-motion`.
 
 ### Three ideas the rest follows from
 

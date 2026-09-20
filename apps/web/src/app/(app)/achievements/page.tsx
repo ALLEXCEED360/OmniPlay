@@ -246,9 +246,9 @@ export default async function AchievementsPage() {
                     </span>
                   </div>
 
-                  <div className="mt-3 h-2 overflow-hidden rounded-full bg-ink-850">
+                  <div className="mt-3 h-2 -skew-x-[20deg] overflow-hidden bg-ink-850">
                     <div
-                      className={`anim-grow stagger h-full rounded-full ${style.bar}`}
+                      className={`anim-grow stagger h-full ${style.bar}`}
                       style={
                         {
                           width: `${Math.max(2, percent)}%`,
@@ -355,7 +355,7 @@ export default async function AchievementsPage() {
                         <div
                           key={slice.year}
                           title={`${providerLabel(platform.provider)} · ${slice.year} · ${count} unlocked`}
-                          className={`anim-pop stagger flex h-11 items-center justify-center rounded-md text-[11px] transition-transform duration-200 hover:scale-110 ${
+                          className={`anim-pop stagger flex h-11 items-center justify-center text-[11px] transition-transform duration-200 hover:scale-110 ${
                             count > 0 ? style.bar : 'bg-ink-850/60'
                           }`}
                           style={
@@ -447,7 +447,7 @@ export default async function AchievementsPage() {
                       >
                         <Link
                           href={`/game/${item.gameSlug}`}
-                          className="group -mx-2 flex items-center gap-3 rounded-lg px-2 py-1 transition-colors hover:bg-ink-850/60"
+                          className="group -mx-2 flex items-center gap-3 px-2 py-1 transition-colors hover:bg-ink-850/60"
                         >
                           {item.iconUrl ? (
                             // eslint-disable-next-line @next/next/no-img-element
@@ -455,10 +455,10 @@ export default async function AchievementsPage() {
                               src={item.iconUrl}
                               alt=""
                               loading="lazy"
-                              className="size-11 shrink-0 rounded-lg shadow transition-transform duration-200 group-hover:scale-110"
+                              className="size-11 shrink-0 cut-sm shadow transition-transform duration-200 group-hover:scale-110"
                             />
                           ) : (
-                            <span className="size-11 shrink-0 rounded-lg bg-ink-850" />
+                            <span className="size-11 shrink-0 cut-sm bg-ink-850" />
                           )}
 
                           <div className="min-w-0 flex-1">
@@ -515,9 +515,9 @@ export default async function AchievementsPage() {
                 </div>
                 {/* The share as a bar as well as a percentage: bronze being
                     most of a trophy case is a shape, not a figure. */}
-                <div className="mt-2.5 h-1 overflow-hidden rounded-full bg-ink-850">
+                <div className="mt-2.5 h-1 -skew-x-[20deg] overflow-hidden bg-ink-850">
                   <div
-                    className={`anim-grow stagger h-full rounded-full ${bar}`}
+                    className={`anim-grow stagger h-full ${bar}`}
                     style={
                       {
                         width: `${Math.max(2, Math.round((count / tierTotal) * 100))}%`,
@@ -559,16 +559,16 @@ export default async function AchievementsPage() {
                     src={achievement.iconUrl}
                     alt=""
                     loading="lazy"
-                    className="size-11 shrink-0 rounded-lg transition-transform duration-200 group-hover:scale-110"
+                    className="size-11 shrink-0 cut-sm transition-transform duration-200 group-hover:scale-110"
                   />
                 ) : (
-                  <span className="size-11 shrink-0 rounded-lg bg-ink-850" />
+                  <span className="size-11 shrink-0 cut-sm bg-ink-850" />
                 )}
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-sm text-ink-100">{achievement.name}</div>
                   <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-ink-500">
                     <span
-                      className={`size-1.5 shrink-0 rounded-full ${platformStyle(achievement.provider).bar}`}
+                      className={`size-1.5 shrink-0 -skew-x-[20deg] ${platformStyle(achievement.provider).bar}`}
                       aria-hidden
                     />
                     <span className="truncate">{achievement.game.name}</span>

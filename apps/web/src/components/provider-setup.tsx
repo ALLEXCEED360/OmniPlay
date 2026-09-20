@@ -23,7 +23,7 @@ export function ProviderSetup({
   // An API provider that is simply missing its key: fixable, so say how.
   if (provider.access === 'api') {
     return (
-      <div className="mt-4 rounded-lg border border-warning/30 bg-warning/5 p-4">
+      <div className="mt-4 cut-sm border-l-4 border-warning bg-warning/10 p-4">
         <p className="text-sm text-ink-200">
           {provider.displayName} is not configured on this instance.
         </p>

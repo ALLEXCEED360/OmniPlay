@@ -142,16 +142,16 @@ export function LibraryFilters({ facets }: { facets: LibraryFacets }) {
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Search your library"
             aria-label="Search your library"
-            className="w-full rounded-lg border border-ink-800 bg-ink-900 py-2 pl-9 pr-3 text-sm text-ink-100 transition-[border-color,box-shadow] duration-200 placeholder:text-ink-600 focus:border-accent focus:shadow-[0_0_0_3px] focus:shadow-accent/15 focus:outline-none"
+            className="w-full cut-sm bg-ink-900 py-2.5 pl-9 pr-3 text-sm text-ink-100 shadow-[inset_0_0_0_1px_var(--color-ink-800)] transition-shadow duration-200 placeholder:text-ink-600 focus:shadow-[inset_0_0_0_1.5px_var(--color-accent)] focus:outline-none"
           />
         </div>
 
-        <label className="flex items-center gap-2 text-sm text-ink-400">
+        <label className="eyebrow flex items-center gap-2 text-ink-500">
           Sort
           <select
             value={sort}
             onChange={(event) => update('sort', event.target.value)}
-            className="rounded-lg border border-ink-800 bg-ink-900 px-3 py-2 text-sm text-ink-200 focus:border-accent focus:outline-none"
+            className="cut-sm bg-ink-900 px-3 py-2.5 font-display text-sm font-semibold uppercase tracking-wider text-ink-200 shadow-[inset_0_0_0_1px_var(--color-ink-800)] focus:shadow-[inset_0_0_0_1.5px_var(--color-accent)] focus:outline-none"
           >
             {SORTS.map((option) => (
               <option key={option.id} value={option.id}>
@@ -164,7 +164,7 @@ export function LibraryFilters({ facets }: { facets: LibraryFacets }) {
         {/* Grid or table. The table exists so the numbers a sort orders by can
             be compared down a column instead of hunted across a grid. */}
         <div
-          className="flex items-center rounded-lg border border-ink-800 p-0.5"
+          className="flex items-center gap-0.5 cut-sm bg-ink-900 p-0.5 shadow-[inset_0_0_0_1px_var(--color-ink-800)]"
           role="group"
           aria-label="View"
         >
@@ -175,10 +175,8 @@ export function LibraryFilters({ facets }: { facets: LibraryFacets }) {
               onClick={() => setView(option)}
               aria-pressed={view === option}
               title={option === 'grid' ? 'Cover grid' : 'Detail table'}
-              className={`rounded-md px-2 py-1.5 transition-colors ${
-                view === option
-                  ? 'bg-ink-800 text-ink-100'
-                  : 'text-ink-500 hover:text-ink-200'
+              className={`px-2.5 py-2 transition-colors ${
+                view === option ? 'bg-accent text-ink-950' : 'text-ink-500 hover:text-ink-200'
               }`}
             >
               <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
@@ -258,7 +256,7 @@ export function LibraryFilters({ facets }: { facets: LibraryFacets }) {
                 }),
               );
             }}
-            className="anim-fade ml-1 text-xs text-ink-500 underline underline-offset-2 transition-colors hover:text-ink-200"
+            className="anim-fade ml-1 font-display text-xs font-semibold uppercase tracking-wider text-accent underline underline-offset-4 transition-colors hover:text-ink-100"
           >
             Clear filters
           </button>
@@ -300,30 +298,30 @@ function FilterChip({
       disabled={empty}
       aria-pressed={empty ? undefined : active}
       title={empty ? emptyReason : undefined}
-      className={`group relative inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-all duration-200 ${
+      className={`group relative inline-flex -skew-x-[14deg] items-center gap-1.5 px-3 py-1.5 font-display text-[13px] font-semibold uppercase tracking-wider transition-all duration-200 ${
         empty
-          ? 'cursor-default border-ink-850 text-ink-600'
+          ? 'cursor-default text-ink-600 shadow-[inset_0_0_0_1px_var(--color-ink-850)]'
           : active
             ? style
-              ? `${style.border} ${style.text} bg-ink-850`
-              : 'border-accent/40 bg-accent/15 text-accent'
-            : 'border-ink-800 text-ink-400 hover:-translate-y-px hover:border-ink-700 hover:text-ink-200 active:scale-[0.96]'
+              ? `${style.bar} text-ink-950`
+              : 'bg-accent text-ink-950'
+            : 'text-ink-400 shadow-[inset_0_0_0_1px_var(--color-ink-700)] hover:bg-ink-100 hover:text-ink-950 active:translate-x-px active:translate-y-px'
       }`}
     >
-      {/* A dot that only lights once the chip is on, so the row reads as a set
-          of switches rather than a row of buttons. */}
-      {style ? (
-        <span
-          className={`size-1.5 rounded-full transition-all duration-200 ${
-            active ? style.bar : 'bg-ink-700 group-hover:bg-ink-600'
-          }`}
-          aria-hidden
-        />
-      ) : null}
-      {children}
-      {count !== undefined ? (
-        <span className={`stat-figure ${empty ? 'text-ink-700' : 'text-ink-500'}`}>{count}</span>
-      ) : null}
+      {/* The label is un-slanted so the type stays upright inside the
+          parallelogram; only the block leans. */}
+      <span className="flex skew-x-[14deg] items-center gap-1.5">
+        {children}
+        {count !== undefined ? (
+          <span
+            className={`stat-figure text-[11px] ${
+              empty ? 'text-ink-700' : active ? 'opacity-75' : 'text-ink-500 group-hover:text-ink-700'
+            }`}
+          >
+            {count}
+          </span>
+        ) : null}
+      </span>
     </button>
   );
 }

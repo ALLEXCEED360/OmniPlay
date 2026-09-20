@@ -78,7 +78,7 @@ export default async function SettingsPage({
       {error ? (
         <div
           role="alert"
-          className="anim-rise mb-6 rounded-lg border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-ink-200"
+          className="anim-rise mb-6 cut-sm border-l-4 border-danger bg-danger/10 px-4 py-3 text-sm text-ink-200"
         >
           {error}
         </div>
@@ -86,7 +86,7 @@ export default async function SettingsPage({
       {connected ? (
         <div
           role="status"
-          className="anim-rise mb-6 rounded-lg border border-positive/30 bg-positive/10 px-4 py-3 text-sm text-ink-200"
+          className="anim-rise mb-6 cut-sm border-l-4 border-positive bg-positive/10 px-4 py-3 text-sm text-ink-200"
         >
           {connected} connected. Your first sync is running now.
         </div>
@@ -146,7 +146,7 @@ export default async function SettingsPage({
                   <th scope="row" className="px-4 py-3 text-left font-medium text-ink-200">
                     <span className="flex items-center gap-2">
                       <span
-                        className={`size-2 rounded-full ${platformStyle(provider.id).bar}`}
+                        className={`size-2 -skew-x-[20deg] ${platformStyle(provider.id).bar}`}
                         aria-hidden
                       />
                       {provider.displayName}
@@ -194,7 +194,7 @@ function Capability({ level }: { level: 'none' | 'partial' | 'full' | null }) {
       <span className="flex items-center gap-1.5">
         {/* The dot repeats what the colour says, so the column is still
             readable to anyone who cannot separate green from amber. */}
-        <span className={`size-1.5 shrink-0 rounded-full ${display.dot}`} aria-hidden />
+        <span className={`size-1.5 shrink-0 -skew-x-[20deg] ${display.dot}`} aria-hidden />
         {display.label}
       </span>
     </td>

@@ -196,7 +196,7 @@ export default async function AdminPage() {
                     }`}
                   >
                     <span
-                      className={`size-1.5 rounded-full ${
+                      className={`size-1.5 -skew-x-[20deg] ${
                         failure.status === 'FAILED' ? 'bg-danger' : 'bg-warning'
                       }`}
                       aria-hidden

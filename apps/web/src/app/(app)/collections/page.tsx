@@ -83,7 +83,7 @@ export default async function CollectionsPage() {
                     {collection.name}
                   </h2>
                   {collection.visibility !== 'PRIVATE' ? (
-                    <span className="shrink-0 rounded-full border border-accent/30 bg-accent/10 px-2 py-0.5 text-[10px] text-accent">
+                    <span className="shrink-0 -skew-x-[14deg] bg-accent px-2 py-0.5 font-display text-[10px] font-bold uppercase tracking-wider text-ink-950">
                       {VISIBILITY_LABELS[collection.visibility]}
                     </span>
                   ) : null}

@@ -154,9 +154,9 @@ export default async function StatsPage() {
                           {formatHours(genre.minutes)}
                         </span>
                       </div>
-                      <div className="mt-2 h-2 overflow-hidden rounded-full bg-ink-850">
+                      <div className="mt-2 h-2 -skew-x-[20deg] overflow-hidden bg-ink-850">
                         <div
-                          className="anim-grow stagger h-full rounded-full bg-gradient-to-r from-violet/60 via-accent/60 to-accent"
+                          className="anim-grow stagger h-full bg-gradient-to-r from-violet/60 via-accent/60 to-accent"
                           style={
                             {
                               width: `${Math.max(2, share * 100)}%`,
@@ -266,9 +266,9 @@ export default async function StatsPage() {
                   </th>
                   <td className="px-4 py-2.5">
                     <div className="flex items-center gap-2.5">
-                      <span className="h-2 flex-1 overflow-hidden rounded-full bg-ink-850">
+                      <span className="h-2 flex-1 -skew-x-[20deg] overflow-hidden bg-ink-850">
                         <span
-                          className="anim-grow stagger block h-full rounded-full bg-gradient-to-r from-violet/60 via-accent/60 to-accent"
+                          className="anim-grow stagger block h-full bg-gradient-to-r from-violet/60 via-accent/60 to-accent"
                           style={
                             {
                               width: `${Math.max(3, (year.activeDays / maxDays) * 100)}%`,
@@ -352,9 +352,9 @@ export default async function StatsPage() {
                   <div className="stat-figure mt-2 text-3xl text-ink-100">
                     <Counter value={platform.minutes} kind="hours" />
                   </div>
-                  <div className="mt-3 h-2 overflow-hidden rounded-full bg-ink-850">
+                  <div className="mt-3 h-2 -skew-x-[20deg] overflow-hidden bg-ink-850">
                     <div
-                      className={`anim-grow stagger h-full rounded-full ${style.bar}`}
+                      className={`anim-grow stagger h-full ${style.bar}`}
                       style={
                         {
                           width: `${Math.max(2, share * 100)}%`,

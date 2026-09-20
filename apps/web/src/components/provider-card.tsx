@@ -117,7 +117,7 @@ export function ProviderCard({ provider }: Props) {
       <div className="relative flex flex-wrap items-center justify-between gap-4">
         <div className="flex min-w-0 items-center gap-4">
           <span
-            className={`grid size-10 shrink-0 place-items-center rounded-lg text-sm font-semibold ${
+            className={`grid size-10 shrink-0 place-items-center cut-sm font-display text-base font-bold ${
               connection ? `bg-ink-850 ${style.text}` : 'bg-ink-850 text-ink-500'
             }`}
           >
@@ -129,7 +129,7 @@ export function ProviderCard({ provider }: Props) {
               <div className="mt-0.5 flex items-center gap-1.5 truncate text-xs text-ink-500">
                 {/* A live dot rather than the word "connected" repeated: the
                     row already carries the account name. */}
-                <span className={`size-1.5 shrink-0 rounded-full ${style.bar}`} aria-hidden />
+                <span className={`size-1.5 shrink-0 -skew-x-[20deg] ${style.bar}`} aria-hidden />
                 {connection.displayName ?? 'Connected'} · last synced{' '}
                 {formatRelative(connection.lastSyncAt)}
               </div>
@@ -147,7 +147,7 @@ export function ProviderCard({ provider }: Props) {
                   type="button"
                   onClick={() => void connect()}
                   disabled={busy}
-                  className="rounded-lg bg-warning px-3 py-1.5 text-xs font-medium text-ink-950 transition-transform duration-150 active:scale-95 disabled:opacity-60"
+                  className="btn-primary btn-sm bg-warning! text-ink-950!"
                 >
                   Reconnect
                 </button>
@@ -156,7 +156,7 @@ export function ProviderCard({ provider }: Props) {
                 type="button"
                 onClick={() => setConfirming(true)}
                 disabled={busy}
-                className="rounded-lg border border-ink-700 px-3 py-1.5 text-xs text-ink-300 transition-all duration-150 hover:bg-ink-850 hover:text-ink-100 active:scale-95 disabled:opacity-60"
+                className="btn-ghost btn-sm"
               >
                 Disconnect
               </button>
@@ -181,7 +181,7 @@ export function ProviderCard({ provider }: Props) {
       </div>
 
       {needsReauth && connection?.statusMessage ? (
-        <p className="anim-fade mt-3 rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-xs text-ink-200">
+        <p className="anim-fade mt-3 cut-sm border-l-4 border-warning bg-warning/10 px-3 py-2 text-xs text-ink-200">
           {connection.statusMessage} Your existing data is safe.
         </p>
       ) : null}
@@ -196,7 +196,7 @@ export function ProviderCard({ provider }: Props) {
       ) : null}
 
       {confirming ? (
-        <div className="anim-rise mt-4 rounded-lg border border-ink-800 bg-ink-950/60 p-4">
+        <div className="anim-rise mt-4 cut-sm bg-ink-950/50 p-4 shadow-[inset_0_0_0_1px_var(--color-ink-800)]">
           <p className="text-sm text-ink-200">Disconnect {provider.displayName}?</p>
           <p className="mt-1 text-xs text-ink-500">
             You can keep the games already imported, or remove everything that came from this
@@ -207,7 +207,7 @@ export function ProviderCard({ provider }: Props) {
               type="button"
               onClick={() => void disconnect(false)}
               disabled={busy}
-              className="rounded-lg border border-ink-700 px-3 py-1.5 text-xs text-ink-200 hover:bg-ink-850 disabled:opacity-60"
+              className="btn-ghost btn-sm"
             >
               Disconnect, keep my data
             </button>
@@ -215,7 +215,7 @@ export function ProviderCard({ provider }: Props) {
               type="button"
               onClick={() => void disconnect(true)}
               disabled={busy}
-              className="rounded-lg bg-danger px-3 py-1.5 text-xs font-medium text-ink-100 disabled:opacity-60"
+              className="btn-primary btn-sm bg-danger!"
             >
               Disconnect and delete imported data
             </button>
@@ -223,7 +223,7 @@ export function ProviderCard({ provider }: Props) {
               type="button"
               onClick={() => setConfirming(false)}
               disabled={busy}
-              className="rounded-lg px-3 py-1.5 text-xs text-ink-400 hover:text-ink-200"
+              className="px-3 py-1.5 font-display text-xs font-semibold uppercase tracking-wider text-ink-500 hover:text-ink-200"
             >
               Cancel
             </button>

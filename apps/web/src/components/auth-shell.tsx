@@ -1,11 +1,15 @@
 import type { CSSProperties, ReactNode } from 'react';
 import { Wordmark } from '@/components/wordmark';
+import { Backdrop } from '@/components/backdrop';
+import { Headline } from '@/components/motion';
 
 /**
  * Framing for the signed-out screens.
  *
- * Split layout: the product promise on the left, the form on the right. On
- * mobile the pitch collapses to a wordmark so the form is immediately at hand.
+ * A title screen, in the sense a game has one: footage behind, the name in
+ * the largest type the product uses, and the form on an off-white cut-out
+ * to the right. On mobile the pitch collapses to a wordmark so the form is
+ * immediately at hand.
  *
  * The three proof points are coloured to match the three platforms, which is
  * the same legend the whole app runs on — so the first screen a person sees
@@ -13,9 +17,9 @@ import { Wordmark } from '@/components/wordmark';
  */
 
 const PROOF = [
-  { term: 'Unified', detail: 'One library', dot: 'bg-accent' },
-  { term: 'Traceable', detail: 'Every source', dot: 'bg-violet' },
-  { term: 'Yours', detail: 'Export anytime', dot: 'bg-positive' },
+  { term: 'Unified', detail: 'One library', bar: 'bg-psn' },
+  { term: 'Traceable', detail: 'Every source', bar: 'bg-steam' },
+  { term: 'Yours', detail: 'Export anytime', bar: 'bg-xbox' },
 ] as const;
 
 export function AuthShell({
@@ -28,62 +32,61 @@ export function AuthShell({
   children: ReactNode;
 }) {
   return (
-    <div className="relative grid min-h-dvh lg:grid-cols-2">
-      {/* Two soft blooms behind everything. A sign-in page is one form on a
-          flat field; this gives the field somewhere to be. */}
-      <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
-        <div className="absolute -left-32 -top-32 size-[28rem] rounded-full bg-accent opacity-[0.07] blur-[100px]" />
-        <div className="absolute -bottom-40 left-1/3 size-[32rem] rounded-full bg-violet opacity-[0.06] blur-[110px]" />
-      </div>
+    <div className="relative grid min-h-dvh lg:grid-cols-[1.2fr_1fr]">
+      <Backdrop strength={0.9} />
 
       <section className="relative hidden flex-col justify-between p-12 lg:flex">
         <div className="anim-fade">
-          <Wordmark large />
+          <Wordmark large asLink={false} />
         </div>
 
-        <div className="max-w-md">
-          <p
-            className="anim-rise stagger text-3xl font-semibold leading-tight tracking-tight text-ink-100"
-            style={{ '--i': 1 } as CSSProperties}
-          >
-            Your gaming history should belong to you — not to Steam, Xbox or PlayStation.
+        <div className="max-w-xl">
+          <div className="eyebrow anim-rise mb-4 flex items-center gap-2.5 text-accent">
+            <span className="slash" aria-hidden />
+            Your universal gaming identity
+          </div>
+          <p className="display text-[4.5rem] leading-[0.9] text-ink-100">
+            <Headline text="Your history should belong to you." delayMs={100} />
           </p>
           <p
-            className="anim-rise stagger mt-6 text-sm leading-relaxed text-ink-400"
-            style={{ '--i': 2 } as CSSProperties}
+            className="anim-rise stagger mt-6 max-w-md text-[15px] leading-relaxed text-ink-400"
+            style={{ '--i': 5 } as CSSProperties}
           >
-            OMNIPLAY brings together everything you own, have owned, played and finished across
-            every platform, and turns it into one record you actually control.
+            Not to Steam, Xbox or PlayStation. OMNIPLAY brings together everything you own, have
+            owned, played and finished across every platform, and turns it into one record you
+            actually control.
           </p>
         </div>
 
-        <dl className="grid grid-cols-3 gap-6 border-t border-ink-850 pt-8">
+        <dl className="grid grid-cols-3 gap-6">
           {PROOF.map((item, index) => (
             <div
               key={item.term}
               className="anim-rise stagger"
-              style={{ '--i': index + 3, '--stagger-step': '90ms' } as CSSProperties}
+              style={{ '--i': index + 6, '--stagger-step': '90ms' } as CSSProperties}
             >
-              <dt className="eyebrow flex items-center gap-1.5 text-ink-600">
-                <span className={`size-1.5 rounded-full ${item.dot}`} aria-hidden />
-                {item.term}
-              </dt>
-              <dd className="mt-1 text-sm text-ink-300">{item.detail}</dd>
+              <span className={`mb-3 block h-1 w-10 -skew-x-[20deg] ${item.bar}`} aria-hidden />
+              <dt className="display text-xl text-ink-100">{item.term}</dt>
+              <dd className="mt-1 text-sm text-ink-400">{item.detail}</dd>
             </div>
           ))}
         </dl>
       </section>
 
       <section className="relative flex items-center justify-center p-6 sm:p-12">
-        <div className="anim-rise w-full max-w-sm">
-          <div className="mb-8 lg:hidden">
-            <Wordmark large asLink={false} />
+        <div className="hard-shadow anim-rise w-full max-w-md">
+          <div className="paper cut p-7 sm:p-9">
+            <div className="mb-8 lg:hidden">
+              <Wordmark large asLink={false} />
+            </div>
+
+            <h1 className="display text-[2.5rem] leading-[0.9] text-ink-950">{title}</h1>
+            <p className="mb-8 mt-3 text-sm text-ink-700">{subtitle}</p>
+
+            {/* The form was written for a dark surface; on paper its inputs
+                and links pick up the inverted tokens set here. */}
+            <div className="auth-paper">{children}</div>
           </div>
-
-          <h1 className="text-2xl font-semibold tracking-tight text-ink-100">{title}</h1>
-          <p className="mb-8 mt-2 text-sm text-ink-400">{subtitle}</p>
-
-          {children}
         </div>
       </section>
     </div>
