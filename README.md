@@ -292,7 +292,7 @@ cut panels rather than rounded cards, condensed type set on a slant, one warm
 gold for the interface and the platform colours for the data, and a wipe
 between pages.
 The whole system lives in `apps/web/src/app/globals.css`; the shell is
-`components/nav.tsx`, the page primitives are `components/ui.tsx`, and the
+`components/hud.tsx`, the page primitives are `components/ui.tsx`, and the
 motion pieces are `components/motion.tsx`.
 
 Every signed-in screen sits over an ambient backdrop (`components/backdrop.tsx`).
@@ -310,10 +310,15 @@ key". That leads to the main menu (`/menu`): a hand of nine tall cards across
 the screen, each with its own art and name, the one in focus grown to twice
 the width with a gold frame, its line and an Open button. Arrow keys, `1`–`9`,
 mouse or touch move the focus; `Esc` returns to the title; sign out is in the
-corner. Each mode has its own art — nine Unsplash photographs under the
+corner. Each card has its own art — nine Unsplash photographs under the
 Unsplash licence, in `public/backdrop/menu/`, named for the entry they belong
-to. Every page's rail has a "Main menu" link back. Opening the app in a tab
-that is already signed in goes to the menu directly.
+to. Opening the app in a tab that is already signed in goes to the menu
+directly.
+
+There is no sidebar on the pages: the menu is the navigation, and each page
+wears one thin bar (`components/hud.tsx`) with a "Menu" button — `Esc` does
+the same — that goes back through the curtain, the wordmark, and who is signed
+in. A page's header carries the same key art its menu card does.
 
 Leaving the title or the menu plays the curtain (`components/curtain.tsx`, in
 the root layout): three slanted slabs — paper, gold, ink — tear across the

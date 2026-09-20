@@ -106,14 +106,37 @@ export function PageHeader({
   action,
   /** A short uppercase word above the title, naming what this page is. */
   eyebrow,
+  /**
+   * The page's key art — the same picture its card wears on the menu —
+   * as a wide strip behind the title, so opening a card lands you on the
+   * picture you chose. Washed to ink towards the text and the foot.
+   */
+  art,
 }: {
   title: string;
   subtitle?: string;
   action?: ReactNode;
   eyebrow?: string;
+  art?: string;
 }) {
   return (
-    <header className="relative mb-10">
+    <header className={`relative mb-10 ${art ? '-mx-4 -mt-6 px-4 pb-2 pt-16 sm:-mx-8 sm:-mt-8 sm:px-8 sm:pt-24' : ''}`}>
+      {art ? (
+        <div
+          className="pointer-events-none absolute inset-y-0 left-1/2 -z-10 w-screen -translate-x-1/2 overflow-hidden"
+          aria-hidden
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={art}
+            alt=""
+            className="anim-fade size-full object-cover object-center opacity-70"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-ink-950 via-ink-950/60 to-ink-950/20" />
+          <div className="absolute inset-0 bg-gradient-to-t from-ink-950 via-ink-950/30 to-ink-950/50" />
+          <div className="absolute inset-0 halftone opacity-50" />
+        </div>
+      ) : null}
       <div className="flex flex-wrap items-end justify-between gap-6">
         <div className="min-w-0">
           {eyebrow ? (

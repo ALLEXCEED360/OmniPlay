@@ -279,6 +279,34 @@ h1, h2, h3 {
   opacity: 0.2;
 }
 
+/* Bracketed corners, the mark of a readout on a HUD: two gold L-shapes at
+   the top-left and bottom-right, drawn over the panel's edge. On a `card`
+   the clip takes the cut corners; these sit on the two that are square. */
+@utility hud-corners {
+  position: relative;
+}
+.hud-corners::before,
+.hud-corners::after {
+  content: '';
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-color: var(--color-accent);
+  border-style: solid;
+  pointer-events: none;
+  opacity: 0.9;
+}
+.hud-corners::before {
+  top: 0;
+  left: 0;
+  border-width: 2px 0 0 2px;
+}
+.hud-corners::after {
+  bottom: 0;
+  right: 0;
+  border-width: 0 2px 2px 0;
+}
+
 /* A hairline rule that fades out at both ends. */
 @utility rule-soft {
   height: 1px;
