@@ -9,7 +9,7 @@ import type { CSSProperties, ReactNode } from 'react';
  *
  * Two kinds of movement live here, and the split matters.
  *
- * Arrivals — the page wipe, the headline, a section revealing on scroll —
+ * Arrivals — the page wipe, the headline, a panel rising into place —
  * are CSS keyframes wrapped in a component. A keyframe starts the moment
  * the HTML paints; anything a motion library drives waits for hydration,
  * and the first version of this file learned that the hard way: a cold dev
@@ -34,7 +34,7 @@ export function Motion({ children }: { children: ReactNode }) {
 }
 
 /**
- * The red wipe that plays as a page arrives, and the page sliding in
+ * The wipe that plays as a page arrives, and the page sliding in
  * behind it. Rendered from the route template so it remounts — and
  * therefore replays — on every navigation.
  */
@@ -44,32 +44,6 @@ export function PageWipe({ children }: { children: ReactNode }) {
       <div className="page-wipe hatch" aria-hidden />
       <div className="anim-page">{children}</div>
     </>
-  );
-}
-
-/**
- * Reveals its content as it scrolls into view, where the browser can drive
- * that from scroll position; on page load elsewhere. `index` staggers a
- * list.
- */
-export function Reveal({
-  children,
-  index = 0,
-  className,
-  style,
-}: {
-  children: ReactNode;
-  index?: number;
-  className?: string;
-  style?: CSSProperties;
-}) {
-  return (
-    <div
-      className={`reveal ${className ?? ''}`}
-      style={{ '--i': index, ...style } as CSSProperties}
-    >
-      {children}
-    </div>
   );
 }
 
@@ -103,7 +77,7 @@ export function Headline({
  * A link that leans into the pointer. The tilt is small — a degree and a
  * half — because the point is that it answers, not that it performs.
  */
-export const MotionLink = motion.create(Link);
+const MotionLink = motion.create(Link);
 
 export function TiltLink({
   children,
@@ -128,18 +102,3 @@ export function TiltLink({
     </MotionLink>
   );
 }
-
-/** A panel that nudges on hover. For cards that are links or buttons only. */
-export function Nudge({
-  children,
-  className,
-  ...rest
-}: { children: ReactNode; className?: string } & Omit<HTMLMotionProps<'div'>, 'children'>) {
-  return (
-    <motion.div className={className} whileHover={{ x: 4, y: -4 }} transition={spring} {...rest}>
-      {children}
-    </motion.div>
-  );
-}
-
-export { motion };

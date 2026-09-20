@@ -148,7 +148,7 @@ export function sortByLastPlayed<T extends { id: string; name: string }>(
  * than no filter at all. Shared with the facet counts so a chip's number and
  * the page it opens can never come from two different definitions.
  */
-export function statusPredicate(userId: string, statuses: string[]): Prisma.GameWhereInput {
+function statusPredicate(userId: string, statuses: string[]): Prisma.GameWhereInput {
   // "You have not told us" is two cases, not one: no row at all, and a row
   // holding only a personal score with no verdict attached. Matching on the
   // row's absence alone would have quietly excluded every game the user rated

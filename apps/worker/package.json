@@ -27,11 +27,9 @@
     "@omniplay/database": "workspace:*",
     "@omniplay/game-matching": "workspace:*",
     "@omniplay/providers": "workspace:*",
-    "@omniplay/statistics": "workspace:*",
     "@omniplay/types": "workspace:*",
     "bullmq": "^5.56.5",
-    "ioredis": "^5.7.0",
-    "zod": "^4.0.5"
+    "ioredis": "^5.7.0"
   },
   "devDependencies": {
     "@omniplay/config": "workspace:*",

@@ -52,7 +52,7 @@ export function formatRelative(value: string | Date | null | undefined): string 
 }
 
 /** Human labels for the provider ids used throughout the data model. */
-export const PROVIDER_LABELS: Record<string, string> = {
+const PROVIDER_LABELS: Record<string, string> = {
   steam: 'Steam',
   xbox: 'Xbox',
   psn: 'PlayStation',
@@ -72,34 +72,4 @@ export const STATUS_LABELS: Record<string, string> = {
   COMPLETED: 'Completed',
   ABANDONED: 'Abandoned',
   REPLAYING: 'Replaying',
-};
-
-/**
- * How a confidence level is described to the user.
- *
- * Surfacing this rather than hiding it is the point of spec 2.5: a figure
- * derived from Xbox achievement history should not look identical to one
- * Steam stated outright.
- */
-export const CONFIDENCE_NOTES: Record<string, string> = {
-  VERIFIED: 'Reported directly by the provider',
-  DERIVED: 'Inferred from provider data',
-  DETECTED: 'Activity detected, details unavailable',
-  DECLARED: 'You told us this',
-  UNCERTAIN: 'Imported or matched automatically',
-};
-
-/**
- * What a playtime figure on the game page actually means.
- *
- * REPORTED and ZERO need no note: a figure the provider gave us, or a zero it
- * genuinely stands behind, speak for themselves. The other two exist because
- * the alternative is printing "0h" over data we never received — which reads
- * as "you never played this" rather than "we do not know".
- */
-export const PLAYTIME_NOTES: Record<string, string | null> = {
-  REPORTED: null,
-  ZERO: null,
-  NOT_REPORTED: 'This platform holds no playtime for this title',
-  PENDING: 'Playtime not fetched yet — run a sync',
 };

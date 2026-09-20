@@ -13,7 +13,7 @@ import { CURTAIN_UP_MS, raiseCurtain } from '@/components/curtain';
  * gives you between the platform logos and the first choice. Three things
  * on the screen and no more: the name, sized to the viewport so it fills
  * the screen the way a title does, arriving stretched from both sides and
- * settling with a red slash under it; the prompt, waiting at the
+ * settling with a gold slash under it; the prompt, waiting at the
  * bottom where a title screen keeps it; and who is signed in, in the
  * corner. It leads to the main menu, not straight to a page. A first cut
  * also printed a readout of library statistics here,
@@ -170,7 +170,7 @@ export function BootScreen({
         <div className="relative flex flex-col items-center">
           {/* The prompt is the one thing on this screen you can act on, so
               it is dressed as the one thing you can act on: a paper cut-out
-              on a red shadow, the same shape as every primary button in the
+              on a gold shadow, the same shape as every primary button in the
               app, at a size that competes with the name. It breathes rather
               than blinks — a slow swell, and a highlight sweeping across the
               paper — because a blink reads as an error and a swell reads

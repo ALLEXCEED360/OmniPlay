@@ -202,10 +202,6 @@ h1, h2, h3 {
   filter: drop-shadow(6px 6px 0 var(--color-accent));
 }
 
-@utility hard-shadow-ink {
-  filter: drop-shadow(6px 6px 0 var(--color-ink-950));
-}
-
 /* Halftone dot field, for large flat surfaces that would otherwise be a
    hole in the screen. Very quiet: it is texture, not pattern. */
 @utility halftone {
@@ -216,7 +212,7 @@ h1, h2, h3 {
   background-size: 9px 9px;
 }
 
-/* Diagonal hatching, used on the accent to give a solid red area some
+/* Diagonal hatching, used on the accent to give a solid gold area some
    ink-on-paper grain. */
 @utility hatch {
   background-image: repeating-linear-gradient(
@@ -319,7 +315,7 @@ h1, h2, h3 {
   );
 }
 
-/* A red slash, the mark that punctuates headings and labels. */
+/* A gold slash, the mark that punctuates headings and labels. */
 @utility slash {
   display: inline-block;
   width: 0.5rem;
@@ -341,8 +337,8 @@ h1, h2, h3 {
 /* Anything clipped to a shape loses an outline drawn outside its box — the
    clip takes the ring with it. Those elements draw their focus ring inside
    instead, so a keyboard user never lands on a cut panel or a slanted button
-   and sees nothing. Red on dark surfaces; paper on the red button, where red
-   on red would vanish. */
+   and sees nothing. Gold on dark surfaces; ink on the gold button, where gold
+   on gold would vanish. */
 .cut:focus-visible,
 .cut-sm:focus-visible,
 .slant:focus-visible,
@@ -513,32 +509,6 @@ textarea.cut-sm:focus-visible {
   animation-delay: calc(var(--delay, 200ms) + var(--i, 0) * 60ms);
 }
 
-/* Reveal on scroll. Time-based everywhere, so the content is never held
-   hostage; where the browser can drive an animation from the scroll
-   position, the same keyframe plays as the element enters the viewport
-   instead of on page load. */
-@utility reveal {
-  animation: rise 460ms cubic-bezier(0.16, 1, 0.3, 1) both;
-  animation-delay: calc(var(--i, 0) * 45ms);
-}
-@supports (animation-timeline: view()) {
-  .reveal {
-    animation-timeline: view();
-    animation-range: entry 0% entry 35%;
-    animation-delay: 0s;
-  }
-}
-
-/* The "press any key" breath: a slow pulse that never goes fully out. */
-@keyframes pulse-soft {
-  0%, 100% { opacity: 1; }
-  50%      { opacity: 0.35; }
-}
-
-@utility anim-pulse-soft {
-  animation: pulse-soft 1.8s ease-in-out infinite;
-}
-
 /* The title-screen prompt's breathing: a slow swell, never a blink. */
 @keyframes breathe {
   0%, 100% { transform: scale(1); }
@@ -593,7 +563,7 @@ textarea.cut-sm:focus-visible {
 
 @media print {
   .anim-rise, .anim-fade, .anim-pop, .anim-grow, .stagger,
-  .anim-page, .anim-word, .reveal, .anim-pulse-soft, .anim-breathe {
+  .anim-page, .anim-word, .anim-breathe {
     animation: none !important;
   }
   .page-wipe {
@@ -606,7 +576,7 @@ textarea.cut-sm:focus-visible {
 
 @media (prefers-reduced-motion: reduce) {
   .anim-rise, .anim-fade, .anim-pop, .anim-grow, .stagger,
-  .anim-page, .anim-word, .reveal, .anim-pulse-soft, .anim-breathe {
+  .anim-page, .anim-word, .anim-breathe {
     animation: none !important;
   }
   .page-wipe {
@@ -631,7 +601,7 @@ textarea.cut-sm:focus-visible {
 /* ------------------------------------------------------------------ *
  * Controls
  *
- * Buttons are parallelograms. The primary is solid red with the label in
+ * Buttons are parallelograms. The primary is solid gold with the label in
  * the display cut; the ghost is an outline that fills on hover. Focus is
  * handled by the global rule above.
  * ------------------------------------------------------------------ */

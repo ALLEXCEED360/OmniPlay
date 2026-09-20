@@ -6,8 +6,8 @@ import Link from 'next/link';
  * Three slanted bars of decreasing length in the three platform colours —
  * the shape a cross-platform library makes when split by platform, largest
  * share first — beside the name in the display cut with the second half in
- * red. The bars teach the platform legend before the reader reaches a
- * chart; the red teaches which colour the interface speaks in.
+ * gold. The bars teach the platform legend before the reader reaches a
+ * chart; the gold teaches which colour the interface speaks in.
  */
 export function Wordmark({
   /** Larger treatment for the rail and the signed-out screens. */

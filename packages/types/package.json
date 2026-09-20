@@ -11,6 +11,5 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run --passWithNoTests"
   },
-  "dependencies": { "zod": "^4.0.5" },
   "devDependencies": { "@omniplay/config": "workspace:*", "typescript": "^5.9.2", "vitest": "^3.2.4" }
 }

@@ -28,14 +28,14 @@ export interface EnrichmentResult {
   reason?: string;
 }
 
-export interface EnrichmentThresholds {
+interface EnrichmentThresholds {
   /** At or above this, accept the IGDB match. */
   accept: number;
   /** Minimum gap to the runner-up before accepting. */
   margin: number;
 }
 
-export const DEFAULT_ENRICHMENT_THRESHOLDS: EnrichmentThresholds = {
+const DEFAULT_ENRICHMENT_THRESHOLDS: EnrichmentThresholds = {
   // Higher than the resolver's own bar: this rewrites a game's identity - its
   // name, cover and genres - rather than just attaching a provider id, so a
   // wrong answer is more visible and more annoying to undo.
@@ -43,7 +43,7 @@ export const DEFAULT_ENRICHMENT_THRESHOLDS: EnrichmentThresholds = {
   margin: 0.06,
 };
 
-export async function enrichGame(
+async function enrichGame(
   prisma: PrismaClient,
   igdb: IgdbClient,
   gameId: string,

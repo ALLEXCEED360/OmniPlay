@@ -159,7 +159,7 @@ export function PageHeader({
         {action ? <div className="anim-rise stagger" style={{ '--i': 5 } as CSSProperties}>{action}</div> : null}
       </div>
 
-      {/* A red bar rather than a hairline: the page's own underline, short
+      {/* A gold bar rather than a hairline: the page's own underline, short
           and slanted so it reads as a stroke and not a table border. */}
       <div className="mt-6 flex items-center gap-2" aria-hidden>
         <span className="anim-grow h-1 w-24 -skew-x-[20deg] bg-accent" />
@@ -196,7 +196,7 @@ export function EmptyState({
 }) {
   return (
     <div className="card relative flex flex-col items-center justify-center overflow-hidden px-6 py-16 text-center">
-      {/* A red stripe across the corner, so an empty panel is still a
+      {/* A gold stripe across the corner, so an empty panel is still a
           designed panel and not a missing one. */}
       <span
         className="pointer-events-none absolute -right-16 top-6 w-64 rotate-[28deg] bg-accent py-1 text-center font-display text-[11px] font-bold uppercase tracking-[0.3em] text-ink-950 hatch"
@@ -207,55 +207,6 @@ export function EmptyState({
       <h3 className="display text-2xl text-ink-100">{title}</h3>
       <p className="mt-2 max-w-sm text-sm text-ink-500">{description}</p>
       {action ? <div className="mt-6">{action}</div> : null}
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ *
- * Bars
- * ------------------------------------------------------------------ */
-
-/** Horizontal proportion bar used by platform and genre breakdowns. */
-export function ProportionBar({
-  label,
-  value,
-  max,
-  caption,
-  tone = 'accent',
-  /** Provider id, when this row is one platform's share. */
-  provider,
-  index = 0,
-}: {
-  label: string;
-  value: number;
-  max: number;
-  caption: string;
-  tone?: 'accent' | 'violet';
-  provider?: string;
-  index?: number;
-}) {
-  // Guard the divide: an all-zero breakdown must render flat, not NaN-wide.
-  const percent = max > 0 ? Math.max(2, Math.round((value / max) * 100)) : 0;
-  const color = provider
-    ? platformStyle(provider).bar
-    : tone === 'violet'
-      ? 'bg-violet'
-      : 'bg-accent';
-
-  return (
-    <div className="group/bar">
-      <div className="mb-1.5 flex items-baseline justify-between gap-3 text-sm">
-        <span className="font-display text-[15px] font-semibold uppercase tracking-wide text-ink-300 transition-colors group-hover/bar:text-ink-100">
-          {label}
-        </span>
-        <span className="stat-figure text-ink-400">{caption}</span>
-      </div>
-      <div className="h-2 -skew-x-[20deg] overflow-hidden bg-ink-850">
-        <div
-          className={`anim-grow stagger h-full ${color}`}
-          style={{ width: `${percent}%`, '--i': index } as CSSProperties}
-        />
-      </div>
     </div>
   );
 }

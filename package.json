@@ -24,8 +24,6 @@
   "devDependencies": {
     "turbo": "^2.5.5",
     "typescript": "^5.9.2",
-    "vitest": "^3.2.4",
-    "@types/node": "^22.15.30",
-    "tsx": "^4.20.3"
+    "@types/node": "^22.15.30"
   }
 }

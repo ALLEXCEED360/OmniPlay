@@ -25,7 +25,6 @@
     "cookie-parser": "^1.4.7",
     "express": "^5.2.1",
     "helmet": "^8.1.0",
-    "ioredis": "^5.7.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
     "zod": "^4.0.5"

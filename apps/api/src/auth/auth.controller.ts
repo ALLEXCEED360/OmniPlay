@@ -161,7 +161,7 @@ export class AuthController {
 }
 
 /** Everything about a user that is safe to send to the browser. */
-export function publicUser(user: User) {
+function publicUser(user: User) {
   return {
     id: user.id,
     email: user.email,

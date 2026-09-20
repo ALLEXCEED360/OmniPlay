@@ -93,9 +93,4 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   return cached;
 }
 
-/** Test seam. */
-export function resetConfigCache(): void {
-  cached = null;
-}
-
 export const CONFIG = Symbol('OMNIPLAY_CONFIG');
