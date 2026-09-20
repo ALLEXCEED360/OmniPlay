@@ -328,6 +328,11 @@ the transition Metaphor: ReFantazio uses between its screens, and it is slow on
 purpose; a page that takes a moment to load arrives behind it rather than
 popping in half-built.
 
+On a device with a mouse the pointer is the app's own (`components/cursor.tsx`):
+a gold arrowhead that grows and lights over anything you can act on, becomes a
+reticle while pressed, and leaves a faint trail of sparks. Touch screens keep
+their nothing; reduced-motion keeps the arrowhead and drops the sparks.
+
 Arrival animations (the wipe, headlines, sections revealing on scroll) are CSS,
 so they start the moment the HTML paints; `motion` is used only for what CSS
 cannot do — springs on hover, the menu cursor sliding between rows, the mobile

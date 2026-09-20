@@ -1,8 +1,9 @@
 'use client';
 
-import type { CSSProperties } from 'react';
-import { useMemo, useState } from 'react';
+import type { CSSProperties, KeyboardEvent } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
+import { AnimatePresence, motion } from 'motion/react';
 import { formatDate, providerLabel } from '@/lib/format';
 import { Counter } from '@/components/counter';
 import {
@@ -30,6 +31,13 @@ import {
  * shape of it — the binges, the gaps, the year something took over — is
  * legible without reading a word. Selecting a day expands what happened on it,
  * which is where the detail belongs: available on demand, not scrolled past.
+ *
+ * The grid answers the pointer like a game board answers a cursor. A readout
+ * above it names whatever day is under the mouse, at once, instead of a
+ * browser tooltip a second later; the chosen day glows; and the arrow keys
+ * walk from day to day — a column is a week, so left and right step seven
+ * days and up and down step one — skipping the days nothing happened on.
+ * The detail below cross-fades between days rather than snapping.
  */
 
 const WEEKDAY_LABELS = ['Mon', '', 'Wed', '', 'Fri', '', 'Sun'];
@@ -55,10 +63,47 @@ export function TimelineYear({
   const [selected, setSelected] = useState<string | null>(
     defaultOpen ? (days[0]?.key ?? null) : null,
   );
+  const [hovered, setHovered] = useState<string | null>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
 
   const totals = useMemo(() => summariseYear(entries), [entries]);
 
   const selectedDay = selected ? byKey.get(selected) : undefined;
+  const readoutKey = hovered ?? selected;
+  const readoutDay = readoutKey ? byKey.get(readoutKey) : undefined;
+
+  // Every day of the year in order, with its place, so the arrow keys can
+  // step through the calendar and land only on days with something in them.
+  const order = useMemo(() => weeks.flat().filter((key): key is string => key !== null), [weeks]);
+  const walk = (from: string, by: number): string | null => {
+    let index = order.indexOf(from);
+    if (index < 0) return null;
+    const direction = Math.sign(by);
+    // Step the full distance first, then keep going in the same direction
+    // until a day with activity, so a quiet fortnight is not a wall.
+    index += by;
+    while (index >= 0 && index < order.length) {
+      const key = order[index]!;
+      if (byKey.has(key)) return key;
+      index += direction;
+    }
+    return null;
+  };
+  const onGridKey = (event: KeyboardEvent<HTMLDivElement>) => {
+    const from = selected ?? days[0]?.key;
+    if (!from) return;
+    const step: Record<string, number> = {
+      ArrowRight: 7,
+      ArrowLeft: -7,
+      ArrowDown: 1,
+      ArrowUp: -1,
+    };
+    const by = step[event.key];
+    if (by === undefined) return;
+    event.preventDefault();
+    const next = selected ? walk(from, by) : from;
+    if (next) setSelected(next);
+  };
 
   return (
     <section>
@@ -101,6 +146,25 @@ export function TimelineYear({
           exactly the calendar it had before rather than a smaller one. */}
       <div className="card overflow-x-auto p-4">
         <div className="min-w-[48rem]">
+          {/* The readout: whatever day the pointer is over, or failing that
+              the chosen one. It sits above the grid where the eye already
+              is, and it changes the instant the pointer does. */}
+          <div className="mb-2 flex h-5 items-baseline justify-between gap-4 pl-8">
+            <span className="stat-figure text-[11px] text-ink-500" aria-live="polite">
+              {readoutKey ? (
+                <>
+                  <span className="text-ink-100">{formatDate(dayKeyToDate(readoutKey))}</span>
+                  {readoutDay ? <span className="text-accent"> — {summarise(readoutDay)}</span> : null}
+                </>
+              ) : (
+                <span className="text-ink-600">Hover a day</span>
+              )}
+            </span>
+            <span className="stat-figure hidden text-[10px] text-ink-600 lg:inline">
+              ← → week · ↑ ↓ day
+            </span>
+          </div>
+
           <div className="mb-1 flex gap-[3px] pl-8 text-[10px] text-ink-600">
             {weeks.map((_, column) => {
               const month = months.find((entry) => entry.column === column);
@@ -112,7 +176,14 @@ export function TimelineYear({
             })}
           </div>
 
-          <div className="flex gap-[3px]">
+          <div
+            ref={gridRef}
+            className="flex gap-[3px] outline-none"
+            tabIndex={0}
+            onKeyDown={onGridKey}
+            onMouseLeave={() => setHovered(null)}
+            aria-label={`${year}, a calendar of days. Use the arrow keys to move between days.`}
+          >
             {/* Each label takes an equal share of the column's height rather
                 than a fixed 11px, so the rows stay aligned once the cells grow. */}
             <div className="mr-1 flex w-7 shrink-0 flex-col gap-[3px] text-[10px] text-ink-600">
@@ -140,29 +211,26 @@ export function TimelineYear({
                     <button
                       key={row}
                       type="button"
+                      tabIndex={-1}
                       // A day with nothing in it is decoration, not a control.
                       disabled={!day}
                       onClick={() => setSelected(isSelected ? null : key)}
+                      onMouseEnter={() => setHovered(key)}
                       // Never `formatDate(key)`: a bare "YYYY-MM-DD" parses as
                       // UTC midnight and then renders in local time, so every
                       // label west of Greenwich named the previous day.
-                      title={
-                        day
-                          ? `${formatDate(dayKeyToDate(key))} — ${summarise(day)}`
-                          : formatDate(dayKeyToDate(key))
-                      }
                       aria-label={
                         day ? `${formatDate(dayKeyToDate(key))}, ${summarise(day)}` : undefined
                       }
-                      className={`aspect-square w-full rounded-[2px] transition-[background-color,transform,box-shadow] duration-150 ${
+                      className={`aspect-square w-full rounded-[2px] transition-[background-color,transform,box-shadow] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] ${
                         INTENSITY_CLASSES[level]
                       } ${
                         day
-                          ? 'cursor-pointer hover:scale-125 hover:ring-1 hover:ring-ink-300'
+                          ? 'cursor-pointer hover:z-10 hover:scale-[1.35] hover:shadow-[0_0_0_1.5px_var(--color-ink-100)]'
                           : ''
                       } ${
                         isSelected
-                          ? 'scale-125 ring-2 ring-accent ring-offset-1 ring-offset-ink-900'
+                          ? 'z-10 scale-[1.35] shadow-[0_0_0_2px_var(--color-accent),0_0_14px_2px_color-mix(in_oklch,var(--color-accent)_55%,transparent)]'
                           : ''
                       }`}
                     />
@@ -182,13 +250,29 @@ export function TimelineYear({
         </div>
       </div>
 
-      {selectedDay ? (
-        <DayDetail day={selectedDay} onClose={() => setSelected(null)} />
-      ) : (
-        <p className="mt-3 text-xs text-ink-600">
-          Select a day to see what happened.
-        </p>
-      )}
+      <AnimatePresence mode="wait" initial={false}>
+        {selectedDay ? (
+          <motion.div
+            key={selectedDay.key}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6, transition: { duration: 0.12 } }}
+            transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+          >
+            <DayDetail day={selectedDay} onClose={() => setSelected(null)} />
+          </motion.div>
+        ) : (
+          <motion.p
+            key="hint"
+            className="mt-3 text-xs text-ink-600"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0, transition: { duration: 0.1 } }}
+          >
+            Select a day to see what happened.
+          </motion.p>
+        )}
+      </AnimatePresence>
     </section>
   );
 }
@@ -222,15 +306,19 @@ function YearFigure({
 /** Everything that happened on one selected day. */
 function DayDetail({ day, onClose }: { day: TimelineDay; onClose: () => void }) {
   return (
-    <div className="anim-rise mt-3">
+    <div className="mt-3">
       <div className="mb-2 flex items-baseline justify-between gap-3">
-        <h3 className="text-sm font-medium text-ink-100">
+        <h3 className="display flex items-center gap-2.5 text-lg text-ink-100">
+          <span className="slash" aria-hidden />
           {formatDate(dayKeyToDate(day.key))}
+          <span className="stat-figure text-xs font-normal normal-case tracking-normal text-ink-500">
+            {summarise(day)}
+          </span>
         </h3>
         <button
           type="button"
           onClick={onClose}
-          className="text-xs text-ink-500 transition-colors hover:text-ink-300"
+          className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-ink-500 transition-colors hover:text-accent"
         >
           Close
         </button>
@@ -249,16 +337,16 @@ function DayDetail({ day, onClose }: { day: TimelineDay; onClose: () => void }) 
                 src={entry.game.coverImage}
                 alt=""
                 loading="lazy"
-                className="h-12 w-9 shrink-0 rounded object-cover transition-transform duration-200 group-hover:scale-105"
+                className="h-12 w-9 shrink-0 object-cover transition-transform duration-200 group-hover:scale-105"
               />
             ) : (
-              <span className="h-12 w-9 shrink-0 rounded bg-ink-850" />
+              <span className="h-12 w-9 shrink-0 bg-ink-850" />
             )}
 
             <div className="min-w-0 flex-1">
               <Link
                 href={`/game/${entry.game.slug}`}
-                className="block truncate text-sm text-ink-100 hover:text-accent"
+                className="block truncate font-display text-[15px] font-semibold uppercase tracking-wide text-ink-100 transition-colors hover:text-accent"
               >
                 {entry.game.name}
               </Link>

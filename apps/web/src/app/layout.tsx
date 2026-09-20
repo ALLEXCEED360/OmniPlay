@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { Curtain } from '@/components/curtain';
+import { Cursor } from '@/components/cursor';
 
 export const metadata: Metadata = {
   title: 'OMNIPLAY — Your universal gaming identity',
@@ -26,6 +27,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         {children}
         <Curtain />
+        <Cursor />
       </body>
     </html>
   );

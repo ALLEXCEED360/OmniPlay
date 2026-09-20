@@ -1,8 +1,9 @@
 import Link from 'next/link';
 import { apiFetch } from '@/lib/api';
 import { formatDate } from '@/lib/format';
-import { ConfidenceNote, EmptyState, PageHeader, StatCard } from '@/components/ui';
-import { TimelineFilters } from '@/components/timeline-filters';
+import { ConfidenceNote, EmptyState, PageHeader } from '@/components/ui';
+import { Counter } from '@/components/counter';
+import { NONE, TimelineFilters } from '@/components/timeline-filters';
 import { TimelineYear } from '@/components/timeline-year';
 import {
   dayKeyToDate,
@@ -47,6 +48,10 @@ export default async function TimelinePage({
 
   const activeKinds = asList(params.kinds);
   const activeProviders = asList(params.providers);
+  // Every box unticked is a real state, spelt `none` in the URL because an
+  // empty list already means "everything".
+  const noKinds = params.kinds === NONE;
+  const noProviders = params.providers === NONE;
 
   // Counts come from the unfiltered set so a chip always shows how much it
   // would bring back, not how much is currently visible.
@@ -59,11 +64,15 @@ export default async function TimelinePage({
     number
   >;
   const providers = new Set<string>();
+  const providerCounts: Record<string, number> = {};
 
   for (const year of years) {
     for (const entry of year.entries) {
       for (const kind of kindsOf(entry)) counts[kind] += 1;
-      if (entry.provider) providers.add(entry.provider);
+      if (entry.provider) {
+        providers.add(entry.provider);
+        providerCounts[entry.provider] = (providerCounts[entry.provider] ?? 0) + 1;
+      }
     }
   }
 
@@ -73,17 +82,19 @@ export default async function TimelinePage({
       entries: year.entries.filter((entry) => {
         const kinds = kindsOf(entry);
         const kindOk =
-          activeKinds.length === 0 || kinds.some((kind) => activeKinds.includes(kind));
+          !noKinds &&
+          (activeKinds.length === 0 || kinds.some((kind) => activeKinds.includes(kind)));
         const providerOk =
-          activeProviders.length === 0 ||
-          (entry.provider !== null && activeProviders.includes(entry.provider));
+          !noProviders &&
+          (activeProviders.length === 0 ||
+            (entry.provider !== null && activeProviders.includes(entry.provider)));
         return kindOk && providerOk;
       }),
     }))
     .filter((year) => year.entries.length > 0)
     .sort((a, b) => b.year - a.year);
 
-  const isFiltered = activeKinds.length > 0 || activeProviders.length > 0;
+  const isFiltered = activeKinds.length > 0 || activeProviders.length > 0 || noKinds || noProviders;
 
   if (years.length === 0) {
     return (
@@ -144,20 +155,53 @@ export default async function TimelinePage({
         }
       />
 
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard label="Active days" value={days.length.toLocaleString()} accent index={0} />
-        <StatCard label="Years" value={visible.length} hint={span} index={1} />
-        <StatCard label="Dated events" value={totalEvents.toLocaleString()} index={2} />
-        <StatCard
+      {/* The history in four figures of equal weight, each one saying in
+          words what it counts. "Active days 1,144" is a number with a label;
+          "1,144 days you played something" is a fact. */}
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <Figure
+          label="Days played"
+          value={days.length}
+          index={0}
+          note="Days on which at least one of your platforms recorded you playing, unlocking or finishing something."
+        />
+        <Figure
+          label="Years"
+          value={visible.length}
+          index={1}
+          note={`Of dated history, ${span}. The calendars below, one per year.`}
+        />
+        <Figure
+          label="Dated events"
+          value={totalEvents}
+          index={2}
+          note="Unlocks, first plays and completions that a platform put a date on."
+        />
+        <Figure
           label="Busiest day"
-          value={busiestDay ? String(Math.max(busiestDay.achievements, busiestDay.games)) : '—'}
-          hint={busiestDay ? formatDate(dayKeyToDate(busiestDay.key)) : undefined}
+          value={busiestDay ? Math.max(busiestDay.achievements, busiestDay.games) : 0}
           index={3}
+          note={
+            busiestDay
+              ? `Events on ${formatDate(dayKeyToDate(busiestDay.key))} — the most of any day, and the day the shading is scaled to.`
+              : 'No dated activity yet.'
+          }
         />
       </div>
 
       <div className="mt-6">
-        <TimelineFilters providers={[...providers].sort()} counts={counts} />
+        <TimelineFilters
+          providers={[...providers].sort()}
+          counts={counts}
+          providerCounts={providerCounts}
+          shown={totalEvents}
+          total={years.reduce(
+            (sum, year) =>
+              sum + year.entries.reduce((n, entry) => n + Math.max(1, entry.achievements), 0),
+            0,
+          )}
+          shownDays={days.length}
+        />
       </div>
 
       {days.length === 0 ? (
@@ -188,5 +232,42 @@ export default async function TimelinePage({
         </ConfidenceNote>
       </p>
     </>
+  );
+}
+
+/** One of the figures under the title: the number, and the sentence that says what it is. */
+function Figure({
+  label,
+  value,
+  note,
+  index,
+}: {
+  label: string;
+  value: number;
+  note: string;
+  index: number;
+}) {
+  return (
+    // Ink at rest, paper under the pointer: the figure you are looking at
+    // becomes the loud one, the way the headline used to be, and the other
+    // three stay level with it until you look at them instead.
+    <div
+      className="card hud-corners anim-rise stagger group relative p-5 transition-colors duration-300 hover:bg-paper sm:p-6"
+      style={{ '--i': index } as React.CSSProperties}
+    >
+      <span
+        className="absolute left-0 top-0 h-1.5 w-10 origin-left -skew-x-[20deg] bg-accent transition-[background-color,transform] duration-300 group-hover:scale-x-150 group-hover:bg-accent-strong"
+        aria-hidden
+      />
+      <div className="eyebrow text-accent transition-colors duration-300 group-hover:text-accent-strong">
+        {label}
+      </div>
+      <div className="display mt-2 text-[clamp(2.75rem,3.4vw,4rem)] leading-none text-ink-100 transition-colors duration-300 group-hover:text-ink-950">
+        <Counter value={value} />
+      </div>
+      <p className="mt-3 text-[13px] leading-snug text-ink-400 transition-colors duration-300 group-hover:text-ink-700">
+        {note}
+      </p>
+    </div>
   );
 }
