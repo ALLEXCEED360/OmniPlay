@@ -26,7 +26,7 @@ const listQuerySchema = z.object({
   search: z.string().trim().min(1).optional(),
   providers: csv,
   statuses: csv,
-  ownership: z.enum(['owned', 'previously-owned', 'all']).optional(),
+  ownership: z.enum(['purchased', 'subscription', 'all']).optional(),
   sort: z.enum(['name', 'release', 'rating', 'recent']).optional(),
   page: z.coerce.number().int().min(1).default(1),
   // Capped so a crafted request cannot ask for the entire library at once.

@@ -30,9 +30,9 @@ const SORTS: LibrarySort[] = ['name', 'rating', 'release', 'recent'];
 /** How each sort describes the order it produces, for the results line. */
 const SORT_DESCRIPTION: Record<LibrarySort, string> = {
   name: 'A to Z',
-  rating: 'highest critic score first',
-  release: 'newest release first',
-  recent: 'most recently played first',
+  rating: 'Highest critic score first',
+  release: 'Newest release first',
+  recent: 'Most recently played first',
 };
 
 export default async function LibraryPage({
@@ -74,36 +74,53 @@ export default async function LibraryPage({
       <PageHeader
         eyebrow="Everything you own and everything you played"
         title="Library"
-        subtitle={
-          filtered
-            ? `${data.total.toLocaleString()} of ${data.facets.total.toLocaleString()} games match, ${SORT_DESCRIPTION[sort]}.`
-            : `${data.total.toLocaleString()} ${data.total === 1 ? 'game' : 'games'} across every platform you have connected, ${SORT_DESCRIPTION[sort]}.`
-        }
+        subtitle={`${data.facets.total.toLocaleString()} games across every platform you have connected.`}
       />
 
-      <LibraryFilters facets={data.facets} />
+      {/* The deck to the left, the shelf to the right. On a wide screen the
+          deck is a menu standing beside the collection, the way a game's
+          filter panel stands beside its inventory; the shelf takes the rest. */}
+      <div className="grid gap-6 lg:grid-cols-[17rem_minmax(0,1fr)] lg:gap-8 2xl:grid-cols-[19rem_minmax(0,1fr)]">
+        <LibraryFilters facets={data.facets} />
 
-      {data.games.length === 0 ? (
-        <div className="mt-8">
-          <EmptyState
-            title="Nothing matches those filters"
-            description="Try clearing a filter, or sync your accounts to bring in more of your history."
-            action={
-              <Link href="/library" className="btn-ghost">
-                Clear filters
-              </Link>
-            }
-          />
-        </div>
-      ) : (
-        <div className="mt-6">
-          {view === 'list' ? (
+        <div className="min-w-0">
+          {/* The results line: what is on the shelf and how it is ordered,
+              in the display cut, so the answer to "what am I looking at"
+              is the loudest thing above the covers. */}
+          <div className="mb-5 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
+            <h2 className="display flex items-baseline gap-3 text-[1.75rem] text-ink-100">
+              <span className="slash self-center" aria-hidden />
+              <span>
+                {data.total.toLocaleString()}{' '}
+                <span className="text-ink-400">{data.total === 1 ? 'game' : 'games'}</span>
+              </span>
+              {filtered ? (
+                <span className="stat-figure text-sm font-normal normal-case tracking-normal text-ink-500">
+                  of {data.facets.total.toLocaleString()}
+                </span>
+              ) : null}
+            </h2>
+            <span className="stat-figure text-xs text-ink-500">
+              {SORT_DESCRIPTION[sort]}
+              {data.pageCount > 1 ? ` · page ${currentPage} of ${data.pageCount}` : ''}
+            </span>
+          </div>
+
+          {data.games.length === 0 ? (
+            <EmptyState
+              title="Nothing matches those filters"
+              description="Try clearing a filter, or sync your accounts to bring in more of your history."
+              action={
+                <Link href="/library" className="btn-ghost">
+                  Clear filters
+                </Link>
+              }
+            />
+          ) : view === 'list' ? (
             <LibraryList games={data.games} sort={sort} />
           ) : (
             <LibraryGrid games={data.games} sort={sort} />
           )}
-        </div>
-      )}
 
       {data.pageCount > 1 ? (
         <nav className="mt-10 flex items-center justify-center gap-2" aria-label="Pagination">
@@ -118,6 +135,8 @@ export default async function LibraryPage({
           </PageLink>
         </nav>
       ) : null}
+        </div>
+      </div>
     </>
   );
 }

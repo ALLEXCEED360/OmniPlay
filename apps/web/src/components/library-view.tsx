@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import type { CSSProperties } from 'react';
-import { formatHours, formatRelative } from '@/lib/format';
-import { PlatformBadge } from '@/components/ui';
+import { formatHours, formatRelative, providerLabel } from '@/lib/format';
 import { TiltLink } from '@/components/motion';
 import { platformStyle, staggerStep } from '@/lib/platform';
 import { criticProvenance, isThinlyReviewed } from '@/lib/critic';
@@ -105,6 +104,26 @@ function provisionalTone(score: number): string {
   return 'text-danger ring-danger/40';
 }
 
+/**
+ * The score as it sits in a card's caption: the number alone, in the
+ * band's colour, with a small dot after a thin one. The colour is the
+ * band's whatever the shelf is sorted by — a 97 is green on every shelf,
+ * because the colour is a fact about the score, not about the view.
+ */
+function Score({ score, count }: { score: number; count: number | null }) {
+  const thin = isThinlyReviewed(score, count);
+  const tone = score >= 75 ? 'text-positive' : score >= 50 ? 'text-warning' : 'text-danger';
+  return (
+    <span
+      className={`stat-figure shrink-0 text-[12px] font-semibold ${tone}`}
+      title={criticProvenance(score, count) ?? undefined}
+    >
+      {Math.round(score)}
+      {thin ? <span className="opacity-60">·</span> : null}
+    </span>
+  );
+}
+
 function ScoreBadge({
   score,
   count,
@@ -135,54 +154,44 @@ function ScoreBadge({
   );
 }
 
-/**
- * A figure sitting on artwork: hours, a release year, a "3 days ago".
- *
- * Same problem as the score badge and the same answer — it carries its own
- * background rather than trusting the gradient underneath, because the
- * gradient is only as dark as the cover behind it. `primary` marks the figure
- * the list is currently ordered by.
- */
-function StatChip({ children, primary }: { children: React.ReactNode; primary?: boolean }) {
-  return (
-    <span
-      className={`stat-figure inline-flex -skew-x-[14deg] items-center px-1.5 py-0.5 text-[11px] font-medium backdrop-blur-sm ${
-        primary ? 'bg-accent text-ink-950' : 'bg-ink-950/80 text-ink-200 ring-1 ring-white/10'
-      }`}
-    >
-      <span className="skew-x-[14deg]">{children}</span>
-    </span>
-  );
-}
-
 /* ------------------------------------------------------------------ *
  * Grid
+ *
+ * The art is the card. A cover fills its case edge to edge with nothing
+ * laid over it but the critic score in one corner; the platforms run as
+ * a coloured bar along the foot of the art, in the legend the whole app
+ * uses; and the title and the shelf's figure sit in a caption under the
+ * art, on ink, where they are legible over any cover and never in the
+ * way of one. Under the pointer the case leans and lifts, the art comes
+ * forward, a gold frame rises inside the edge and the title turns gold.
+ *
+ * The caption is beneath the art rather than on it because every version
+ * that wrote on the cover had to fight the cover: a gradient is only as
+ * dark as the art behind it, and a plate hid a strip of it. A shelf is
+ * for looking at covers.
  * ------------------------------------------------------------------ */
 
 export function LibraryGrid({ games, sort }: { games: LibraryGame[]; sort: LibrarySort }) {
   return (
     <div
-      className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6"
+      className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-7"
       style={{ '--stagger-step': staggerStep(games.length) } as CSSProperties}
     >
       {games.map((game, index) => {
-        const edge = game.providers[0] ? platformStyle(game.providers[0]) : null;
         const key = sortKeyOf(game, sort);
         const hours = game.totalMinutes > 0 ? formatHours(game.totalMinutes) : null;
+        // The one figure in the caption: whatever the shelf is ordered by,
+        // or hours when the order is alphabetical or already on the tag.
+        const byKey = sort === 'release' || sort === 'recent';
+        const figure = byKey ? (key ?? MISSING[sort]) : hours;
 
         return (
           <TiltLink
             key={game.id}
             href={`/game/${game.slug}`}
             style={{ '--i': index } as CSSProperties}
-            className="group anim-rise stagger cut-sm relative block overflow-hidden bg-ink-900"
+            className="group anim-rise stagger cut-sm relative flex flex-col overflow-hidden bg-ink-900 shadow-[inset_0_0_0_1px_var(--color-ink-800)]"
           >
-            {/* The first platform's colour as a stripe down the left edge:
-                the same legend as everywhere else, read before the badges. */}
-            <span
-              className={`absolute inset-y-0 left-0 z-10 w-1 ${edge ? edge.bar : 'bg-ink-700'}`}
-              aria-hidden
-            />
             <div className="relative aspect-[3/4] overflow-hidden bg-ink-850">
               {game.coverImage ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -190,7 +199,7 @@ export function LibraryGrid({ games, sort }: { games: LibraryGame[]; sort: Libra
                   src={game.coverImage}
                   alt=""
                   loading="lazy"
-                  className="size-full object-cover transition-transform duration-500 group-hover:scale-[1.07]"
+                  className="size-full object-cover transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-[1.06]"
                 />
               ) : (
                 <div className="grid size-full place-items-center text-ink-700" aria-hidden>
@@ -201,25 +210,6 @@ export function LibraryGrid({ games, sort }: { games: LibraryGame[]; sort: Libra
                 </div>
               )}
 
-              {/* The critic score sits on the artwork permanently rather than
-                  on hover: it is the one number people scan a shelf for. */}
-              {/* Only a score with enough reviews behind it. A badge has no
-                  room to say "but only two critics", and an unqualified 92
-                  sitting beside a well-reviewed 83 is worse than no badge. */}
-              {/* Every score we hold is shown; a thin one is marked rather
-                  than withheld. Withholding answered the "92 looks as solid as
-                  83" problem by removing information the reader wanted, and
-                  most of these numbers are roughly right. */}
-              {game.criticRating !== null ? (
-                <span className="absolute left-2 top-2">
-                  <ScoreBadge
-                    score={game.criticRating}
-                    count={game.criticRatingCount}
-                    provisional={isThinlyReviewed(game.criticRating, game.criticRatingCount)}
-                  />
-                </span>
-              ) : null}
-
               {game.ownershipState && game.ownershipState !== 'OWNED' ? (
                 <span className="absolute right-2 top-2 -skew-x-[14deg] bg-ink-950/85 px-2 py-0.5 font-display text-[10px] font-semibold uppercase tracking-wider text-ink-400 backdrop-blur">
                   <span className="inline-block skew-x-[14deg]">
@@ -228,43 +218,52 @@ export function LibraryGrid({ games, sort }: { games: LibraryGame[]; sort: Libra
                 </span>
               ) : null}
 
-              <div className="absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-t from-ink-950 via-ink-950/85 to-transparent" />
+              {/* The platforms, as a bar along the foot of the art: one
+                  colour per platform, side by side. */}
+              <span className="absolute inset-x-0 bottom-0 flex h-1" aria-hidden>
+                {(game.providers.length > 0 ? game.providers : ['']).map((provider, i) => (
+                  <span
+                    key={`${provider}-${i}`}
+                    className={`flex-1 ${provider ? platformStyle(provider).bar : 'bg-ink-700'}`}
+                  />
+                ))}
+              </span>
 
-              <div className="absolute inset-x-0 bottom-0 p-3">
-                <div className="line-clamp-2 font-display text-[15px] font-bold uppercase leading-[1.05] tracking-wide text-ink-100">
-                  {game.name}
-                </div>
+              {/* The gold frame that rises under the pointer. */}
+              <span
+                className="pointer-events-none absolute inset-0 shadow-[inset_0_0_0_0_var(--color-accent)] transition-shadow duration-300 group-hover:shadow-[inset_0_0_0_2px_var(--color-accent)]"
+                aria-hidden
+              />
+            </div>
 
-                {/* Platforms and the figure share one line rather than
-                    stacking. As three separate rows the hours ended up alone
-                    at the bottom of the card reading as leftover, and the
-                    block was tall enough to crowd the title on a two-line
-                    name. Left is what it is, right is what it measures. */}
-                <div className="mt-2 flex items-center justify-between gap-2">
-                  {/* Clips rather than pushing the figure off the card: at
-                      two columns on a phone, three platform badges beside
-                      "633h" is wider than the card is. */}
-                  <span className="flex min-w-0 items-center gap-1.5 overflow-hidden">
-                    {game.providers.slice(0, 3).map((provider) => (
-                      <PlatformBadge key={provider} provider={provider} small />
-                    ))}
+            {/* The caption: title, then the platforms by name and the figure. */}
+            <div className="flex flex-1 flex-col justify-between gap-1.5 px-3 pb-3 pt-2.5">
+              <div className="display line-clamp-2 text-[15px] leading-[1.05] text-ink-100 transition-colors duration-200 group-hover:text-accent">
+                {game.name}
+              </div>
+              <div className="flex items-baseline justify-between gap-2">
+                <span className="flex min-w-0 items-baseline gap-2">
+                  {/* The critic score, in the caption rather than on the art:
+                      a figure in the band's colour, marked when it rests on
+                      too few reviews to read as a consensus. Every score we
+                      hold is shown. */}
+                  {game.criticRating !== null ? (
+                    <Score score={game.criticRating} count={game.criticRatingCount} />
+                  ) : null}
+                  <span className="sr-only">{game.providers.map(providerLabel).join(', ')}</span>
+                  <span className="truncate font-display text-[11px] font-semibold uppercase tracking-wider text-ink-500" aria-hidden>
+                    {game.providers.map(providerLabel).join(' · ')}
                   </span>
-
-                  {/* Exactly one figure, so the corner never gets crowded:
-                      whatever the list is ordered by, or hours when the order
-                      is alphabetical or already shown by the score badge. */}
-                  <span className="shrink-0">
-                    {sort === 'release' || sort === 'recent' ? (
-                      key ? (
-                        <StatChip primary>{key}</StatChip>
-                      ) : (
-                        <span className="text-[11px] text-ink-500">{MISSING[sort]}</span>
-                      )
-                    ) : hours ? (
-                      <StatChip>{hours}</StatChip>
-                    ) : null}
+                </span>
+                {figure ? (
+                  <span
+                    className={`stat-figure shrink-0 text-[11px] ${
+                      byKey && key ? 'text-accent' : 'text-ink-400'
+                    }`}
+                  >
+                    {figure}
                   </span>
-                </div>
+                ) : null}
               </div>
             </div>
           </TiltLink>

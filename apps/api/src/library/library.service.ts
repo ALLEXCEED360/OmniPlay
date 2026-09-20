@@ -4,7 +4,7 @@ import {
   resolveGameStatus,
   type ActivityRecord,
 } from '@omniplay/statistics';
-import type { Prisma } from '@omniplay/database';
+import type { OwnershipType, Prisma } from '@omniplay/database';
 import type { ProviderRegistry } from '@omniplay/providers';
 import { PrismaService } from '../common/prisma.service.js';
 import { PROVIDER_REGISTRY } from '../common/tokens.js';
@@ -95,6 +95,17 @@ function lastPlayedFrom(
  * whatever the planner returns — otherwise a page can repeat or drop a game
  * as the reader pages through.
  */
+/**
+ * Which OwnershipType values count as bought outright, and which as access
+ * through a membership. UNKNOWN is in neither: it is an ownership row we
+ * could not classify, and answering "purchased" or "subscription" about it
+ * would be a guess dressed as a filter.
+ */
+const OWNERSHIP_TYPES: Record<'purchased' | 'subscription', OwnershipType[]> = {
+  purchased: ['DIGITAL', 'PHYSICAL', 'GIFT', 'MANUAL'],
+  subscription: ['SUBSCRIPTION', 'FAMILY_SHARE'],
+};
+
 export function libraryOrderBy(sort: string | undefined): Prisma.GameOrderByWithRelationInput[] {
   switch (sort) {
     case 'release':
@@ -186,7 +197,7 @@ export interface LibraryQuery {
   search?: string | undefined;
   providers?: string[] | undefined;
   statuses?: string[] | undefined;
-  /** 'owned' | 'previously-owned' | 'all' */
+  /** 'purchased' | 'subscription' | 'all' */
   ownership?: string | undefined;
   sort?: string | undefined;
   page: number;
@@ -520,15 +531,21 @@ export class LibraryService {
   private buildWhere(userId: string, query: LibraryQuery): Prisma.GameWhereInput {
     const ownershipFilter: Prisma.OwnershipWhereInput = { userId };
     if (query.providers?.length) ownershipFilter.provider = { in: query.providers };
-    if (query.ownership === 'owned') ownershipFilter.removedAt = null;
-    if (query.ownership === 'previously-owned') ownershipFilter.removedAt = { not: null };
+    // How the game came to be yours. "Purchased" is anything you hold
+    // outright; "subscription" is access that lasts as long as the
+    // membership — Game Pass, PS Plus, a family share. Either way only what
+    // is still held: a lapsed entitlement is not a way you own something.
+    if (query.ownership === 'purchased' || query.ownership === 'subscription') {
+      ownershipFilter.ownershipType = { in: OWNERSHIP_TYPES[query.ownership] };
+      ownershipFilter.removedAt = null;
+    }
 
     const where: Prisma.GameWhereInput = {
       // Merged-away duplicates must never appear in a library listing.
       mergedIntoId: null,
     };
 
-    if (query.ownership === 'owned' || query.ownership === 'previously-owned') {
+    if (query.ownership === 'purchased' || query.ownership === 'subscription') {
       // The user asked about ownership specifically, so answer about ownership.
       where.ownerships = { some: ownershipFilter };
     } else {
@@ -705,7 +722,7 @@ export class LibraryService {
     const providers = ['steam', 'xbox', 'psn'] as const;
     const statuses = ['PLAYING', 'COMPLETED', 'NOT_STARTED', 'ABANDONED'] as const;
 
-    const [providerCounts, statusCounts, owned, previouslyOwned, total] = await Promise.all([
+    const [providerCounts, statusCounts, purchased, subscription, total] = await Promise.all([
       Promise.all(
         providers.map((provider) =>
           this.prisma.client.game.count({
@@ -721,10 +738,20 @@ export class LibraryService {
       ),
       Promise.all(statuses.map((status) => count(statusPredicate(userId, [status])))),
       this.prisma.client.game.count({
-        where: { mergedIntoId: null, ownerships: { some: { userId, removedAt: null } } },
+        where: {
+          mergedIntoId: null,
+          ownerships: {
+            some: { userId, removedAt: null, ownershipType: { in: OWNERSHIP_TYPES.purchased } },
+          },
+        },
       }),
       this.prisma.client.game.count({
-        where: { mergedIntoId: null, ownerships: { some: { userId, removedAt: { not: null } } } },
+        where: {
+          mergedIntoId: null,
+          ownerships: {
+            some: { userId, removedAt: null, ownershipType: { in: OWNERSHIP_TYPES.subscription } },
+          },
+        },
       }),
       count({}),
     ]);
@@ -737,7 +764,7 @@ export class LibraryService {
       statuses: Object.fromEntries(
         statuses.map((status, index) => [status, statusCounts[index] ?? 0]),
       ),
-      ownership: { owned, previouslyOwned },
+      ownership: { purchased, subscription },
     };
   }
 
