@@ -249,8 +249,8 @@ function Figure({
 }) {
   return (
     // Ink at rest, paper under the pointer: the figure you are looking at
-    // becomes the loud one, the way the headline used to be, and the other
-    // three stay level with it until you look at them instead.
+    // becomes the loud one, and the other three stay level with it until
+    // you look at them instead.
     <div
       className="card hud-corners anim-rise stagger group relative p-5 transition-colors duration-300 hover:bg-paper sm:p-6"
       style={{ '--i': index } as React.CSSProperties}

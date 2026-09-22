@@ -100,7 +100,7 @@ export class StatsService {
       this.unlockSummary(userId),
     ]);
     const genres = await this.genreBreakdown(userId);
-    const mostPlayed = await this.mostPlayed(userId, playtime.byGame, 5);
+    const mostPlayed = await this.mostPlayed(playtime.byGame, 5);
 
     return {
       library,
@@ -898,7 +898,7 @@ export class StatsService {
     return recent.map((game) => ({ ...game, status: 'PLAYING' as const }));
   }
 
-  private async mostPlayed(userId: string, byGame: Record<string, number>, limit: number) {
+  private async mostPlayed(byGame: Record<string, number>, limit: number) {
     const topIds = Object.entries(byGame)
       .sort((a, b) => b[1] - a[1])
       .slice(0, limit)

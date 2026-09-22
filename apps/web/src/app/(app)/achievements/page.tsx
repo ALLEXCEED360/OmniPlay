@@ -190,11 +190,11 @@ export default async function AchievementsPage() {
       />
 
       {/* ── The tally: a paper strip of figures that are each a fact, not a
-          ratio over a denominator nobody chose. The old "completion rate"
-          divided by every achievement of every owned game, including the
-          ones never launched, which made a serious player look like a 9%
-          one. The total leads, split by platform beneath it so the loudest
-          number on the page also says where it came from. ── */}
+          ratio over a denominator nobody chose — a completion rate over
+          every achievement of every owned game, launched or not, makes a
+          serious player look like a 9% one. The total leads, split by
+          platform beneath it so the loudest number on the page also says
+          where it came from. ── */}
       <div className="hard-shadow anim-rise">
         <div className="paper cut grid grid-cols-2 divide-ink-950/10 sm:grid-cols-3 sm:divide-x lg:grid-cols-[1.7fr_repeat(4,minmax(0,1fr))]">
           <div className="col-span-2 px-5 py-5 sm:col-span-3 lg:col-span-1 2xl:px-6">

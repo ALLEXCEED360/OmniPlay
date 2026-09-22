@@ -1,6 +1,6 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { Queue } from 'bullmq';
-import { SYNC_QUEUE, type SyncJobPayload } from '@omniplay/types';
+import type { SyncJobPayload } from '@omniplay/types';
 import { ProviderRegistry } from '@omniplay/providers';
 import type { User } from '@omniplay/database';
 import { PrismaService } from '../common/prisma.service.js';

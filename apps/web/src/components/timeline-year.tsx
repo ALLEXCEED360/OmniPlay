@@ -132,18 +132,12 @@ export function TimelineYear({
         </dl>
       </div>
 
-      {/* The year fills the width it is given, down to a floor at which the
-          card scrolls sideways instead.
-
-          This used to be `min-w-max` around fixed 11px cells, which answered
-          the narrow case — a squashed year is unreadable — and ignored the
-          wide one. On a desktop the grid stopped at its natural 740px and left
-          a third of the card empty, so the densest thing on the page was also
-          the smallest. Cells now stretch to about 20px there.
-
-          The floor is 48rem because that is the width at which a cell is back
-          to the 11px it always was: a phone still scrolls, and scrolls through
-          exactly the calendar it had before rather than a smaller one. */}
+      {/* The year fills the width it is given — about 20px a cell on a
+          desktop — down to a floor at which the card scrolls sideways
+          instead. The floor is 48rem because that is the width at which a
+          cell is 11px, the smallest a day can be and still be read: a
+          phone scrolls through a calendar of that size rather than a
+          squashed one. */}
       <div className="card overflow-x-auto p-4">
         <div className="min-w-[48rem]">
           {/* The readout: whatever day the pointer is over, or failing that

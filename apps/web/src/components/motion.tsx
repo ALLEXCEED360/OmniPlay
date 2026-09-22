@@ -12,9 +12,8 @@ import type { CSSProperties, ReactNode } from 'react';
  * Arrivals — the page wipe, the headline, a panel rising into place —
  * are CSS keyframes wrapped in a component. A keyframe starts the moment
  * the HTML paints; anything a motion library drives waits for hydration,
- * and the first version of this file learned that the hard way: a cold dev
- * compile left every page blank for six seconds with its content parked at
- * `opacity: 0` waiting for JavaScript. Content is never held hostage to a
+ * which on a cold dev compile can be six seconds of every page blank with
+ * its content parked at `opacity: 0`. Content is never held hostage to a
  * script.
  *
  * Responses — a cover leaning into the pointer, the menu cursor sliding

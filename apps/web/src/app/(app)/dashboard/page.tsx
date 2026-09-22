@@ -15,11 +15,11 @@ import type { CSSProperties } from 'react';
  * deliberately stops there. The spec is explicit that this must not become a
  * data dump; anything exhaustive belongs on Library or Statistics.
  *
- * Rebuilt around the one thing no storefront can tell you. Four loose stat
- * cards and a bar chart said nothing a single platform could not have said
- * better about itself; what only this app knows is that Apex Legends is 633
- * hours *once PlayStation and Steam are added together*, and that a decade of
- * history moved between three platforms. Those lead now.
+ * Built around the one thing no storefront can tell you. What only this app
+ * knows is that Apex Legends is 633 hours *once PlayStation and Steam are
+ * added together*, and that a decade of history moved between three
+ * platforms. Those lead; loose stat cards a single platform could show
+ * better about itself do not.
  */
 
 interface Overview {
