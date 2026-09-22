@@ -2,6 +2,8 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { aggregatePlaytime, computeLibraryStats, type ActivityRecord } from '@omniplay/statistics';
 import { PrismaService } from '../common/prisma.service.js';
 import { fullyUnlockedGameIds } from '../common/completion.js';
+import { AchievementsService } from '../achievements/achievements.service.js';
+import { StatsService } from '../stats/stats.service.js';
 
 /**
  * Public profiles (spec 4.7).
@@ -20,9 +22,17 @@ import { fullyUnlockedGameIds } from '../common/completion.js';
  */
 @Injectable()
 export class ProfileService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly achievements: AchievementsService,
+    private readonly stats: StatsService,
+  ) {}
 
-  async publicProfile(username: string) {
+  /**
+   * `viewerId` is the signed-in reader, if any. The owner sees their own
+   * page whether or not it is public; everyone else needs the opt-in.
+   */
+  async publicProfile(username: string, viewerId: string | null = null) {
     const user = await this.prisma.client.user.findUnique({
       where: { username: username.toLowerCase() },
       select: {
@@ -38,7 +48,8 @@ export class ProfileService {
 
     // A private profile is reported as "not found" rather than "private", so
     // the endpoint cannot be used to enumerate which usernames exist.
-    if (!user || !user.profilePublic) {
+    const isOwner = user !== null && user.id === viewerId;
+    if (!user || (!user.profilePublic && !isOwner)) {
       throw new NotFoundException('Profile not found.');
     }
 
@@ -95,7 +106,29 @@ export class ProfileService {
       fullyUnlockedGames: await fullyUnlockedGameIds(this.prisma.client, user.id),
     });
 
-    const favourites = await this.topGames(playtime.byGame, 6);
+    // The trophy-room figures, the top of the genre table and the span of
+    // dated play: what makes the page a portrait rather than a count. All
+    // of it is about games, none of it about accounts, so it is as safe to
+    // publish as the totals above.
+    const [favourites, unlocks, rarest, tiers, genres, firstPlay] = await Promise.all([
+      this.topGames(playtime.byGame, 6),
+      this.stats.unlockSummary(user.id),
+      this.achievements.rarestUnlocks(user.id, 3),
+      this.achievements.trophyTiers(user.id),
+      this.stats.genreBreakdown(user.id, 12),
+      this.prisma.client.playActivity.aggregate({
+        where: { userId: user.id, startedAt: { not: null } },
+        _min: { startedAt: true },
+      }),
+    ]);
+
+    // The earliest thing that can be dated: a play session or an unlock,
+    // whichever came first. Steam dates neither, so this can be null for a
+    // library that is all Steam.
+    const dated = [firstPlay._min.startedAt, unlocks.first].filter(
+      (date): date is Date => date !== null,
+    );
+    const firstPlayedAt = dated.length > 0 ? new Date(Math.min(...dated.map((d) => d.getTime()))) : null;
 
     return {
       username: user.username,
@@ -103,13 +136,22 @@ export class ProfileService {
       avatar: user.avatar,
       bio: user.bio,
       memberSince: user.createdAt,
+      // So the owner's own view can say "only you can see this" instead of
+      // letting them believe a link would work for anyone.
+      isPublic: user.profilePublic,
+      isOwner,
       stats: {
         totalGames: library.totalGames,
         completed: library.completed,
         totalMinutes: playtime.totalMinutes,
         gamesPlayed: library.gamesPlayed,
         completionRate: library.completionRate,
+        achievementsUnlocked: unlocks.unlocked,
+        platinums: tiers.platinum,
+        firstPlayedAt,
       },
+      rarest,
+      genres,
       platforms: [...new Set(accounts.map((a) => a.provider))].map((provider) => ({
         provider,
         gameCount: library.gamesByProvider[provider] ?? 0,
