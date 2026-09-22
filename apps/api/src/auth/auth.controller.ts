@@ -3,10 +3,13 @@ import {
   Controller,
   Get,
   HttpCode,
+  HttpException,
+  NotFoundException,
   Post,
   Query,
   Req,
   Res,
+  ServiceUnavailableException,
   UseGuards,
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
@@ -77,17 +80,49 @@ export class AuthController {
   }
 
   /**
-   * Always 204, whatever happens.
+   * Says what happened, so the form can too.
    *
-   * Not laziness: telling the caller whether the address was found turns this
-   * into an oracle for which emails hold accounts here. The person who owns
-   * the inbox learns the outcome; nobody else does.
+   * 200 with `delivered` when a link was made — true if it went to the
+   * inbox, false if this instance has no mail transport and wrote it to the
+   * log instead. 404 when no account holds the address. 429 when asked too
+   * often. 503 when the mail provider would not take it, so the person is
+   * not left watching an inbox for a message that never left.
    */
   @Post('password/forgot')
-  @HttpCode(204)
+  @HttpCode(200)
   async forgotPassword(@Req() req: Request, @Body() body: unknown) {
     const { email } = zodBody(forgotSchema, body);
-    await this.auth.requestPasswordReset(email, contextOf(req));
+    const result = await this.auth.requestPasswordReset(email, contextOf(req));
+
+    switch (result.outcome) {
+      case 'no-account':
+        throw new NotFoundException(
+          'There is no OMNIPLAY account associated with that email address.',
+        );
+      case 'cooldown':
+        throw new HttpException(
+          {
+            message: `A reset link was sent to that address less than a minute ago. Check your inbox (and spam), or try again in ${result.retryInSeconds}s.`,
+            retryInSeconds: result.retryInSeconds,
+          },
+          429,
+        );
+      case 'throttled':
+        throw new HttpException(
+          {
+            message: 'Too many reset requests from this connection. Try again later.',
+            retryInSeconds: result.retryInSeconds,
+          },
+          429,
+        );
+      case 'sent':
+        if (result.delivery === 'failed') {
+          throw new ServiceUnavailableException(
+            'The reset email could not be sent right now. Nothing was sent — try again in a few minutes.',
+          );
+        }
+        return { delivered: result.delivery === 'sent' };
+    }
   }
 
   /** Consumes a reset link and signs the user straight in. */

@@ -11,7 +11,7 @@ import { slugify } from '@omniplay/game-matching';
 import { PrismaService } from '../common/prisma.service.js';
 import { CONFIG, type AppConfig } from '../common/config.js';
 import { hashPassword, verifyPassword } from './password.js';
-import { Mailer } from './mailer.js';
+import { Mailer, type Delivery } from './mailer.js';
 
 /** How long a session cookie stays valid without re-authentication. */
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
@@ -33,6 +33,25 @@ const RESET_TTL_MS = 60 * 60 * 1000;
  */
 const RESET_COOLDOWN_MS = 60 * 1000;
 const lastResetRequest = new Map<string, number>();
+
+/**
+ * How many reset requests one address (an IP) may make in a window.
+ *
+ * The endpoint says plainly when an email has no account here, because a
+ * person who has mistyped their own address deserves to be told. That makes
+ * it usable as a way to test which addresses are registered, so the tests
+ * are metered: a person needs a handful, a scan needs thousands.
+ */
+const RESET_WINDOW_MS = 15 * 60 * 1000;
+const RESET_PER_WINDOW = 10;
+const resetRequestsByIp = new Map<string, number[]>();
+
+/** The answer to a reset request, for the endpoint to say out loud. */
+export type ResetRequestOutcome =
+  | { outcome: 'sent'; delivery: Delivery }
+  | { outcome: 'no-account' }
+  | { outcome: 'cooldown'; retryInSeconds: number }
+  | { outcome: 'throttled'; retryInSeconds: number };
 
 export interface SessionContext {
   ip?: string | undefined;
@@ -100,7 +119,15 @@ export class AuthService {
     const storedHash = user?.passwordHash ?? DUMMY_HASH;
     const valid = await verifyPassword(input.password, storedHash);
 
-    if (!user || !user.passwordHash || !valid) {
+    // An account made through Google has never had a password. "Incorrect
+    // password" would send its owner round in circles; the way in is named.
+    if (user && !user.passwordHash) {
+      throw new UnauthorizedException(
+        'This account signs in with Google. Use "Continue with Google", or set a password from "Forgot password".',
+      );
+    }
+
+    if (!user || !valid) {
       throw new UnauthorizedException('Incorrect email or password.');
     }
 
@@ -112,24 +139,45 @@ export class AuthService {
   /**
    * Begin a password reset.
    *
-   * Answers the same way whether or not the address belongs to an account.
-   * The caller learns nothing: no status code, no timing worth measuring, no
-   * message. That is the whole design of this endpoint — a "no such user"
-   * response turns the reset form into a way to test which email addresses
-   * are registered here.
+   * Says what happened. An address with no account here is told so, because
+   * the person most likely to type one is the account's owner with a typo,
+   * and "check your inbox" would have them waiting on a message that can
+   * never come. The cost — that the form can be used to test which addresses
+   * are registered — is paid for with the per-address cooldown and the
+   * per-caller limit above.
    */
-  async requestPasswordReset(email: string, context: SessionContext = {}): Promise<void> {
+  async requestPasswordReset(
+    email: string,
+    context: SessionContext = {},
+  ): Promise<ResetRequestOutcome> {
     const address = email.trim().toLowerCase();
+    const now = Date.now();
 
-    const previous = lastResetRequest.get(address);
-    if (previous && Date.now() - previous < RESET_COOLDOWN_MS) return;
-    lastResetRequest.set(address, Date.now());
+    const caller = context.ip ?? 'unknown';
+    const recent = (resetRequestsByIp.get(caller) ?? []).filter((at) => now - at < RESET_WINDOW_MS);
+    if (recent.length >= RESET_PER_WINDOW) {
+      return {
+        outcome: 'throttled',
+        retryInSeconds: Math.ceil((recent[0]! + RESET_WINDOW_MS - now) / 1000),
+      };
+    }
+    resetRequestsByIp.set(caller, [...recent, now]);
 
     const user = await this.prisma.client.user.findUnique({
       where: { email: address },
       select: { id: true, email: true },
     });
-    if (!user) return;
+    if (!user) return { outcome: 'no-account' };
+
+    // The cooldown is checked after the lookup, so a stranger's guesses do
+    // not lock the owner out of asking for their own link.
+    const previous = lastResetRequest.get(address);
+    if (previous && now - previous < RESET_COOLDOWN_MS) {
+      return {
+        outcome: 'cooldown',
+        retryInSeconds: Math.ceil((previous + RESET_COOLDOWN_MS - now) / 1000),
+      };
+    }
 
     // Any link already outstanding stops working. Asking for a new one is the
     // action of someone who does not have the old one.
@@ -151,11 +199,17 @@ export class AuthService {
     });
 
     await this.audit(user.id, 'user.password_reset_requested', context);
-    await this.mailer.sendPasswordReset(
+    const delivery = await this.mailer.sendPasswordReset(
       user.email,
       `${this.config.WEB_URL}/reset-password?token=${encodeURIComponent(token)}`,
       expiresAt,
     );
+
+    // Only a message that went somewhere starts the cooldown. A failed send
+    // must be retryable at once, or the person is stuck for a minute over a
+    // fault that was never theirs.
+    if (delivery !== 'failed') lastResetRequest.set(address, now);
+    return { outcome: 'sent', delivery };
   }
 
   /**

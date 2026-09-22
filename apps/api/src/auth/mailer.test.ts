@@ -6,11 +6,9 @@ import type { AppConfig } from '../common/config.js';
 /**
  * The transport's contract.
  *
- * The property that matters most here is the one that looks like sloppiness:
- * `deliver` swallows every failure. It has to. The reset endpoint answers
- * identically whether or not an address belongs to an account, so an
- * exception escaping the mailer would let a caller time or trigger their way
- * to knowing which addresses are registered.
+ * `deliver` never throws: a failure comes back as a value, so the reset
+ * endpoint can say plainly that nothing was sent instead of surfacing a
+ * stack trace from the mail provider.
  */
 
 const config = (over: Partial<AppConfig> = {}): AppConfig =>
@@ -43,9 +41,10 @@ describe('Mailer', () => {
       const fetchSpy = vi.spyOn(globalThis, 'fetch');
       const mailer = new Mailer(config({ RESEND_API_KEY: undefined }));
 
-      await mailer.sendPasswordReset('someone@example.com', 'https://x/reset', expires());
+      const delivery = await mailer.sendPasswordReset('someone@example.com', 'https://x/reset', expires());
 
       expect(fetchSpy).not.toHaveBeenCalled();
+      expect(delivery).toBe('logged');
     });
   });
 
@@ -55,12 +54,13 @@ describe('Mailer', () => {
         new Response(JSON.stringify({ id: 'abc-123' }), { status: 200 }),
       );
 
-      await new Mailer(config()).sendPasswordReset(
+      const delivery = await new Mailer(config()).sendPasswordReset(
         'someone@example.com',
         'https://omniplay.test/reset-password?token=xyz',
         expires(),
       );
 
+      expect(delivery).toBe('sent');
       expect(fetchSpy).toHaveBeenCalledOnce();
       const [url, init] = fetchSpy.mock.calls[0]!;
       expect(url).toBe('https://api.resend.com/emails');
@@ -129,16 +129,16 @@ describe('Mailer', () => {
 
   describe('never throws, whatever Resend does', () => {
     // Each of these is a real failure an operator will hit — a wrong key, an
-    // unverified sending domain, a network fault — and none of them may reach
-    // the caller, because the caller is an endpoint that must not reveal
-    // whether the address exists.
+    // unverified sending domain, a network fault — and each comes back as
+    // 'failed' rather than as an exception, so the endpoint can say that
+    // nothing was sent.
     it('survives a rejected key', async () => {
       vi.spyOn(globalThis, 'fetch').mockResolvedValue(
         new Response(JSON.stringify({ message: 'API key is invalid' }), { status: 401 }),
       );
       await expect(
         new Mailer(config()).sendPasswordReset('a@b.com', 'https://x/r', expires()),
-      ).resolves.toBeUndefined();
+      ).resolves.toBe('failed');
     });
 
     it('survives an unverified sending domain', async () => {
@@ -147,14 +147,14 @@ describe('Mailer', () => {
       );
       await expect(
         new Mailer(config()).sendPasswordReset('a@b.com', 'https://x/r', expires()),
-      ).resolves.toBeUndefined();
+      ).resolves.toBe('failed');
     });
 
     it('survives a network failure', async () => {
       vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('ECONNREFUSED'));
       await expect(
         new Mailer(config()).sendPasswordReset('a@b.com', 'https://x/r', expires()),
-      ).resolves.toBeUndefined();
+      ).resolves.toBe('failed');
     });
 
     it('survives a body that is not JSON', async () => {
@@ -163,7 +163,7 @@ describe('Mailer', () => {
       );
       await expect(
         new Mailer(config()).sendPasswordReset('a@b.com', 'https://x/r', expires()),
-      ).resolves.toBeUndefined();
+      ).resolves.toBe('failed');
     });
 
     it('survives a 200 whose shape it does not recognise', async () => {
@@ -172,7 +172,7 @@ describe('Mailer', () => {
       );
       await expect(
         new Mailer(config()).sendPasswordReset('a@b.com', 'https://x/r', expires()),
-      ).resolves.toBeUndefined();
+      ).resolves.toBe('sent');
     });
   });
 });

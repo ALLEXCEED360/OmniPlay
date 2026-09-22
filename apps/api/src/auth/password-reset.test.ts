@@ -52,13 +52,20 @@ describe('password reset design', () => {
   });
 
   describe('what a stranger can learn', () => {
-    // Anyone can name any address at this endpoint. If the answer differed
-    // for a registered address, the form becomes a way to test which emails
-    // hold accounts here — so both cases return exactly 204 with no body.
-    it('answers identically whether or not the account exists', () => {
-      const answerFor = (_email: string) => ({ status: 204, body: undefined });
+    // The request endpoint says when an address has no account here — the
+    // likeliest person to type one is the owner with a typo — so the thing
+    // that keeps the form from becoming a scanner is the per-caller limit.
+    it('meters requests per caller, so a scan runs out long before a person does', () => {
+      const WINDOW = 15 * 60 * 1000;
+      const LIMIT = 10;
+      const now = Date.now();
+      const recent = Array.from({ length: LIMIT }, (_, i) => now - i * 1000);
 
-      expect(answerFor('someone@example.com')).toEqual(answerFor('nobody@example.com'));
+      const allowed = recent.filter((at) => now - at < WINDOW).length < LIMIT;
+      expect(allowed).toBe(false);
+
+      const aged = recent.map((at) => at - WINDOW);
+      expect(aged.filter((at) => now - at < WINDOW).length < LIMIT).toBe(true);
     });
 
     // Distinguishing "expired" from "already used" from "never existed"

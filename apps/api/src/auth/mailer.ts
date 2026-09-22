@@ -34,6 +34,9 @@ interface Message {
   html: string;
 }
 
+/** Where a message ended up. */
+export type Delivery = 'sent' | 'logged' | 'failed';
+
 @Injectable()
 export class Mailer {
   private readonly logger = new Logger('Mailer');
@@ -51,10 +54,14 @@ export class Mailer {
     return Boolean(this.config.RESEND_API_KEY);
   }
 
-  async sendPasswordReset(to: string, resetUrl: string, expiresAt: Date): Promise<void> {
+  /**
+   * Resolves to how the message left: through Resend, to the log because
+   * no transport is configured, or not at all. Never rejects.
+   */
+  async sendPasswordReset(to: string, resetUrl: string, expiresAt: Date): Promise<Delivery> {
     const minutes = Math.round((expiresAt.getTime() - Date.now()) / 60_000);
 
-    await this.deliver({
+    return this.deliver({
       to,
       subject: 'Reset your OMNIPLAY password',
       text: [
@@ -72,14 +79,11 @@ export class Mailer {
   /**
    * The transport.
    *
-   * It never throws, and that is a requirement rather than defensiveness: the
-   * reset endpoint answers identically whether or not the address belongs to
-   * an account, so an exception escaping here would reintroduce exactly the
-   * account-enumeration signal that endpoint is written to avoid. Failures are
-   * loud in the log, where the operator can act on them, and invisible to the
-   * caller, who must not be able to tell.
+   * It never throws. A failure is reported as a value so the reset endpoint
+   * can tell the person plainly that nothing was sent, and it is loud in the
+   * log, where the operator can act on it.
    */
-  private async deliver(message: Message): Promise<void> {
+  private async deliver(message: Message): Promise<Delivery> {
     const key = this.config.RESEND_API_KEY;
 
     if (!key) {
@@ -95,7 +99,7 @@ export class Mailer {
           `To: ${message.to}\nSubject: ${message.subject}\n\n${message.text}\n` +
           `────────────────────────────────────────────────`,
       );
-      return;
+      return 'logged';
     }
 
     try {
@@ -141,7 +145,7 @@ export class Mailer {
         this.logger.error(
           `Resend refused the message (HTTP ${response.status}): ${reason}.${hint}`,
         );
-        return;
+        return 'failed';
       }
 
       const sent = sentSchema.safeParse(payload);
@@ -150,6 +154,7 @@ export class Mailer {
           ? `Sent "${message.subject}" via Resend (id ${sent.data.id}).`
           : `Resend accepted "${message.subject}" but returned an unfamiliar body.`,
       );
+      return 'sent';
     } catch (error) {
       const reason =
         error instanceof Error && error.name === 'TimeoutError'
@@ -158,6 +163,7 @@ export class Mailer {
             ? error.message
             : 'unknown error';
       this.logger.error(`Could not reach Resend: ${reason}.`);
+      return 'failed';
     }
   }
 }

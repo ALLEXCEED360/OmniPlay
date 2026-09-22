@@ -74,3 +74,17 @@ export async function apiFetchOptional<T>(path: string): Promise<T | null> {
     throw error;
   }
 }
+
+/**
+ * Fetches, returning null on *any* failure — a 401, a 500, or an API that
+ * is not running. For reads the page can do without, such as which sign-in
+ * methods to offer: a sign-in screen that renders nothing because the API
+ * was slow to start helps nobody.
+ */
+export async function apiFetchOrNull<T>(path: string): Promise<T | null> {
+  try {
+    return await apiFetch<T>(path);
+  } catch {
+    return null;
+  }
+}

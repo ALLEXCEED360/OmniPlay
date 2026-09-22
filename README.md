@@ -184,30 +184,39 @@ plainly. Sign in at playstation.com, reopen
 ## Accounts
 
 Sign in with a password or with Google. Neither is required to boot: password
-sign-in always works, and the Google button renders only when the instance has
+sign-in always works, and the Google button is live only when the instance has
 credentials for it — the sign-in page asks the API what it supports rather than
-assuming, so an unconfigured instance shows no button instead of one that dead
-ends.
+assuming, so an unconfigured instance shows the button greyed with a note
+instead of one that dead-ends after a round trip to Google.
 
 | | What you need | Without it |
 |---|---|---|
 | **Password** | Nothing | — |
-| **Google** | OAuth client from [Google Cloud](https://console.cloud.google.com) → `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`, with `<API_URL>/auth/google/callback` as an authorised redirect URI | Button is hidden |
+| **Google** | OAuth client from [Google Cloud](https://console.cloud.google.com) → `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`, with `<API_URL>/auth/google/callback` as an authorised redirect URI | Button is greyed out |
 | **Email** *(password reset)* | [Resend](https://resend.com) key → `RESEND_API_KEY`, and `MAIL_FROM` on a domain you have verified | Reset links go to the API log, and the reset screen says so |
 
 Google accounts are matched on Google's `sub`, never on the email address: an
 address can be reassigned, and treating it as identity would hand the new owner
 someone else's account. An address Google will not vouch for
 (`email_verified: false`) is used for nothing — neither linking to an existing
-account nor opening a new one.
+account nor opening a new one. An account opened through Google has no
+password; trying to sign in with one says so and points at the Google button,
+or at the reset flow, which sets a password for it.
 
 ### Password reset
 
 Reset links are single use, expire in an hour, and destroy every other session
 when consumed — if the reset happened because someone else had the password,
-leaving their session alive defeats the point. The endpoint answers identically
-whether or not the address has an account, so it cannot be used to test which
-emails are registered.
+leaving their session alive defeats the point.
+
+The request form says what happened: a link on its way (to the address, named),
+no account under that address, asked again within a minute, or a mail provider
+that would not take the message — in which case nothing was sent and it says
+so, rather than leaving someone watching an inbox. Telling a person their
+address has no account here is a deliberate trade: it also lets a stranger test
+addresses, so requests are metered per caller (ten in fifteen minutes) and per
+address (one a minute), and the reset link itself gives one message for every
+kind of bad token.
 
 **Mail is the part that needs attention.** Resend's default sender,
 `onboarding@resend.dev`, only delivers to the address that owns the Resend
