@@ -3,6 +3,7 @@
 import { usePathname } from 'next/navigation';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { useEffect, useRef, useSyncExternalStore, type CSSProperties } from 'react';
+import { motionEnabled } from '@/lib/preferences';
 
 /**
  * The curtain: the big transition between screens, and the thing that
@@ -22,10 +23,11 @@ import { useEffect, useRef, useSyncExternalStore, type CSSProperties } from 'rea
  * navigation never happens it reveals anyway after a few seconds, so a
  * failed push cannot leave the app under the ink.
  *
- * The timing is the one Metaphor: ReFantazio uses between its screens —
- * a cover you can feel, a hold long enough to read the word, a reveal
- * that trails. It is slow on purpose. A transition that is over before
- * the eye has settled reads as a glitch, not a cut.
+ * The timing is a cover you can feel, a hold long enough to read the
+ * word, and a reveal that trails — kept just above the threshold where a
+ * cut reads as a glitch rather than a transition. Switching animation off
+ * in Settings skips the whole thing: `raiseCurtain` becomes a no-op and
+ * `curtainDelay()` returns zero, so navigation is immediate.
  */
 
 interface CurtainState {
@@ -44,10 +46,23 @@ function set(next: CurtainState | null) {
   for (const listener of listeners) listener();
 }
 
-/** Bring the curtain down, with the name of where we are going. */
+/**
+ * Bring the curtain down, with the name of where we are going.
+ *
+ * Does nothing when the reader has switched animation off: pair it with
+ * `curtainDelay()`, which is then zero, and the navigation happens at once.
+ */
 export function raiseCurtain(word = ''): void {
-  if (state) return;
+  if (state || !motionEnabled()) return;
   set({ word, phase: 'cover', since: Date.now() });
+}
+
+/**
+ * How long to wait before navigating, so the screen is covered first.
+ * Zero when animation is off or reduced — there is nothing to wait for.
+ */
+export function curtainDelay(reduced?: boolean | null): number {
+  return reduced || !motionEnabled() ? 0 : CURTAIN_UP_MS;
 }
 
 function subscribe(listener: Listener) {
@@ -59,10 +74,10 @@ const getSnapshot = () => state;
 const getServerSnapshot = () => null;
 
 /** The slabs take this long to cover the screen; navigate after it. */
-export const CURTAIN_UP_MS = 480;
+export const CURTAIN_UP_MS = 320;
 /** How long the ink holds with the word up before revealing. */
-const HOLD_MS = 420;
-const REVEAL_MS = 560;
+const HOLD_MS = 240;
+const REVEAL_MS = 380;
 const MAX_MS = 5000;
 
 const EASE = [0.76, 0, 0.18, 1] as const;
@@ -150,8 +165,8 @@ export function Curtain() {
                 cover ? { opacity: 1, x: 0, scaleX: 1.32 } : { opacity: 0, x: 160, scaleX: 1.5 }
               }
               transition={{
-                duration: cover ? d(0.4) : d(0.28),
-                delay: cover ? d(0.34) : 0,
+                duration: cover ? d(0.26) : d(0.2),
+                delay: cover ? d(0.2) : 0,
                 ease: [0.16, 1, 0.3, 1],
               }}
             >

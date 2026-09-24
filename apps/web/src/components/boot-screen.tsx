@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { motion, useReducedMotion } from 'motion/react';
 import { useEffect, useState } from 'react';
 import { Backdrop } from '@/components/backdrop';
-import { CURTAIN_UP_MS, raiseCurtain } from '@/components/curtain';
+import { curtainDelay, raiseCurtain } from '@/components/curtain';
 
 /**
  * The title screen.
@@ -72,7 +72,7 @@ export function BootScreen({
       // The curtain comes down and stays down until the menu has mounted
       // and painted, which is the cut a game makes between title and menu.
       raiseCurtain('Menu');
-      window.setTimeout(() => router.push(next), reduced ? 0 : CURTAIN_UP_MS);
+      window.setTimeout(() => router.push(next), curtainDelay(reduced));
     };
     const onKey = (event: KeyboardEvent) => {
       if (event.metaKey || event.ctrlKey || event.altKey) return;

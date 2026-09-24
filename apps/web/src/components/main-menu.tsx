@@ -6,7 +6,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Backdrop } from '@/components/backdrop';
 import { Wordmark } from '@/components/wordmark';
 import { requestSignOut } from '@/components/sign-out';
-import { CURTAIN_UP_MS, raiseCurtain } from '@/components/curtain';
+import { curtainDelay, raiseCurtain } from '@/components/curtain';
 
 /**
  * The main menu: a hand of cards.
@@ -84,7 +84,7 @@ export function MainMenu({ entries, name }: { entries: MenuEntry[]; name: string
       // painted (see curtain.tsx); the chosen card dives forward under it
       // while the rest fall away.
       raiseCurtain(word);
-      window.setTimeout(go, reduced ? 0 : CURTAIN_UP_MS);
+      window.setTimeout(go, curtainDelay(reduced));
     },
     [leaving, reduced],
   );

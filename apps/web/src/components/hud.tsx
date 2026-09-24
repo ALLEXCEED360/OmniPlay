@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Wordmark } from '@/components/wordmark';
-import { CURTAIN_UP_MS, raiseCurtain } from '@/components/curtain';
+import { curtainDelay, raiseCurtain } from '@/components/curtain';
 import { requestSignOut } from '@/components/sign-out';
 
 /**
@@ -33,7 +33,7 @@ export function Hud({
     if (busy) return;
     setBusy(true);
     raiseCurtain('Menu');
-    window.setTimeout(() => router.push('/menu'), CURTAIN_UP_MS);
+    window.setTimeout(() => router.push('/menu'), curtainDelay());
   };
 
   useEffect(() => {
@@ -58,7 +58,7 @@ export function Hud({
     window.setTimeout(() => {
       router.refresh();
       router.push('/login');
-    }, CURTAIN_UP_MS);
+    }, curtainDelay());
   };
 
   return (

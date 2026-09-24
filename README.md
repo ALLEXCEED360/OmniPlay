@@ -332,20 +332,28 @@ in. A page's header carries the same key art its menu card does.
 Leaving the title or the menu plays the curtain (`components/curtain.tsx`, in
 the root layout): three slanted slabs — paper, gold, ink — tear across the
 screen, the name of where you are going slams in while the ink holds, and the
-slabs leave the other way once the next screen has mounted and painted. It is
-the transition Metaphor: ReFantazio uses between its screens, and it is slow on
-purpose; a page that takes a moment to load arrives behind it rather than
-popping in half-built.
+slabs leave the other way once the next screen has mounted and painted. A page
+that takes a moment to load arrives behind it rather than popping in
+half-built.
 
 On a device with a mouse the pointer is the app's own (`components/cursor.tsx`):
 a gold arrowhead that grows and lights over anything you can act on, becomes a
 reticle while pressed, and leaves a faint trail of sparks. Touch screens keep
 their nothing; reduced-motion keeps the arrowhead and drops the sparks.
 
-Arrival animations (the wipe, headlines, sections revealing on scroll) are CSS,
-so they start the moment the HTML paints; `motion` is used only for what CSS
+Arrival animations (the wipe, headlines, panels rising into place) are CSS, so
+they start the moment the HTML paints; `motion` is used only for what CSS
 cannot do — springs on hover, the menu cursor sliding between rows, the mobile
 sheet's exit. Everything honours `prefers-reduced-motion`.
+
+Both are settings. **Settings → Interface** switches animation off entirely —
+the curtain is skipped, navigation is immediate, and content arrives already in
+place — and hands the pointer back to the system. They are per device rather
+than per account (`lib/preferences.ts`): the same person may want the full
+treatment on a desktop and none of it on a laptop. The choice is stored in
+`localStorage` and applied by a script in the document head before the first
+paint, so the first frame never animates against the setting. A system
+`prefers-reduced-motion` still wins over both.
 
 ### Three ideas the rest follows from
 

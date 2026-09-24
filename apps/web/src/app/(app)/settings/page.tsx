@@ -3,6 +3,7 @@ import { formatRelative } from '@/lib/format';
 import { PageHeader, SectionHeading } from '@/components/ui';
 import { ProviderCard } from '@/components/provider-card';
 import { ProfileSettings } from '@/components/profile-settings';
+import { InterfaceSettings } from '@/components/interface-settings';
 import { platformStyle } from '@/lib/platform';
 import type { CSSProperties } from 'react';
 
@@ -117,6 +118,11 @@ export default async function SettingsPage({
       <section className="anim-rise mt-10">
         <SectionHeading>Your public profile</SectionHeading>
         <ProfileSettings user={me.user} />
+      </section>
+
+      <section className="anim-rise mt-10">
+        <SectionHeading>Interface</SectionHeading>
+        <InterfaceSettings />
       </section>
 
       <section className="anim-rise mt-10">

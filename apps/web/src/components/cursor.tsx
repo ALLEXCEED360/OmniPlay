@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { usePreferences } from '@/lib/preferences';
 
 /**
  * The cursor: a gold arrowhead that becomes a reticle when pressed, with a
@@ -8,8 +9,9 @@ import { useEffect, useRef } from 'react';
  *
  * Mounted once in the root layout. It only takes over from the system
  * cursor where there is one — a touch screen has no pointer to replace —
- * and it draws nothing for anyone who has asked for reduced motion, who
- * gets the arrowhead alone.
+ * it draws nothing for anyone who has asked for reduced motion, who gets
+ * the arrowhead alone, and it hands the pointer back entirely to anyone
+ * who chooses the system cursor in Settings.
  *
  * Everything runs off the DOM: the arrowhead is moved by writing its
  * transform on every pointer event (no React state, no re-render), and the
@@ -38,11 +40,15 @@ interface Spark {
 export function Cursor() {
   const arrowRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const { cursor, motion } = usePreferences();
+  const custom = cursor === 'custom';
 
   useEffect(() => {
-    // No pointer to replace, nothing to do.
+    // Handed back to the system by choice, or no pointer to replace.
+    if (!custom) return;
     if (!window.matchMedia('(pointer: fine)').matches) return;
-    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    // Sparks are decoration; they go with the rest of the animation.
+    const reduced = !motion || window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     const arrow = arrowRef.current;
     const canvas = canvasRef.current;
@@ -163,7 +169,11 @@ export function Cursor() {
       document.documentElement.removeEventListener('mouseleave', onLeave);
       cancelAnimationFrame(frame);
     };
-  }, []);
+  }, [custom, motion]);
+
+  // Nothing rendered at all on the system setting: an empty canvas and a
+  // parked arrowhead are two layers the compositor carries for nothing.
+  if (!custom) return null;
 
   return (
     <>
