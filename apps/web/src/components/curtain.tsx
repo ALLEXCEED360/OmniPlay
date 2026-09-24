@@ -25,9 +25,14 @@ import { motionEnabled } from '@/lib/preferences';
  *
  * The timing is a cover you can feel, a hold long enough to read the
  * word, and a reveal that trails — kept just above the threshold where a
- * cut reads as a glitch rather than a transition. Switching animation off
- * in Settings skips the whole thing: `raiseCurtain` becomes a no-op and
- * `curtainDelay()` returns zero, so navigation is immediate.
+ * cut reads as a glitch rather than a transition. It is quicker than the
+ * rest of the app's motion on purpose: this one plays between the title,
+ * the menu and the screen you opened from it, which is a route people
+ * take constantly, while an ordinary navigation keeps the slower arrival.
+ *
+ * Switching animation off in Settings skips the whole thing:
+ * `raiseCurtain` becomes a no-op and `curtainDelay()` returns zero, so
+ * navigation is immediate.
  */
 
 interface CurtainState {

@@ -231,8 +231,10 @@ column.
 Signing in lands on a title screen (`/boot`, above), which leads to a main menu
 of nine cards — one per screen, each with its own art. There is no sidebar:
 the menu is the navigation, and every page wears one thin bar with a way back
-to it. Screens change behind a curtain, and on a device with a mouse the
-pointer is the app's own gold arrowhead.
+to it. That route — title, menu, screen — changes behind a curtain, kept
+quicker than the rest of the app's motion because it is the one people take
+constantly; an ordinary navigation keeps the slower arrival. On a device with
+a mouse the pointer is the app's own gold arrowhead.
 
 Both are settings. **Settings → Interface** switches animation off entirely and
 hands the pointer back to the system. They are per device rather than per
